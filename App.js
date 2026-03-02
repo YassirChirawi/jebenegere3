@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Audio } from 'expo-av';
 import { AppState } from 'react-native';
 
@@ -72,22 +73,24 @@ export default function App() {
   return (
     <View style={styles.appContainer}>
       <View style={styles.mobileContainer}>
-        <NavigationContainer>
-          <StatusBar style="light" />
-          <Stack.Navigator
-            initialRouteName="Home"
-            screenOptions={{
-              headerStyle: { backgroundColor: '#1C0F13' },
-              headerTintColor: '#D4AF37',
-              headerTitleStyle: { fontWeight: 'bold' },
-            }}
-          >
-            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3' }} />
-            <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé' }} />
-            <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Partie en cours', headerShown: false }} />
-            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
-          </Stack.Navigator>
-        </NavigationContainer>
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <NavigationContainer>
+            <StatusBar style="light" />
+            <Stack.Navigator
+              initialRouteName="Home"
+              screenOptions={{
+                headerStyle: { backgroundColor: '#1C0F13' },
+                headerTintColor: '#D4AF37',
+                headerTitleStyle: { fontWeight: 'bold' },
+              }}
+            >
+              <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3' }} />
+              <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé' }} />
+              <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Partie en cours', headerShown: false }} />
+              <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </GestureHandlerRootView>
       </View>
     </View>
   );

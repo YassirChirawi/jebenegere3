@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ImageBackground, Image, TextInput } from 'react-native';
 import Animated, { LinearTransition, FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
 import Card from '../components/Card';
+import MasterCard from '../components/MasterCard';
 import PlayerAvatar from '../components/PlayerAvatar';
 import CircularTimer from '../components/CircularTimer';
 import socketService from '../network/socketService';
@@ -478,20 +479,21 @@ export default function GameScreen({ route, navigation }) {
                             <Text style={[styles.playerName, gameState.turn === localPlayerIndex && styles.activePlayer, { fontSize: 18 }]}>Vous</Text>
                             {gameState.turn === localPlayerIndex && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={[styles.mintIcon, { width: 34, height: 34 }]} />}
                         </View>
-                        <Animated.ScrollView horizontal style={styles.handScroll} contentContainerStyle={styles.handContainer} layout={LinearTransition.springify().damping(14)}>
+                        <View style={styles.masterHandContainer}>
                             {localPlayerIndex !== -1 && gameState.hands[localPlayerIndex].map((card, idx) => {
                                 const isPlayable = gameState.turn === localPlayerIndex && canPlayCardLocal(card, gameState);
                                 return (
-                                    <Animated.View key={`player-${card.id}`} entering={isInitialDeal ? FadeInUp.delay(idx * 150).springify() : undefined} style={{ marginHorizontal: -5 }}>
-                                        <Card
-                                            card={card}
-                                            onPress={() => handlePlayerPlayCard(idx)}
-                                            disabled={!isPlayable && gameState.turn === localPlayerIndex}
-                                        />
-                                    </Animated.View>
+                                    <MasterCard
+                                        key={card.id}
+                                        card={card}
+                                        isPlayable={isPlayable}
+                                        onPlay={() => handlePlayerPlayCard(idx)}
+                                        index={idx}
+                                        totalCards={gameState.hands[localPlayerIndex].length}
+                                    />
                                 );
                             })}
-                        </Animated.ScrollView>
+                        </View>
                     </>
                 )}
             </View>
@@ -787,6 +789,14 @@ const styles = StyleSheet.create({
     handContainer: {
         paddingHorizontal: 20,
         alignItems: 'center',
+    },
+    masterHandContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: '100%',
+        height: 120,
+        paddingHorizontal: 10,
     },
     overrideText: {
         color: '#FCD34D',
