@@ -1,7 +1,7 @@
 import { io } from 'socket.io-client';
 
 // Replace with the computer's actual local IPv4 address so your phone can reach it on the Wi-Fi
-const SOCKET_URL = 'http://10.129.255.206:3000'; // Was localhost, breaking Expo Go on mobile
+const SOCKET_URL = 'https://jebenegere3.onrender.com/'; // Production backend on render.com
 
 class SocketService {
     socket;
