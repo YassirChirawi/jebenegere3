@@ -11,6 +11,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 
 const Stack = createNativeStackNavigator();
 
+import { View, StyleSheet, Platform, Dimensions } from 'react-native';
+
 export default function App() {
   const [sound, setSound] = useState(null);
 
@@ -46,21 +48,50 @@ export default function App() {
   }, []);
 
   return (
-    <NavigationContainer>
-      <StatusBar style="light" />
-      <Stack.Navigator
-        initialRouteName="Home"
-        screenOptions={{
-          headerStyle: { backgroundColor: '#1C0F13' },
-          headerTintColor: '#D4AF37',
-          headerTitleStyle: { fontWeight: 'bold' },
-        }}
-      >
-        <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3' }} />
-        <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé' }} />
-        <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Partie en cours', headerShown: false }} />
-        <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <View style={styles.appContainer}>
+      <View style={styles.mobileContainer}>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <Stack.Navigator
+            initialRouteName="Home"
+            screenOptions={{
+              headerStyle: { backgroundColor: '#1C0F13' },
+              headerTintColor: '#D4AF37',
+              headerTitleStyle: { fontWeight: 'bold' },
+            }}
+          >
+            <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3' }} />
+            <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé' }} />
+            <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Partie en cours', headerShown: false }} />
+            <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
+          </Stack.Navigator>
+        </NavigationContainer>
+      </View>
+    </View>
   );
 }
+
+const styles = StyleSheet.create({
+  appContainer: {
+    flex: 1,
+    backgroundColor: '#000', // Black background for the outer web area
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mobileContainer: {
+    flex: 1,
+    width: '100%',
+    maxWidth: 500, // Typical phone width
+    maxHeight: Platform.OS === 'web' ? 900 : '100%', // Limit height on web
+    backgroundColor: '#1C0F13',
+    ...Platform.select({
+      web: {
+        borderWidth: 1,
+        borderColor: '#D4AF37',
+        borderRadius: 20,
+        overflow: 'hidden',
+        boxShadow: '0 0 20px rgba(212, 175, 55, 0.3)',
+      }
+    })
+  }
+});
