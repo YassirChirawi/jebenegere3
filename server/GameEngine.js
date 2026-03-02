@@ -50,7 +50,8 @@ function initializeGame(numPlayers = 2, previousScores = null) {
         mancheTerminee: false,
         loserIndex: null,
         scores: previousScores || Array(numPlayers).fill(0), // Keep existing scores or init to 0
-        log: ['Jeu commencé.']
+        log: ['Jeu commencé.'],
+        pendingAction: null // Gère les pénalités temporaires, ex: 'skip_response'
     };
 }
 
@@ -70,6 +71,10 @@ function nextActiveTurn(currentIndex, hands, finishedPlayers) {
 
 function canPlayCard(cardToPlay, state) {
     const currentMiddleCard = state.middlePile[state.middlePile.length - 1];
+
+    if (state.pendingAction && state.pendingAction.type === 'skip_response') {
+        return cardToPlay.value === 1;
+    }
 
     // Sous pénalité +2, seul un autre 2 peut être joué pour surenchérir
     if (state.drawPenalty > 0) {
@@ -144,6 +149,7 @@ function playCard(state, playerIndex, cardIndex, newSuitFor7 = null) {
             newState.log.push(`💀 ${loserIndex} est le Grand Perdant (Khasser) !`);
         } else {
             // La partie continue, c'est au joueur suivant (actif) de jouer
+            if (state.pendingAction) newState.pendingAction = null; // Clear if somehow exists
             newState.turn = nextActiveTurn(playerIndex, newState.hands, newState.finishedPlayers);
         }
 
@@ -154,10 +160,21 @@ function playCard(state, playerIndex, cardIndex, newSuitFor7 = null) {
     let nextTurnOffset = 1;
 
     if (card.value === 1) {
-        newState.log.push('Le prochain joueur saute son tour !');
-        // Sauter le prochain joueur actif
-        const skipped = nextActiveTurn(playerIndex, newState.hands, newState.finishedPlayers);
-        newState.turn = nextActiveTurn(skipped, newState.hands, newState.finishedPlayers);
+        let currentAmount = 1;
+        if (state.pendingAction && state.pendingAction.type === 'skip_response') {
+            currentAmount = state.pendingAction.amount + 1;
+        }
+
+        const target = nextActiveTurn(playerIndex, newState.hands, newState.finishedPlayers);
+
+        newState.pendingAction = {
+            type: 'skip_response',
+            target: target,
+            amount: currentAmount
+        };
+
+        newState.log.push(`Attention! Joueur ${target} a 3s pour jouer un 1, sinon il saute ${currentAmount} tour(s).`);
+        newState.turn = target; // Le tour passe à la cible pour qu'elle puisse se défendre
         return newState;
     } else if (card.value === 2) {
         newState.drawPenalty += 2;
@@ -180,6 +197,7 @@ function playCard(state, playerIndex, cardIndex, newSuitFor7 = null) {
 function drawCards(state, playerIndex) {
     if (state.turn !== playerIndex || state.mancheTerminee) return state;
     if (state.finishedPlayers.includes(playerIndex)) return state;
+    if (state.pendingAction && state.pendingAction.type === 'skip_response') return state; // Impossible de piocher pour fuir
 
     const newState = { ...state };
     newState.hands = state.hands.map(hand => [...hand]);
@@ -214,6 +232,28 @@ function drawCards(state, playerIndex) {
     return newState;
 }
 
+function applyPendingAction(state) {
+    if (!state.pendingAction) return state;
+
+    const newState = { ...state };
+    newState.log = [...state.log];
+
+    if (newState.pendingAction.type === 'skip_response') {
+        const { target, amount } = newState.pendingAction;
+        newState.log.push(`Pas de réponse ! Le Joueur ${target} saute ${amount} tour(s).`);
+
+        // Sauter 'amount' tours à partir de target
+        let nextTurn = target;
+        for (let i = 0; i < amount; i++) {
+            nextTurn = nextActiveTurn(nextTurn, newState.hands, newState.finishedPlayers);
+        }
+        newState.turn = nextTurn;
+    }
+
+    newState.pendingAction = null;
+    return newState;
+}
+
 module.exports = {
     SUITS,
     VALUES,
@@ -222,5 +262,6 @@ module.exports = {
     initializeGame,
     canPlayCard,
     playCard,
-    drawCards
+    drawCards,
+    applyPendingAction
 };

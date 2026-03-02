@@ -53,6 +53,15 @@ export default function GameScreen({ route, navigation }) {
             setGameState(newState);
         });
 
+        socketService.onGameStarted((newState) => {
+            setGameState(newState);
+            setIsInitialDeal(true);
+            const timer = setTimeout(() => {
+                setIsInitialDeal(false);
+            }, 2500);
+            return () => clearTimeout(timer);
+        });
+
         socketService.onTimerTick((data) => {
             setTimeLeft(data.timeLeft);
         });
@@ -210,6 +219,9 @@ export default function GameScreen({ route, navigation }) {
     // Helper: Local logic for playable check just for UI opacity (server re-validates)
     const canPlayCardLocal = (card, state) => {
         const currentMiddleCard = state.middlePile[state.middlePile.length - 1];
+        if (state.pendingAction && state.pendingAction.type === 'skip_response') {
+            return card.value === 1;
+        }
         if (state.drawPenalty > 0) return card.value === 2;
         if (state.activeSuitOverride) return card.suit === state.activeSuitOverride || card.value === 7;
         return card.suit === currentMiddleCard.suit || card.value === currentMiddleCard.value;
@@ -242,6 +254,7 @@ export default function GameScreen({ route, navigation }) {
 
     const handlePlayerDraw = () => {
         if (gameState.turn !== localPlayerIndex || isSpectator) return;
+        if (gameState.pendingAction) return; // Cannot draw during penalty response
         socketService.drawCard(roomId);
     };
 
@@ -415,11 +428,17 @@ export default function GameScreen({ route, navigation }) {
                             </View>
                         ) : (
                             <>
-                                <Text style={styles.turnText}>
-                                    Tour de : {gameState.turn === localPlayerIndex ? 'VOUS' : gameState?.players?.[gameState.turn]?.name}
-                                </Text>
+                                {gameState.pendingAction && gameState.pendingAction.type === 'skip_response' ? (
+                                    <Text style={[styles.turnText, { color: '#EF4444', textShadowColor: '#000', textShadowRadius: 2, fontSize: 16 }]}>
+                                        {gameState.turn === localPlayerIndex ? `VITE ! JOUEZ UN 1 POUR VOUS DÉFENDRE !` : `${gameState?.players?.[gameState.turn]?.name} sous attaque !`}
+                                    </Text>
+                                ) : (
+                                    <Text style={styles.turnText}>
+                                        Tour de : {gameState.turn === localPlayerIndex ? 'VOUS' : gameState?.players?.[gameState.turn]?.name}
+                                    </Text>
+                                )}
                                 <View style={{ marginTop: 5 }}>
-                                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={50} />
+                                    <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 3 : 15} size={50} />
                                 </View>
                             </>
                         )}

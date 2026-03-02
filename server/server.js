@@ -16,7 +16,7 @@ const io = new Server(server, {
     }
 });
 
-const { initializeGame, playCard, drawCards } = require('./GameEngine');
+const { initializeGame, playCard, drawCards, canPlayCard, applyPendingAction } = require('./GameEngine');
 
 // === STATE DE L'APPLICATION === 
 // Structure d'une room : { id: string, hostId: string, activePlayers: [{id, name}], spectators: [{id, name}], gameState: object | null }
@@ -110,7 +110,7 @@ function resetTimer(roomId) {
         return; // Ne pas démarrer de timer si le jeu est fini
     }
 
-    room.timeLeft = 15;
+    room.timeLeft = (room.gameState && room.gameState.pendingAction) ? 3 : 15;
     io.to(roomId).emit('timer_tick', { timeLeft: room.timeLeft });
 
     room.timerInterval = setInterval(() => {
@@ -121,9 +121,16 @@ function resetTimer(roomId) {
             clearInterval(room.timerInterval);
 
             if (room.gameState) {
-                const turnIndex = room.gameState.turn;
-                console.log(`[Room ${roomId}] Temps écoulé pour le joueur ${turnIndex}. Pioche forcée.`);
-                processDrawCard(roomId, turnIndex);
+                if (room.gameState.pendingAction) {
+                    // Délai de 3s écoulé sans réponse
+                    room.gameState = applyPendingAction(room.gameState);
+                    io.to(roomId).emit('game_state_update', room.gameState);
+                    resetTimer(roomId);
+                } else {
+                    const turnIndex = room.gameState.turn;
+                    console.log(`[Room ${roomId}] Temps écoulé pour le joueur ${turnIndex}. Pioche forcée.`);
+                    processDrawCard(roomId, turnIndex);
+                }
             }
         }
     }, 1000);
@@ -134,6 +141,7 @@ function resetTimer(roomId) {
         const player = room.activePlayers[turnIndex];
 
         if (player && player.isBot) {
+            const timeoutDelay = (room.gameState && room.gameState.pendingAction) ? 1500 : 2500;
             setTimeout(() => {
                 // S'assurer que le jeu n'est pas terminé et que c'est toujours à son tour
                 const currentState = rooms[roomId]?.gameState;
@@ -143,18 +151,9 @@ function resetTimer(roomId) {
 
                 const hand = currentState.hands[turnIndex];
 
-                // Logique du bot : trouver la première carte jouable
-                const botCanPlay = (card) => {
-                    if (currentState.drawPenalty > 0) return card.value === 2;
-                    if (card.value === 7) return true; // Le 7 est toujours jouable
-                    if (currentState.activeSuitOverride) return card.suit === currentState.activeSuitOverride;
-                    const topCard = currentState.middlePile[currentState.middlePile.length - 1];
-                    return card.suit === topCard.suit || card.value === topCard.value;
-                };
-
                 let cardToPlayIndex = -1;
                 for (let i = 0; i < hand.length; i++) {
-                    if (botCanPlay(hand[i])) {
+                    if (canPlayCard(hand[i], currentState)) {
                         cardToPlayIndex = i;
                         break;
                     }
@@ -166,9 +165,11 @@ function resetTimer(roomId) {
                     const newSuit = card.value === 7 ? suits[Math.floor(Math.random() * suits.length)] : null;
                     processPlayCard(roomId, turnIndex, cardToPlayIndex, newSuit);
                 } else {
-                    processDrawCard(roomId, turnIndex);
+                    if (!currentState.pendingAction) {
+                        processDrawCard(roomId, turnIndex);
+                    }
                 }
-            }, 2500); // Le bot réfléchit 2.5 secondes
+            }, timeoutDelay); // Le bot réfléchit plus vite s'il est attaqué
         }
     }
 }
