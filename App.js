@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Audio } from 'expo-av';
+import { AppState } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import LobbyScreen from './src/screens/LobbyScreen';
@@ -15,6 +16,7 @@ import { View, StyleSheet, Platform, Dimensions } from 'react-native';
 
 export default function App() {
   const [sound, setSound] = useState(null);
+  const appState = useRef(AppState.currentState);
 
   useEffect(() => {
     let currentSound = null;
@@ -23,7 +25,7 @@ export default function App() {
       try {
         await Audio.setAudioModeAsync({
           playsInSilentModeIOS: true,
-          staysActiveInBackground: true,
+          staysActiveInBackground: false, // Don't enforce playing in background
           shouldDuckAndroid: true,
         });
 
@@ -40,7 +42,27 @@ export default function App() {
 
     playBackgroundMusic();
 
+    // AppState listener to handle background / foreground transitions
+    const subscription = AppState.addEventListener('change', nextAppState => {
+      if (
+        appState.current.match(/inactive|background/) &&
+        nextAppState === 'active'
+      ) {
+        // App has come to the foreground, resume music
+        if (currentSound) {
+          currentSound.playAsync();
+        }
+      } else if (nextAppState.match(/inactive|background/)) {
+        // App went to the background, pause music
+        if (currentSound) {
+          currentSound.pauseAsync();
+        }
+      }
+      appState.current = nextAppState;
+    });
+
     return () => {
+      subscription.remove();
       if (currentSound) {
         currentSound.unloadAsync();
       }
