@@ -42,6 +42,10 @@ class SocketService {
         this.socket.emit('start_game', { roomId });
     }
 
+    playAgain(roomId) {
+        this.socket.emit('play_again', { roomId });
+    }
+
     playCard(roomId, cardIndex, newSuitFor7) {
         this.socket.emit('play_card', { roomId, cardIndex, newSuitFor7 });
     }

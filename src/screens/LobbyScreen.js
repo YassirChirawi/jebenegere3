@@ -15,7 +15,7 @@ export default function LobbyScreen({ route, navigation }) {
         });
 
         socketService.onGameStarted((gameState) => {
-            navigation.replace('Game', { roomId, playerName, initialGameState: gameState });
+            navigation.replace('Game', { roomId, playerName, initialGameState: gameState, isHost });
         });
 
         socketService.onGameError((error) => {

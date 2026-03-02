@@ -311,6 +311,34 @@ io.on('connection', (socket) => {
         resetTimer(roomId);
     });
 
+    // --- REJOUER LA MANCHE ---
+    socket.on('play_again', (data) => {
+        const { roomId } = data;
+        const room = rooms[roomId];
+        if (!room || !room.gameState) return;
+
+        // Seul l'hôte peut relancer la partie
+        if (room.hostId !== socket.id) return;
+
+        const numPlayers = room.activePlayers.length;
+        if (numPlayers < 2) {
+            socket.emit('game_error', { message: "Il faut au moins 2 joueurs actifs pour rejouer." });
+            return;
+        }
+
+        // Récupérer les anciens scores pour ne pas les perdre
+        const previousScores = room.gameState.scores;
+
+        // Relancer une nouvelle partie avec les anciens scores
+        room.gameState = initializeGame(numPlayers, previousScores);
+        room.gameState.players = room.activePlayers;
+
+        io.to(roomId).emit('game_started', room.gameState);
+        broadcastRoomUpdate(roomId, room);
+
+        resetTimer(roomId);
+    });
+
     // Jouer une carte
     socket.on('play_card', (data) => {
         const { roomId, cardIndex, newSuitFor7 } = data;

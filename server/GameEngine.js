@@ -20,7 +20,7 @@ function shuffleDeck(deck) {
     return shuffled;
 }
 
-function initializeGame(numPlayers = 2) {
+function initializeGame(numPlayers = 2, previousScores = null) {
     let deck = shuffleDeck(generateDeck());
     const hands = Array(numPlayers).fill([]).map(() => []);
 
@@ -49,6 +49,7 @@ function initializeGame(numPlayers = 2) {
         activeSuitOverride: null,
         mancheTerminee: false,
         loserIndex: null,
+        scores: previousScores || Array(numPlayers).fill(0), // Keep existing scores or init to 0
         log: ['Jeu commencé.']
     };
 }
@@ -123,6 +124,23 @@ function playCard(state, playerIndex, cardIndex, newSuitFor7 = null) {
             const loserIndex = newState.hands.findIndex((h, i) => !newState.finishedPlayers.includes(i));
             newState.mancheTerminee = true;
             newState.loserIndex = loserIndex;
+
+            // --- CALCUL DES SCORES ---
+            // Le joueur arrivé 1er (index 0 dans finishedPlayers) gagne N points
+            // Le joueur arrivé 2ème gagne N-1 points, etc.
+            // Le perdant gagne 0 point ou -1.
+            const totalPlayers = newState.hands.length;
+            newState.finishedPlayers.forEach((playerIdx, orderFinish) => {
+                // Points = totalPlayers - orderFinish - 1 (ex pour 4 joueurs: 1er gagne 3, 2ème gagne 2, 3ème gagne 1)
+                // On peut aussi ajouter un bonus pour le premier. Adoptons une base simple :
+                const pointsEarned = totalPlayers - orderFinish - 1;
+                newState.scores[playerIdx] += pointsEarned;
+                newState.log.push(`Joueur ${playerIdx} gagne +${pointsEarned} pts.`);
+            });
+
+            // Optionnel: Pénalité pour le perdant
+            // newState.scores[loserIndex] -= 1; 
+
             newState.log.push(`💀 ${loserIndex} est le Grand Perdant (Khasser) !`);
         } else {
             // La partie continue, c'est au joueur suivant (actif) de jouer

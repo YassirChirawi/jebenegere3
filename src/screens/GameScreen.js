@@ -12,7 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
 
 export default function GameScreen({ route, navigation }) {
-    const { roomId, playerName, initialGameState } = route.params || {};
+    const { roomId, playerName, initialGameState, isHost } = route.params || {};
 
     const [gameState, setGameState] = useState(initialGameState);
     const [showSuitSelector, setShowSuitSelector] = useState(false);
@@ -386,9 +386,32 @@ export default function GameScreen({ route, navigation }) {
                         {gameState.mancheTerminee ? (
                             <View style={{ alignItems: 'center' }}>
                                 <Text style={styles.turnText}>
-                                    Manche terminée ! {gameState.loserIndex === localPlayerIndex ? "VOUS AVEZ PERDU 😢" : `${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
+                                    Manche terminée !
+                                    {gameState.loserIndex === localPlayerIndex ? "VOUS AVEZ PERDU 😢" : `${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
                                 </Text>
-                                <Text style={{ color: '#fff', fontSize: 12, marginTop: 5 }}>Veuillez attendre que l'hôte relance la partie...</Text>
+
+                                {/* Afficher les scores calculés par le serveur */}
+                                <View style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, width: '100%' }}>
+                                    <Text style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: 16, marginBottom: 5, textAlign: 'center' }}>Scores :</Text>
+                                    {gameState.players?.map((p, idx) => (
+                                        <Text key={p.id} style={{ color: '#fff', fontSize: 14, marginVertical: 2 }}>
+                                            {p.name} : {gameState.scores?.[idx] || 0} pts
+                                        </Text>
+                                    ))}
+                                </View>
+
+                                {isHost ? (
+                                    <TouchableOpacity
+                                        style={{ marginTop: 15, backgroundColor: '#D4AF37', padding: 12, borderRadius: 8, width: 200, alignItems: 'center' }}
+                                        onPress={() => socketService.playAgain(roomId)}
+                                    >
+                                        <Text style={{ color: '#000', fontWeight: 'bold' }}>REJOUER (Manche Suivante)</Text>
+                                    </TouchableOpacity>
+                                ) : (
+                                    <Text style={{ color: '#fff', fontSize: 13, marginTop: 15, textAlign: 'center' }}>
+                                        Veuillez attendre que l'hôte relance la partie...
+                                    </Text>
+                                )}
                             </View>
                         ) : (
                             <>
