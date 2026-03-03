@@ -20,16 +20,17 @@ const img1 = require('../../assets/Galleria_01.jpg');
 const img2 = require('../../assets/Galleria_02.jpg');
 const img3 = require('../../assets/Galleria_03.jpg');
 const img4 = require('../../assets/Galleria_04.jpg');
+const ramadanBack = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png'); // NOUVEAU DOS DE CARTE
 const images = [img1, img2, img3, img4];
 
 const suitOrder = { Oros: 0, Bastos: 1, Espadas: 2, Copas: 3 };
 const valueOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 10: 7, 11: 8, 12: 9 };
 
-const CARD_WIDTH = 70;
-const CARD_HEIGHT = 100;
+const CARD_WIDTH = 75; // Un peu plus large pour le style
+const CARD_HEIGHT = 105;
 const DROP_THRESHOLD = -120; // Glisser vers le haut pour jouer
 
-export default function MasterCard({ card, isPlayable, onPlay, index, totalCards }) {
+export default function MasterCard({ card, isPlayable, onPlay, index, totalCards, isInitialDeal }) {
     // === Shared Values pour Reanimated ===
     const translateX = useSharedValue(0);
     const translateY = useSharedValue(0);
@@ -48,6 +49,24 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
 
     // Glow Animation
     const glowRotation = useSharedValue(0);
+
+    // Deal Animation (Intro)
+    const flipRotation = useSharedValue(isInitialDeal ? 180 : 0);
+    const dealTranslateY = useSharedValue(isInitialDeal ? -height : 0);
+    const dealScale = useSharedValue(isInitialDeal ? 0.1 : 1);
+    const dealRotateZ = useSharedValue(isInitialDeal ? -180 : 0);
+
+    useEffect(() => {
+        if (isInitialDeal) {
+            const delay = index * 150; // 150ms per card for more dramatic dealt staggering
+
+            // Complex entrance: Spin, scale up, slide down, and flip simultaneously
+            dealScale.value = withDelay(delay, withSpring(1, { damping: 12, stiffness: 80 }));
+            dealRotateZ.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 60 }));
+            dealTranslateY.value = withDelay(delay, withSpring(0, { damping: 14, stiffness: 100 }));
+            flipRotation.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 100 }));
+        }
+    }, [isInitialDeal]);
 
     useEffect(() => {
         if (isPlayable) {
@@ -130,28 +149,40 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
     // === ANIMATED STYLES ===
 
     // Distribution en éventail (Stagger initial)
-    // On calcule l'angle en fonction de l'index
     const centerIndex = (totalCards - 1) / 2;
     const offset = index - centerIndex;
-    const fanAngle = offset * 5; // 5 degrés par carte
-    const fanTranslateY = Math.abs(offset) * 2; // Légère courbe en Y
+
+    // Spacing plus écarté (Main plus espacée)
+    const fanAngle = offset * 10; // Passe de 8 à 10 degrés
+    const fanTranslateY = Math.abs(offset) * 5; // Courbure en Y plus accentuée (5 au lieu de 3)
 
     const animatedStyle = useAnimatedStyle(() => {
+        const combinedRotateY = rotateY.value + flipRotation.value;
+        const combinedRotateZ = fanAngle + dealRotateZ.value; // Combine fan angle with intro spin
         return {
             zIndex: zIndex.value,
             transform: [
                 { translateX: translateX.value },
-                { translateY: translateY.value - fanTranslateY },
-                { rotateZ: `${fanAngle}deg` },
-                { scale: scale.value },
+                { translateY: translateY.value - fanTranslateY + dealTranslateY.value },
+                { rotateZ: `${combinedRotateZ}deg` },
+                { scale: scale.value * dealScale.value },
                 { scaleX: scaleX.value },
                 { scaleY: scaleY.value },
                 { perspective: 800 },
                 { rotateX: `${rotateX.value}deg` },
-                { rotateY: `${rotateY.value}deg` }
+                { rotateY: `${combinedRotateY}deg` }
             ]
         };
     });
+
+    const frontOpacityStyle = useAnimatedStyle(() => ({
+        opacity: Math.abs(flipRotation.value % 360) < 90 ? 1 : 0
+    }));
+
+    const backOpacityStyle = useAnimatedStyle(() => ({
+        opacity: Math.abs(flipRotation.value % 360) >= 90 ? 1 : 0,
+        transform: [{ rotateY: '180deg' }]
+    }));
 
     // === Cacul d'image Sprite ===
     const sIdx = suitOrder[card.suit] !== undefined ? suitOrder[card.suit] : 0;
@@ -186,7 +217,8 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
                     </Canvas>
                 )}
 
-                <View style={[styles.cardContainer, !isPlayable && styles.disabled]}>
+                {/* Front Face of the Card */}
+                <Animated.View style={[styles.cardContainer, !isPlayable && styles.disabled, frontOpacityStyle, { position: 'absolute' }]}>
                     <View style={styles.spriteContainer}>
                         <Image
                             source={images[imgIndex]}
@@ -204,7 +236,16 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
                             resizeMode="stretch"
                         />
                     </View>
-                </View>
+                </Animated.View>
+
+                {/* Back Face of the Card (Sophisticated Deal dos) */}
+                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#FCD34D', justifyContent: 'center', alignItems: 'center' }]}>
+                    <Image
+                        source={ramadanBack}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                    />
+                </Animated.View>
 
             </Animated.View>
         </GestureDetector>
@@ -215,7 +256,7 @@ const styles = StyleSheet.create({
     container: {
         width: CARD_WIDTH,
         height: CARD_HEIGHT,
-        marginHorizontal: -15, // Overlap cards closer together for the fan effect
+        marginHorizontal: 0, // Plus aucune marge négative, laisse les cartes "respirer" en éventail
         justifyContent: 'center',
         alignItems: 'center',
     },
