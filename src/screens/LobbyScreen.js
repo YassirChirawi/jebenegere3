@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Alert } from 'react-native';
 import socketService from '../network/socketService';
+import PlayerAvatar from '../components/PlayerAvatar';
 
 export default function LobbyScreen({ route, navigation }) {
     const { roomId, playerName, isHost, initialRoom } = route.params;
@@ -53,9 +54,13 @@ export default function LobbyScreen({ route, navigation }) {
                     keyExtractor={item => item.id}
                     renderItem={({ item }) => (
                         <View style={styles.playerRow}>
-                            <Text style={styles.playerName}>
-                                {item.name} {item.id === room.hostId ? '👑' : ''}
-                            </Text>
+                            <View style={styles.playerInfo}>
+                                <PlayerAvatar name={item.name} size={36} active={item.id === room.hostId} />
+                                <Text style={[styles.playerName, item.id === room.hostId && { color: '#FFD700' }]}>
+                                    {item.name}
+                                </Text>
+                            </View>
+                            {item.id === room.hostId && <Text style={styles.hostBadge}>👑 HÔTE</Text>}
                         </View>
                     )}
                 />
@@ -69,7 +74,11 @@ export default function LobbyScreen({ route, navigation }) {
                         keyExtractor={item => item.id}
                         renderItem={({ item }) => (
                             <View style={styles.spectatorRow}>
-                                <Text style={styles.spectatorName}>{item.name} 👁️</Text>
+                                <View style={styles.playerInfo}>
+                                    <PlayerAvatar name={item.name} size={30} />
+                                    <Text style={styles.spectatorName}>{item.name}</Text>
+                                </View>
+                                <Text style={{ fontSize: 18 }}>👁️</Text>
                             </View>
                         )}
                     />
@@ -114,40 +123,70 @@ const styles = StyleSheet.create({
     },
     listContainer: {
         flex: 1,
-        backgroundColor: '#2F1218', // Inner table color
-        borderRadius: 16,
+        backgroundColor: 'rgba(15, 23, 42, 0.7)', // Slate dark transparent
+        borderRadius: 20,
         padding: 20,
         borderWidth: 2,
         borderColor: '#B8860B',
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 15,
+        elevation: 5,
     },
     sectionTitle: {
         color: '#D4AF37',
-        fontSize: 18,
-        fontWeight: 'bold',
-        marginBottom: 10,
-        borderBottomWidth: 1,
-        borderBottomColor: '#4A0E1A',
-        paddingBottom: 5,
+        fontSize: 20,
+        fontWeight: '900',
+        marginBottom: 15,
+        borderBottomWidth: 2,
+        borderBottomColor: 'rgba(212, 175, 55, 0.3)',
+        paddingBottom: 8,
+        letterSpacing: 1,
     },
     playerRow: {
-        backgroundColor: '#4A0E1A',
+        backgroundColor: 'rgba(30, 41, 59, 0.8)',
         padding: 12,
-        borderRadius: 8,
-        marginBottom: 8,
+        borderRadius: 12,
+        marginBottom: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: 'rgba(212, 175, 55, 0.2)',
+    },
+    playerInfo: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
     },
     playerName: {
-        color: '#FFF',
-        fontSize: 16,
-        fontWeight: 'bold',
+        color: '#F8FAFC',
+        fontSize: 18,
+        fontWeight: '700',
+    },
+    hostBadge: {
+        color: '#FFD700',
+        fontWeight: '900',
+        fontSize: 12,
+        letterSpacing: 1,
+        backgroundColor: 'rgba(255, 215, 0, 0.1)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 10,
+        overflow: 'hidden',
     },
     spectatorRow: {
-        backgroundColor: '#1E293B',
+        backgroundColor: 'rgba(15, 23, 42, 0.5)',
         padding: 10,
-        borderRadius: 8,
+        borderRadius: 12,
         marginBottom: 8,
         borderStyle: 'dashed',
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: '#64748B',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     spectatorName: {
         color: '#CBD5E1',
@@ -159,19 +198,27 @@ const styles = StyleSheet.create({
         fontStyle: 'italic',
     },
     btnStart: {
-        backgroundColor: '#D4AF37',
+        backgroundColor: '#FFD700',
         padding: 18,
         borderRadius: 12,
         alignItems: 'center',
-        marginTop: 20,
+        marginTop: 25,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 6,
     },
     btnDisabled: {
         opacity: 0.5,
+        backgroundColor: '#94A3B8',
+        shadowOpacity: 0,
     },
     btnStartText: {
         color: '#1C0F13',
         fontWeight: '900',
         fontSize: 18,
+        letterSpacing: 1,
     },
     waitingText: {
         color: '#D4AF37',

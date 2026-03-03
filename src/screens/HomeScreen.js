@@ -3,6 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, A
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
+import PlayerAvatar from '../components/PlayerAvatar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function HomeScreen({ navigation }) {
@@ -129,7 +130,10 @@ export default function HomeScreen({ navigation }) {
                     <Text style={styles.subtitle}>En Ligne (jusqu'à 6 joueurs)</Text>
 
                     <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Votre Pseudo</Text>
+                        <View style={styles.nameHeaderRow}>
+                            <Text style={styles.label}>Votre Pseudo</Text>
+                            {name.trim() !== '' && <PlayerAvatar name={name} size={30} />}
+                        </View>
                         <TextInput
                             style={styles.input}
                             placeholder="Ex: Yassir..."
@@ -247,37 +251,51 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     title: {
-        fontSize: 48,
+        fontSize: 52,
         fontWeight: '900',
-        color: '#D4AF37',
+        color: '#FFD700',
         marginBottom: 5,
-        textShadowColor: 'rgba(0, 0, 0, 0.75)',
-        textShadowOffset: { width: -1, height: 1 },
-        textShadowRadius: 10,
+        textShadowColor: 'rgba(255, 215, 0, 0.4)',
+        textShadowOffset: { width: 0, height: 0 },
+        textShadowRadius: 20,
+        textAlign: 'center',
     },
     subtitle: {
-        fontSize: 16,
-        color: '#fff',
-        marginBottom: 30,
+        fontSize: 18,
+        color: '#E2E8F0',
+        marginBottom: 40,
         fontWeight: '600',
+        letterSpacing: 2,
     },
     inputContainer: {
         width: '100%',
-        marginBottom: 15,
+        marginBottom: 20,
+    },
+    nameHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 5,
     },
     label: {
         color: '#D4AF37',
-        marginBottom: 5,
         fontWeight: 'bold',
+        fontSize: 16,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
     },
     input: {
-        backgroundColor: '#4A0E1A',
-        borderWidth: 1,
+        backgroundColor: 'rgba(15, 23, 42, 0.9)',
+        borderWidth: 2,
         borderColor: '#B8860B',
-        color: '#fff',
-        padding: 12,
-        borderRadius: 8,
-        fontSize: 16,
+        color: '#FFD700',
+        padding: 15,
+        borderRadius: 12,
+        fontSize: 18,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.1,
+        shadowRadius: 10,
     },
     codeInput: {
         textAlign: 'center',
@@ -285,20 +303,25 @@ const styles = StyleSheet.create({
         letterSpacing: 2,
     },
     btnPrimary: {
-        backgroundColor: '#D4AF37',
+        backgroundColor: '#FFD700',
         width: '100%',
-        padding: 15,
-        borderRadius: 8,
+        padding: 18,
+        borderRadius: 12,
         alignItems: 'center',
-        marginTop: 10,
+        marginTop: 15,
+        shadowColor: '#FFD700',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 8,
+        elevation: 6,
     },
     btnSecondary: {
         backgroundColor: '#1E293B',
         borderWidth: 2,
-        borderColor: '#D4AF37',
+        borderColor: '#FFD700',
         width: '100%',
-        padding: 15,
-        borderRadius: 8,
+        padding: 18,
+        borderRadius: 12,
         alignItems: 'center',
         marginTop: 10,
     },
