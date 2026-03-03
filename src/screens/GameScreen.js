@@ -490,6 +490,7 @@ export default function GameScreen({ route, navigation }) {
                                         onPlay={() => handlePlayerPlayCard(idx)}
                                         index={idx}
                                         totalCards={gameState.hands[localPlayerIndex].length}
+                                        isInitialDeal={isInitialDeal}
                                     />
                                 );
                             })}
