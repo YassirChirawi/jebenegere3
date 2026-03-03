@@ -58,6 +58,10 @@ class SocketService {
         this.socket.emit('send_chat', { roomId, message });
     }
 
+    sendReaction(roomId, reactionType) {
+        this.socket.emit('player_reaction', { roomId, reactionType });
+    }
+
     // -- LISTENERS --
     onRoomUpdated(callback) {
         this.socket.on('room_updated', callback);
@@ -81,6 +85,10 @@ class SocketService {
 
     onTimerTick(callback) {
         this.socket.on('timer_tick', callback);
+    }
+
+    onPlayerReaction(callback) {
+        this.socket.on('player_reaction_broadcast', callback);
     }
 
     offAll() {

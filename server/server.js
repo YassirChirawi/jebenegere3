@@ -364,6 +364,41 @@ io.on('connection', (socket) => {
         processDrawCard(roomId, playerIndex);
     });
 
+    // Chat
+    socket.on('send_chat', (data) => {
+        const { roomId, message } = data;
+        const room = rooms[roomId];
+        if (!room) return;
+
+        const player = room.activePlayers.find(p => p.id === socket.id)
+            || room.spectators.find(p => p.id === socket.id);
+
+        if (player) {
+            io.to(roomId).emit('chat_message', {
+                id: Math.random().toString(36).substr(2, 9),
+                playerName: player.name,
+                message,
+                timestamp: Date.now()
+            });
+        }
+    });
+
+    // Reactions (Emojis)
+    socket.on('player_reaction', (data) => {
+        const { roomId, reactionType } = data;
+        const room = rooms[roomId];
+        if (!room) return;
+
+        const player = room.activePlayers.find(p => p.id === socket.id);
+        if (player) {
+            const playerIndex = room.activePlayers.findIndex(p => p.id === socket.id);
+            io.to(roomId).emit('player_reaction_broadcast', {
+                playerIndex,
+                reactionType
+            });
+        }
+    });
+
     // --- GESTION DE LA DÉCONNEXION ---
     socket.on('disconnect', () => {
         console.log(`Utilisateur déconnecté: ${socket.id}`);

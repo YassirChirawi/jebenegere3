@@ -1,6 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ImageBackground, Image, TextInput } from 'react-native';
-import Animated, { LinearTransition, FadeIn, FadeInDown, FadeInUp } from 'react-native-reanimated';
+import Animated, {
+    LinearTransition,
+    FadeIn,
+    FadeInDown,
+    FadeInUp,
+    useSharedValue,
+    useAnimatedStyle,
+    withSequence,
+    withTiming
+} from 'react-native-reanimated';
 import Card from '../components/Card';
 import MasterCard from '../components/MasterCard';
 import PlayerAvatar from '../components/PlayerAvatar';
@@ -8,9 +17,11 @@ import CircularTimer from '../components/CircularTimer';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
+import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
+const TABLE_BG = require('../../assets/table.png');
 
 export default function GameScreen({ route, navigation }) {
     const { roomId, playerName, initialGameState, isHost } = route.params || {};
@@ -22,9 +33,19 @@ export default function GameScreen({ route, navigation }) {
     const [showRules, setShowRules] = useState(false);
     const [showChatMenu, setShowChatMenu] = useState(false);
     const [chatMessages, setChatMessages] = useState([]); // {id, playerName, message, timestamp}
+    const [activeReactions, setActiveReactions] = useState({}); // { [playerIndex]: 'reaction_emoji' }
     const [customMsg, setCustomMsg] = useState('');
     const [isInitialDeal, setIsInitialDeal] = useState(true);
     const prevGameStateRef = useRef(initialGameState);
+
+    // --- Screen Shake Animation Value ---
+    const shakeOffset = useSharedValue(0);
+
+    const shakeAnimatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ translateX: shakeOffset.value }]
+        };
+    });
 
     useEffect(() => {
         const timer = setTimeout(() => {
@@ -73,6 +94,20 @@ export default function GameScreen({ route, navigation }) {
             setTimeout(() => {
                 setChatMessages(prev => prev.filter(msg => msg.id !== data.id));
             }, 3000);
+        });
+
+        socketService.onPlayerReaction((data) => {
+            const { playerIndex, reactionType } = data;
+            setActiveReactions(prev => ({ ...prev, [playerIndex]: reactionType }));
+
+            // Clear reaction after 2 seconds
+            setTimeout(() => {
+                setActiveReactions(prev => {
+                    const newState = { ...prev };
+                    delete newState[playerIndex];
+                    return newState;
+                });
+            }, 2500);
         });
 
         return () => {
@@ -237,6 +272,21 @@ export default function GameScreen({ route, navigation }) {
             return;
         }
 
+        // Trigger Haptic & Shake if special card
+        if (['1', '2', '7'].includes(card.value?.toString())) {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+
+            // Screen shake effect
+            shakeOffset.value = withSequence(
+                withTiming(15, { duration: 50 }),
+                withTiming(-15, { duration: 50 }),
+                withTiming(15, { duration: 50 }),
+                withTiming(0, { duration: 50 })
+            );
+        } else {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        }
+
         if (card.value === 7) {
             setPendingCardIndex(cardIndex);
             setShowSuitSelector(true);
@@ -262,6 +312,12 @@ export default function GameScreen({ route, navigation }) {
     const handleSendChat = (message) => {
         socketService.sendChat(roomId, message);
         setShowChatMenu(false);
+    };
+
+    const handleSendReaction = (reaction) => {
+        socketService.sendReaction(roomId, reaction);
+        setShowChatMenu(false);
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     };
 
     if (!gameState) {
@@ -295,287 +351,326 @@ export default function GameScreen({ route, navigation }) {
 
     return (
         <ImageBackground
-            source={require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png')}
+            source={TABLE_BG}
             style={styles.container}
             resizeMode="cover"
         >
-            {/* Info Button Top Right */}
-            <TouchableOpacity style={styles.infoBtn} onPress={() => setShowRules(true)}>
-                <Text style={styles.infoBtnText}>ℹ️</Text>
-            </TouchableOpacity>
+            <Animated.View style={[styles.boardOverlay, shakeAnimatedStyle]}>
+                {/* Info Button Top Right */}
+                <TouchableOpacity style={styles.infoBtn} onPress={() => setShowRules(true)}>
+                    <Text style={styles.infoBtnText}>ℹ️</Text>
+                </TouchableOpacity>
 
-            {/* Chat Button Top Left */}
-            <TouchableOpacity style={styles.chatBtn} onPress={() => setShowChatMenu(true)}>
-                <Text style={styles.chatBtnText}>💬</Text>
-            </TouchableOpacity>
+                {/* Chat Button Top Left */}
+                <TouchableOpacity style={styles.chatBtn} onPress={() => setShowChatMenu(true)}>
+                    <Text style={styles.chatBtnText}>💬</Text>
+                </TouchableOpacity>
 
-            {/* Floating Chat Messages Overlay */}
-            <View style={styles.chatMessagesOverlay} pointerEvents="none">
-                {chatMessages.map((msg) => (
-                    <Animated.View
-                        key={msg.id}
-                        style={styles.floatingChatMsg}
-                        entering={FadeIn.duration(300)}
-                        layout={LinearTransition.springify()}
-                    >
-                        <Text style={styles.chatBubbleText}>
-                            <Text style={styles.chatBubbleName}>{msg.playerName} : </Text>
-                            {msg.message}
-                        </Text>
-                    </Animated.View>
-                ))}
-            </View>
-
-            {/* Top Area: Opponent 2 (En face) */}
-            <View style={styles.topArea}>
-                {oppTop && (
-                    <View style={styles.opponentHandContainer}>
-                        <View style={styles.playerNameRow}>
-                            <PlayerAvatar name={oppTop.player.name} size={30} active={gameState.turn === oppTop.index} />
-                            <Text style={[styles.playerName, gameState.turn === oppTop.index && styles.activePlayer]}>
-                                {oppTop.player.name} ({oppTop.handSize})
+                {/* Floating Chat Messages Overlay */}
+                <View style={styles.chatMessagesOverlay} pointerEvents="none">
+                    {chatMessages.map((msg) => (
+                        <Animated.View
+                            key={msg.id}
+                            style={styles.floatingChatMsg}
+                            entering={FadeIn.duration(300)}
+                            layout={LinearTransition.springify()}
+                        >
+                            <Text style={styles.chatBubbleText}>
+                                <Text style={styles.chatBubbleName}>{msg.playerName} : </Text>
+                                {msg.message}
                             </Text>
-                            {gameState.turn === oppTop.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
-                        </View>
-                        <Animated.View style={styles.compactHandHorizontal} layout={LinearTransition.springify().damping(14)}>
-                            {Array(oppTop.handSize).fill(0).map((_, idx) => (
-                                <Animated.View key={`oppTop-${idx}`} entering={isInitialDeal ? FadeInDown.delay(idx * 150).springify() : undefined} style={styles.compactCardH} />
-                            ))}
                         </Animated.View>
-                    </View>
-                )}
-            </View>
+                    ))}
+                </View>
 
-            {/* Middle Area: Left Opponent, Board, Right Opponent */}
-            <View style={styles.middleArea}>
-                {/* Left Opponent */}
-                <View style={styles.sideArea}>
-                    {oppLeft && (
+                {/* Top Area: Opponent 2 (En face) */}
+                <View style={styles.topArea}>
+                    {oppTop && (
                         <View style={styles.opponentHandContainer}>
                             <View style={styles.playerNameRow}>
-                                <PlayerAvatar name={oppLeft.player.name} size={30} active={gameState.turn === oppLeft.index} />
-                                <Text style={[styles.playerName, gameState.turn === oppLeft.index && styles.activePlayer]}>
-                                    {oppLeft.player.name}
+                                <View>
+                                    <PlayerAvatar name={oppTop.player.name} size={30} active={gameState.turn === oppTop.index} />
+                                    {activeReactions[oppTop.index] && (
+                                        <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextTop}>
+                                            {activeReactions[oppTop.index]}
+                                        </Animated.Text>
+                                    )}
+                                </View>
+                                <Text style={[styles.playerName, gameState.turn === oppTop.index && styles.activePlayer]}>
+                                    {oppTop.player.name} ({oppTop.handSize})
                                 </Text>
-                                {gameState.turn === oppLeft.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
+                                {gameState.turn === oppTop.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
                             </View>
-                            <Text style={styles.cardCountText}>{oppLeft.handSize} cartes</Text>
-                            <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
-                                {Array(oppLeft.handSize).fill(0).map((_, idx) => (
-                                    <Animated.View key={`oppLeft-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
+                            <Animated.View style={styles.compactHandHorizontal} layout={LinearTransition.springify().damping(14)}>
+                                {Array(oppTop.handSize).fill(0).map((_, idx) => (
+                                    <Animated.View key={`oppTop-${idx}`} entering={isInitialDeal ? FadeInDown.delay(idx * 150).springify() : undefined} style={styles.compactCardH} />
                                 ))}
                             </Animated.View>
                         </View>
                     )}
                 </View>
 
-                {/* The Board / Table */}
-                <View style={styles.boardArea}>
-
-                    <View style={styles.middlePileRow}>
-                        <TouchableOpacity style={styles.deckPile} onPress={handlePlayerDraw} disabled={gameState.turn !== localPlayerIndex || isSpectator}>
-                            <Text style={styles.deckText}>Pioche{gameState.deck.length > 0 ? `\n(${gameState.deck.length})` : ''}</Text>
-                        </TouchableOpacity>
-
-                        <View style={styles.middlePile}>
-                            {topCard ? (
-                                <Animated.View key={`pile-${gameState.middlePile.length}`} entering={FadeIn.springify()} layout={LinearTransition.springify()}>
-                                    <Card card={topCard} disabled={true} />
+                {/* Middle Area: Left Opponent, Board, Right Opponent */}
+                <View style={styles.middleArea}>
+                    {/* Left Opponent */}
+                    <View style={styles.sideArea}>
+                        {oppLeft && (
+                            <View style={styles.opponentHandContainer}>
+                                <View style={styles.playerNameRow}>
+                                    <View>
+                                        <PlayerAvatar name={oppLeft.player.name} size={30} active={gameState.turn === oppLeft.index} />
+                                        {activeReactions[oppLeft.index] && (
+                                            <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
+                                                {activeReactions[oppLeft.index]}
+                                            </Animated.Text>
+                                        )}
+                                    </View>
+                                    <Text style={[styles.playerName, gameState.turn === oppLeft.index && styles.activePlayer]}>
+                                        {oppLeft.player.name}
+                                    </Text>
+                                    {gameState.turn === oppLeft.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
+                                </View>
+                                <Text style={styles.cardCountText}>{oppLeft.handSize} cartes</Text>
+                                <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
+                                    {Array(oppLeft.handSize).fill(0).map((_, idx) => (
+                                        <Animated.View key={`oppLeft-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
+                                    ))}
                                 </Animated.View>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* The Board / Table */}
+                    <View style={styles.boardArea}>
+
+                        <View style={styles.middlePileRow}>
+                            <TouchableOpacity style={styles.deckPile} onPress={handlePlayerDraw} disabled={gameState.turn !== localPlayerIndex || isSpectator}>
+                                <Text style={styles.deckText}>Pioche{gameState.deck.length > 0 ? `\n(${gameState.deck.length})` : ''}</Text>
+                            </TouchableOpacity>
+
+                            <View style={styles.middlePile}>
+                                {topCard ? (
+                                    <Animated.View key={`pile-${gameState.middlePile.length}`} entering={FadeIn.springify()} layout={LinearTransition.springify()}>
+                                        <Card card={topCard} disabled={true} />
+                                    </Animated.View>
+                                ) : (
+                                    <Text style={{ color: '#fff' }}>Vide</Text>
+                                )}
+                            </View>
+                        </View>
+
+                        {gameState.activeSuitOverride && (
+                            <Text style={styles.overrideText}>Famille demandée : {gameState.activeSuitOverride}</Text>
+                        )}
+                        {gameState.drawPenalty > 0 && (
+                            <Text style={styles.penaltyText}>+ {gameState.drawPenalty}</Text>
+                        )}
+
+                        {/* Turn/Log Info */}
+                        <View style={styles.infoArea}>
+                            {gameState.mancheTerminee ? (
+                                <View style={{ alignItems: 'center' }}>
+                                    <Text style={styles.turnText}>
+                                        Manche terminée !
+                                        {gameState.loserIndex === localPlayerIndex ? "VOUS AVEZ PERDU 😢" : `${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
+                                    </Text>
+
+                                    {/* Afficher les scores calculés par le serveur */}
+                                    <View style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, width: '100%' }}>
+                                        <Text style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: 16, marginBottom: 5, textAlign: 'center' }}>Scores :</Text>
+                                        {gameState.players?.map((p, idx) => (
+                                            <Text key={p.id} style={{ color: '#fff', fontSize: 14, marginVertical: 2 }}>
+                                                {p.name} : {gameState.scores?.[idx] || 0} pts
+                                            </Text>
+                                        ))}
+                                    </View>
+
+                                    {isHost ? (
+                                        <TouchableOpacity
+                                            style={{ marginTop: 15, backgroundColor: '#D4AF37', padding: 12, borderRadius: 8, width: 200, alignItems: 'center' }}
+                                            onPress={() => socketService.playAgain(roomId)}
+                                        >
+                                            <Text style={{ color: '#000', fontWeight: 'bold' }}>REJOUER (Manche Suivante)</Text>
+                                        </TouchableOpacity>
+                                    ) : (
+                                        <Text style={{ color: '#fff', fontSize: 13, marginTop: 15, textAlign: 'center' }}>
+                                            Veuillez attendre que l'hôte relance la partie...
+                                        </Text>
+                                    )}
+                                </View>
                             ) : (
-                                <Text style={{ color: '#fff' }}>Vide</Text>
+                                <>
+                                    {gameState.pendingAction && gameState.pendingAction.type === 'skip_response' ? (
+                                        <Text style={[styles.turnText, { color: '#EF4444', textShadowColor: '#000', textShadowRadius: 2, fontSize: 16 }]}>
+                                            {gameState.turn === localPlayerIndex ? `VITE ! JOUEZ UN 1 POUR VOUS DÉFENDRE !` : `${gameState?.players?.[gameState.turn]?.name} sous attaque !`}
+                                        </Text>
+                                    ) : (
+                                        <Text style={styles.turnText}>
+                                            Tour de : {gameState.turn === localPlayerIndex ? 'VOUS' : gameState?.players?.[gameState.turn]?.name}
+                                        </Text>
+                                    )}
+                                    <View style={{ marginTop: 5 }}>
+                                        <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 3 : 15} size={50} />
+                                    </View>
+                                </>
                             )}
                         </View>
                     </View>
 
-                    {gameState.activeSuitOverride && (
-                        <Text style={styles.overrideText}>Famille demandée : {gameState.activeSuitOverride}</Text>
-                    )}
-                    {gameState.drawPenalty > 0 && (
-                        <Text style={styles.penaltyText}>+ {gameState.drawPenalty}</Text>
-                    )}
-
-                    {/* Turn/Log Info */}
-                    <View style={styles.infoArea}>
-                        {gameState.mancheTerminee ? (
-                            <View style={{ alignItems: 'center' }}>
-                                <Text style={styles.turnText}>
-                                    Manche terminée !
-                                    {gameState.loserIndex === localPlayerIndex ? "VOUS AVEZ PERDU 😢" : `${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
-                                </Text>
-
-                                {/* Afficher les scores calculés par le serveur */}
-                                <View style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, width: '100%' }}>
-                                    <Text style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: 16, marginBottom: 5, textAlign: 'center' }}>Scores :</Text>
-                                    {gameState.players?.map((p, idx) => (
-                                        <Text key={p.id} style={{ color: '#fff', fontSize: 14, marginVertical: 2 }}>
-                                            {p.name} : {gameState.scores?.[idx] || 0} pts
-                                        </Text>
+                    {/* Right Opponent */}
+                    <View style={styles.sideArea}>
+                        {oppRight && (
+                            <View style={styles.opponentHandContainer}>
+                                <View style={styles.playerNameRow}>
+                                    <View>
+                                        <PlayerAvatar name={oppRight.player.name} size={30} active={gameState.turn === oppRight.index} />
+                                        {activeReactions[oppRight.index] && (
+                                            <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
+                                                {activeReactions[oppRight.index]}
+                                            </Animated.Text>
+                                        )}
+                                    </View>
+                                    <Text style={[styles.playerName, gameState.turn === oppRight.index && styles.activePlayer]}>
+                                        {oppRight.player.name}
+                                    </Text>
+                                    {gameState.turn === oppRight.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
+                                </View>
+                                <Text style={styles.cardCountText}>{oppRight.handSize} cartes</Text>
+                                <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
+                                    {Array(oppRight.handSize).fill(0).map((_, idx) => (
+                                        <Animated.View key={`oppRight-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
                                     ))}
-                                </View>
-
-                                {isHost ? (
-                                    <TouchableOpacity
-                                        style={{ marginTop: 15, backgroundColor: '#D4AF37', padding: 12, borderRadius: 8, width: 200, alignItems: 'center' }}
-                                        onPress={() => socketService.playAgain(roomId)}
-                                    >
-                                        <Text style={{ color: '#000', fontWeight: 'bold' }}>REJOUER (Manche Suivante)</Text>
-                                    </TouchableOpacity>
-                                ) : (
-                                    <Text style={{ color: '#fff', fontSize: 13, marginTop: 15, textAlign: 'center' }}>
-                                        Veuillez attendre que l'hôte relance la partie...
-                                    </Text>
-                                )}
+                                </Animated.View>
                             </View>
-                        ) : (
-                            <>
-                                {gameState.pendingAction && gameState.pendingAction.type === 'skip_response' ? (
-                                    <Text style={[styles.turnText, { color: '#EF4444', textShadowColor: '#000', textShadowRadius: 2, fontSize: 16 }]}>
-                                        {gameState.turn === localPlayerIndex ? `VITE ! JOUEZ UN 1 POUR VOUS DÉFENDRE !` : `${gameState?.players?.[gameState.turn]?.name} sous attaque !`}
-                                    </Text>
-                                ) : (
-                                    <Text style={styles.turnText}>
-                                        Tour de : {gameState.turn === localPlayerIndex ? 'VOUS' : gameState?.players?.[gameState.turn]?.name}
-                                    </Text>
-                                )}
-                                <View style={{ marginTop: 5 }}>
-                                    <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 3 : 15} size={50} />
-                                </View>
-                            </>
                         )}
                     </View>
                 </View>
 
-                {/* Right Opponent */}
-                <View style={styles.sideArea}>
-                    {oppRight && (
-                        <View style={styles.opponentHandContainer}>
-                            <View style={styles.playerNameRow}>
-                                <PlayerAvatar name={oppRight.player.name} size={30} active={gameState.turn === oppRight.index} />
-                                <Text style={[styles.playerName, gameState.turn === oppRight.index && styles.activePlayer]}>
-                                    {oppRight.player.name}
-                                </Text>
-                                {gameState.turn === oppRight.index && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={styles.mintIcon} />}
-                            </View>
-                            <Text style={styles.cardCountText}>{oppRight.handSize} cartes</Text>
-                            <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
-                                {Array(oppRight.handSize).fill(0).map((_, idx) => (
-                                    <Animated.View key={`oppRight-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
+                {/* Bottom Area: Player Hand */}
+                <View style={styles.playerArea}>
+                    {isSpectator ? (
+                        <Text style={[styles.playerName, { fontSize: 20 }]}>👀 Vous êtes en attente (Spectateur)</Text>
+                    ) : (
+                        <>
+                            {/* Bar de reactions rapide */}
+                            <View style={styles.reactionBar}>
+                                {['😂', '😡', '😱', '👏'].map(emoji => (
+                                    <TouchableOpacity key={emoji} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
+                                        <Text style={styles.reactionBtnText}>{emoji}</Text>
+                                    </TouchableOpacity>
                                 ))}
-                            </Animated.View>
-                        </View>
+                            </View>
+
+                            <View style={styles.playerNameRow}>
+                                <View>
+                                    <PlayerAvatar name="Vous" size={40} active={gameState.turn === localPlayerIndex} />
+                                    {activeReactions[localPlayerIndex] && (
+                                        <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSelf}>
+                                            {activeReactions[localPlayerIndex]}
+                                        </Animated.Text>
+                                    )}
+                                </View>
+                                <Text style={[styles.playerName, gameState.turn === localPlayerIndex && styles.activePlayer, { fontSize: 18 }]}>Vous</Text>
+                                {gameState.turn === localPlayerIndex && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={[styles.mintIcon, { width: 34, height: 34 }]} />}
+                            </View>
+                            <View style={styles.masterHandContainer}>
+                                {localPlayerIndex !== -1 && gameState.hands[localPlayerIndex].map((card, idx) => {
+                                    const isPlayable = gameState.turn === localPlayerIndex && canPlayCardLocal(card, gameState);
+                                    return (
+                                        <MasterCard
+                                            key={card.id}
+                                            card={card}
+                                            isPlayable={isPlayable}
+                                            onPlay={() => handlePlayerPlayCard(idx)}
+                                            index={idx}
+                                            totalCards={gameState.hands[localPlayerIndex].length}
+                                            isInitialDeal={isInitialDeal}
+                                        />
+                                    );
+                                })}
+                            </View>
+                        </>
                     )}
                 </View>
-            </View>
 
-            {/* Bottom Area: Player Hand */}
-            <View style={styles.playerArea}>
-                {isSpectator ? (
-                    <Text style={[styles.playerName, { fontSize: 20 }]}>👀 Vous êtes en attente (Spectateur)</Text>
-                ) : (
-                    <>
-                        <View style={styles.playerNameRow}>
-                            <PlayerAvatar name="Vous" size={40} active={gameState.turn === localPlayerIndex} />
-                            <Text style={[styles.playerName, gameState.turn === localPlayerIndex && styles.activePlayer, { fontSize: 18 }]}>Vous</Text>
-                            {gameState.turn === localPlayerIndex && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={[styles.mintIcon, { width: 34, height: 34 }]} />}
+                {/* Suit Selector Modal / Overlay */}
+                {showSuitSelector && (
+                    <View style={styles.suitSelectorOverlay}>
+                        <View style={styles.suitSelectorModal}>
+                            <Text style={styles.suitSelectorTitle}>🃏 Quelle famille tu veux ?</Text>
+                            <View style={styles.suitButtons}>
+                                {[
+                                    { suit: 'Oros', moroccan: 'الفلوس (Flouss)', emoji: '🪙' },
+                                    { suit: 'Copas', moroccan: 'الجبابن (Jbaben)', emoji: '🫖' },
+                                    { suit: 'Bastos', moroccan: 'الگرعة (Gere3)', emoji: '🪵' },
+                                    { suit: 'Espadas', moroccan: 'السيوف (Syouf)', emoji: '⚔️' },
+                                ].map(({ suit, moroccan, emoji }) => (
+                                    <TouchableOpacity key={suit} style={styles.suitBtn} onPress={() => handleSuitSelected(suit)}>
+                                        <Text style={styles.suitEmoji}>{emoji}</Text>
+                                        <Card card={{ suit, value: 3, id: `${suit}-preview` }} disabled={true} />
+                                        <Text style={styles.suitBtnText}>{moroccan}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
-                        <View style={styles.masterHandContainer}>
-                            {localPlayerIndex !== -1 && gameState.hands[localPlayerIndex].map((card, idx) => {
-                                const isPlayable = gameState.turn === localPlayerIndex && canPlayCardLocal(card, gameState);
-                                return (
-                                    <MasterCard
-                                        key={card.id}
-                                        card={card}
-                                        isPlayable={isPlayable}
-                                        onPlay={() => handlePlayerPlayCard(idx)}
-                                        index={idx}
-                                        totalCards={gameState.hands[localPlayerIndex].length}
-                                        isInitialDeal={isInitialDeal}
-                                    />
-                                );
-                            })}
-                        </View>
-                    </>
+                    </View>
                 )}
-            </View>
 
-            {/* Suit Selector Modal / Overlay */}
-            {showSuitSelector && (
-                <View style={styles.suitSelectorOverlay}>
-                    <View style={styles.suitSelectorModal}>
-                        <Text style={styles.suitSelectorTitle}>🃏 Quelle famille tu veux ?</Text>
-                        <View style={styles.suitButtons}>
-                            {[
-                                { suit: 'Oros', moroccan: 'الفلوس (Flouss)', emoji: '🪙' },
-                                { suit: 'Copas', moroccan: 'الجبابن (Jbaben)', emoji: '🫖' },
-                                { suit: 'Bastos', moroccan: 'الگرعة (Gere3)', emoji: '🪵' },
-                                { suit: 'Espadas', moroccan: 'السيوف (Syouf)', emoji: '⚔️' },
-                            ].map(({ suit, moroccan, emoji }) => (
-                                <TouchableOpacity key={suit} style={styles.suitBtn} onPress={() => handleSuitSelected(suit)}>
-                                    <Text style={styles.suitEmoji}>{emoji}</Text>
-                                    <Card card={{ suit, value: 3, id: `${suit}-preview` }} disabled={true} />
-                                    <Text style={styles.suitBtnText}>{moroccan}</Text>
+                {/* Chat Menu Modal / Overlay */}
+                {showChatMenu && (
+                    <View style={styles.suitSelectorOverlay}>
+                        <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowChatMenu(false)} />
+                        <View style={styles.suitSelectorModal}>
+                            <Text style={styles.suitSelectorTitle}>💬 Message Rapide</Text>
+
+                            <View style={styles.customChatRow}>
+                                <TextInput
+                                    style={styles.customChatInput}
+                                    placeholder="Message personnalisé..."
+                                    placeholderTextColor="#9CA3AF"
+                                    value={customMsg}
+                                    onChangeText={setCustomMsg}
+                                    onSubmitEditing={() => {
+                                        if (customMsg.trim().length > 0) {
+                                            handleSendChat(customMsg);
+                                            setCustomMsg('');
+                                        }
+                                    }}
+                                />
+                                <TouchableOpacity
+                                    style={styles.customChatBtn}
+                                    onPress={() => {
+                                        if (customMsg.trim().length > 0) {
+                                            handleSendChat(customMsg);
+                                            setCustomMsg('');
+                                        }
+                                    }}
+                                >
+                                    <Text style={styles.customChatBtnText}>Envoyer</Text>
                                 </TouchableOpacity>
-                            ))}
+                            </View>
+
+                            <View style={styles.suitButtons}>
+                                {[
+                                    "L3eb a zmagri !",
+                                    "Zid Jouj !",
+                                    "Hezz !",
+                                    "Zrebti 3lina...",
+                                    "Wry9a wa7da 😉",
+                                    "Saaaaaaaafi 😡"
+                                ].map((msg, index) => (
+                                    <TouchableOpacity key={index} style={[styles.suitBtn, { width: '100%', marginBottom: 8, padding: 10 }]} onPress={() => handleSendChat(msg)}>
+                                        <Text style={[styles.suitBtnText, { fontSize: 14, marginTop: 0 }]}>{msg}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
                         </View>
                     </View>
-                </View>
-            )}
+                )}
 
-            {/* Chat Menu Modal / Overlay */}
-            {showChatMenu && (
-                <View style={styles.suitSelectorOverlay}>
-                    <TouchableOpacity style={StyleSheet.absoluteFill} onPress={() => setShowChatMenu(false)} />
-                    <View style={styles.suitSelectorModal}>
-                        <Text style={styles.suitSelectorTitle}>💬 Message Rapide</Text>
-
-                        <View style={styles.customChatRow}>
-                            <TextInput
-                                style={styles.customChatInput}
-                                placeholder="Message personnalisé..."
-                                placeholderTextColor="#9CA3AF"
-                                value={customMsg}
-                                onChangeText={setCustomMsg}
-                                onSubmitEditing={() => {
-                                    if (customMsg.trim().length > 0) {
-                                        handleSendChat(customMsg);
-                                        setCustomMsg('');
-                                    }
-                                }}
-                            />
-                            <TouchableOpacity
-                                style={styles.customChatBtn}
-                                onPress={() => {
-                                    if (customMsg.trim().length > 0) {
-                                        handleSendChat(customMsg);
-                                        setCustomMsg('');
-                                    }
-                                }}
-                            >
-                                <Text style={styles.customChatBtnText}>Envoyer</Text>
-                            </TouchableOpacity>
-                        </View>
-
-                        <View style={styles.suitButtons}>
-                            {[
-                                "L3eb a zmagri !",
-                                "Zid Jouj !",
-                                "Hezz !",
-                                "Zrebti 3lina...",
-                                "Wry9a wa7da 😉",
-                                "Saaaaaaaafi 😡"
-                            ].map((msg, index) => (
-                                <TouchableOpacity key={index} style={[styles.suitBtn, { width: '100%', marginBottom: 8, padding: 10 }]} onPress={() => handleSendChat(msg)}>
-                                    <Text style={[styles.suitBtnText, { fontSize: 14, marginTop: 0 }]}>{msg}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-                    </View>
-                </View>
-            )}
-
-            {/* Rules Modal */}
-            <RulesModal visible={showRules} onClose={() => setShowRules(false)} />
+                {/* Rules Modal */}
+                <RulesModal visible={showRules} onClose={() => setShowRules(false)} />
+            </Animated.View>
         </ImageBackground>
     );
 }
@@ -587,6 +682,47 @@ const styles = StyleSheet.create({
         paddingTop: 45,
         paddingBottom: 20,
     },
+    // ---- REACTIONS STYLES ----
+    reactionBar: {
+        flexDirection: 'row',
+        justifyContent: 'center',
+        gap: 15,
+        marginBottom: 8,
+    },
+    reactionBtn: {
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        padding: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: '#D4AF37',
+    },
+    reactionBtnText: {
+        fontSize: 22,
+    },
+    reactionTextSelf: {
+        position: 'absolute',
+        top: -30,
+        alignSelf: 'center',
+        fontSize: 32,
+        textShadowColor: '#FFD700',
+        textShadowRadius: 10,
+        zIndex: 50,
+    },
+    reactionTextTop: {
+        position: 'absolute',
+        bottom: -30,
+        alignSelf: 'center',
+        fontSize: 32,
+        zIndex: 50,
+    },
+    reactionTextSide: {
+        position: 'absolute',
+        top: -25,
+        alignSelf: 'center',
+        fontSize: 32,
+        zIndex: 50,
+    },
+    // --------------------------
     infoBtn: {
         position: 'absolute',
         top: 45,
