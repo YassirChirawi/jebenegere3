@@ -22,6 +22,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
 const TABLE_BG = require('../../assets/table.png');
+const GAME_LOGO_BACK = require('../../assets/icon.png');
 
 export default function GameScreen({ route, navigation }) {
     const { roomId, playerName, initialGameState, isHost } = route.params || {};
@@ -404,7 +405,9 @@ export default function GameScreen({ route, navigation }) {
                             </View>
                             <Animated.View style={styles.compactHandHorizontal} layout={LinearTransition.springify().damping(14)}>
                                 {Array(oppTop.handSize).fill(0).map((_, idx) => (
-                                    <Animated.View key={`oppTop-${idx}`} entering={isInitialDeal ? FadeInDown.delay(idx * 150).springify() : undefined} style={styles.compactCardH} />
+                                    <Animated.View key={`oppTop-${idx}`} entering={isInitialDeal ? FadeInDown.delay(idx * 150).springify() : undefined} style={styles.compactCardH}>
+                                        <Image source={GAME_LOGO_BACK} style={styles.compactCardLogo} resizeMode="contain" />
+                                    </Animated.View>
                                 ))}
                             </Animated.View>
                         </View>
@@ -434,7 +437,9 @@ export default function GameScreen({ route, navigation }) {
                                 <Text style={styles.cardCountText}>{oppLeft.handSize} cartes</Text>
                                 <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
                                     {Array(oppLeft.handSize).fill(0).map((_, idx) => (
-                                        <Animated.View key={`oppLeft-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
+                                        <Animated.View key={`oppLeft-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV}>
+                                            <Image source={GAME_LOGO_BACK} style={styles.compactCardLogo} resizeMode="contain" />
+                                        </Animated.View>
                                     ))}
                                 </Animated.View>
                             </View>
@@ -445,8 +450,21 @@ export default function GameScreen({ route, navigation }) {
                     <View style={styles.boardArea}>
 
                         <View style={styles.middlePileRow}>
-                            <TouchableOpacity style={styles.deckPile} onPress={handlePlayerDraw} disabled={gameState.turn !== localPlayerIndex || isSpectator}>
-                                <Text style={styles.deckText}>Pioche{gameState.deck.length > 0 ? `\n(${gameState.deck.length})` : ''}</Text>
+                            {/* Deck pile — face-down card with logo */}
+                            <TouchableOpacity
+                                style={styles.deckPile}
+                                onPress={handlePlayerDraw}
+                                disabled={gameState.turn !== localPlayerIndex || isSpectator}
+                            >
+                                <Image source={GAME_LOGO_BACK} style={styles.deckLogoImg} resizeMode="contain" />
+                                {/* Inner golden border */}
+                                <View style={styles.deckInnerBorder} />
+                                {/* Card count badge */}
+                                {gameState.deck.length > 0 && (
+                                    <View style={styles.deckBadge}>
+                                        <Text style={styles.deckBadgeText}>{gameState.deck.length}</Text>
+                                    </View>
+                                )}
                             </TouchableOpacity>
 
                             <View style={styles.middlePile}>
@@ -539,7 +557,9 @@ export default function GameScreen({ route, navigation }) {
                                 <Text style={styles.cardCountText}>{oppRight.handSize} cartes</Text>
                                 <Animated.View style={styles.compactHandVertical} layout={LinearTransition.springify().damping(14)}>
                                     {Array(oppRight.handSize).fill(0).map((_, idx) => (
-                                        <Animated.View key={`oppRight-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV} />
+                                        <Animated.View key={`oppRight-${idx}`} entering={isInitialDeal ? FadeIn.delay(idx * 150).springify() : undefined} style={styles.compactCardV}>
+                                            <Image source={GAME_LOGO_BACK} style={styles.compactCardLogo} resizeMode="contain" />
+                                        </Animated.View>
                                     ))}
                                 </Animated.View>
                             </View>
@@ -826,19 +846,50 @@ const styles = StyleSheet.create({
     deckPile: {
         width: 70,
         height: 100,
-        backgroundColor: '#2F1218',
+        backgroundColor: '#1C0F13',
         borderRadius: 8,
         borderWidth: 2,
         borderColor: '#B8860B',
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: 15,
-        borderStyle: 'dashed',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.4,
+        shadowRadius: 4,
+        elevation: 6,
     },
-    deckText: {
-        color: '#D4AF37',
-        fontWeight: 'bold',
-        textAlign: 'center',
+    deckLogoImg: {
+        width: '80%',
+        height: '80%',
+    },
+    deckInnerBorder: {
+        position: 'absolute',
+        top: 4,
+        left: 4,
+        right: 4,
+        bottom: 4,
+        borderRadius: 5,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212, 175, 55, 0.6)',
+    },
+    deckBadge: {
+        position: 'absolute',
+        bottom: 5,
+        right: 5,
+        backgroundColor: '#D4AF37',
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 4,
+    },
+    deckBadgeText: {
+        color: '#1C0F13',
+        fontWeight: '900',
+        fontSize: 11,
     },
     middlePile: {
         alignItems: 'center',
@@ -907,20 +958,30 @@ const styles = StyleSheet.create({
     compactCardH: {
         width: 25,
         height: 40,
-        backgroundColor: '#D1D5DB',
+        backgroundColor: '#1C0F13',
         borderWidth: 1,
-        borderColor: '#9CA3AF',
+        borderColor: '#B8860B',
         borderRadius: 4,
-        marginLeft: -15, // Overlap cards
+        marginLeft: -15,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     compactCardV: {
         width: 40,
         height: 25,
-        backgroundColor: '#D1D5DB',
+        backgroundColor: '#1C0F13',
         borderWidth: 1,
-        borderColor: '#9CA3AF',
+        borderColor: '#B8860B',
         borderRadius: 4,
-        marginBottom: -15, // Overlap cards vertically
+        marginBottom: -15,
+        overflow: 'hidden',
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    compactCardLogo: {
+        width: '90%',
+        height: '90%',
     },
     handScroll: {
         width: '100%',
