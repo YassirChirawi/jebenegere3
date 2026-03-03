@@ -10,10 +10,9 @@ import Animated, {
     withDelay,
     runOnJS,
     interpolate,
-    Extrapolation
 } from 'react-native-reanimated';
-import { GestureDetector, Gesture } from 'react-native-gesture-handler';
-import { Canvas, RoundedRect, SweepGradient, vec, BlurMask, Paint } from '@shopify/react-native-skia';
+import { Canvas, RoundedRect, SweepGradient, vec, BlurMask } from '@shopify/react-native-skia';
+import InteractiveHandSystem from './InteractiveHandSystem';
 
 const { height } = Dimensions.get('window');
 
@@ -32,19 +31,6 @@ const CARD_HEIGHT = 105;
 const DROP_THRESHOLD = -120; // Glisser vers le haut pour jouer
 
 export default function MasterCard({ card, isPlayable, onPlay, index, totalCards, isInitialDeal }) {
-    // === Shared Values pour Reanimated ===
-    const translateX = useSharedValue(0);
-    const translateY = useSharedValue(0);
-    const scale = useSharedValue(1);
-
-    // Pour l'effet Squish & Stretch
-    const scaleX = useSharedValue(1);
-    const scaleY = useSharedValue(1);
-
-    // Pour l'effet Tilt 3D
-    const rotateX = useSharedValue(0);
-    const rotateY = useSharedValue(0);
-
     // Z-Index local pendant le drag
     const zIndex = useSharedValue(index);
 
@@ -81,72 +67,6 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
         }
     }, [isPlayable]);
 
-    // === GESTURE HANDLER ===
-    const pan = Gesture.Pan()
-        .enabled(isPlayable)
-        .onStart(() => {
-            scale.value = withSpring(1.2, { damping: 10, stiffness: 200 });
-            zIndex.value = 100; // Passe au-dessus
-        })
-        .onUpdate((event) => {
-            translateX.value = event.translationX;
-            translateY.value = event.translationY;
-
-            // Tilt 3D basé sur la translation (limité de -20deg à 20deg)
-            rotateX.value = interpolate(event.translationY, [-200, 200], [20, -20], Extrapolation.CLAMP);
-            rotateY.value = interpolate(event.translationX, [-200, 200], [-20, 20], Extrapolation.CLAMP);
-
-            // Squish & Stretch basé sur la vélocité
-            const velocityMagnitude = Math.sqrt(event.velocityX ** 2 + event.velocityY ** 2);
-            if (velocityMagnitude > 500) {
-                // S'étire dans le sens du mouvement
-                const stretch = Math.min(1.15, 1 + velocityMagnitude / 5000);
-                const squish = Math.max(0.85, 1 - velocityMagnitude / 5000);
-
-                if (Math.abs(event.velocityY) > Math.abs(event.velocityX)) {
-                    scaleY.value = withSpring(stretch);
-                    scaleX.value = withSpring(squish);
-                } else {
-                    scaleX.value = withSpring(stretch);
-                    scaleY.value = withSpring(squish);
-                }
-            } else {
-                scaleX.value = withSpring(1);
-                scaleY.value = withSpring(1);
-            }
-        })
-        .onEnd((event) => {
-            scale.value = withSpring(1);
-            scaleX.value = withSpring(1);
-            scaleY.value = withSpring(1);
-            rotateX.value = withSpring(0);
-            rotateY.value = withSpring(0);
-
-            if (event.translationY < DROP_THRESHOLD) {
-                // Jouer la carte !
-                translateY.value = withSpring(-height / 2, { velocity: event.velocityY }, () => {
-                    'worklet';
-                    if (onPlay) {
-                        runOnJS(onPlay)();
-                    }
-                });
-            } else {
-                // Revenir à la main
-                translateX.value = withSpring(0, { damping: 14, stiffness: 150 });
-                translateY.value = withSpring(0, { damping: 14, stiffness: 150 }, () => {
-                    zIndex.value = index;
-                });
-            }
-        });
-
-    const tap = Gesture.Tap()
-        .enabled(isPlayable)
-        .onEnd(() => {
-            if (onPlay) runOnJS(onPlay)();
-        });
-
-    const composed = Gesture.Simultaneous(pan, tap);
-
     // === ANIMATED STYLES ===
 
     // Distribution en éventail (Stagger initial)
@@ -158,19 +78,14 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
     const fanTranslateY = Math.abs(offset) * 5; // Courbure en Y plus accentuée (5 au lieu de 3)
 
     const animatedStyle = useAnimatedStyle(() => {
-        const combinedRotateY = rotateY.value + flipRotation.value;
+        const combinedRotateY = flipRotation.value;
         const combinedRotateZ = fanAngle + dealRotateZ.value; // Combine fan angle with intro spin
         return {
-            zIndex: zIndex.value,
             transform: [
-                { translateX: translateX.value },
-                { translateY: translateY.value - fanTranslateY + dealTranslateY.value },
+                { translateY: -fanTranslateY + dealTranslateY.value },
                 { rotateZ: `${combinedRotateZ}deg` },
-                { scale: scale.value * dealScale.value },
-                { scaleX: scaleX.value },
-                { scaleY: scaleY.value },
+                { scale: dealScale.value },
                 { perspective: 800 },
-                { rotateX: `${rotateX.value}deg` },
                 { rotateY: `${combinedRotateY}deg` }
             ]
         };
@@ -196,7 +111,7 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
     const numRows = imgIndex === 3 ? 1 : 3;
 
     return (
-        <GestureDetector gesture={composed}>
+        <InteractiveHandSystem isPlayable={isPlayable} onCardPlayed={onPlay}>
             <Animated.View style={[styles.container, animatedStyle]}>
 
                 {/* Skia Glow Effect if Playable */}
@@ -251,7 +166,7 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
                 </Animated.View>
 
             </Animated.View>
-        </GestureDetector>
+        </InteractiveHandSystem>
     );
 }
 
