@@ -239,12 +239,14 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
                 </Animated.View>
 
                 {/* Back Face of the Card (Sophisticated Deal dos) */}
-                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#FCD34D', justifyContent: 'center', alignItems: 'center' }]}>
+                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }]}>
                     <Image
                         source={ramadanBack}
                         style={{ width: '100%', height: '100%' }}
                         resizeMode="cover"
                     />
+                    {/* Inner elegant border */}
+                    <View style={styles.innerBorder} />
                 </Animated.View>
 
             </Animated.View>
@@ -269,10 +271,18 @@ const styles = StyleSheet.create({
         borderColor: '#E2E8F0',
         overflow: 'hidden',
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
-        elevation: 5,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.35,
+        shadowRadius: 5,
+        elevation: 6,
+    },
+    innerBorder: {
+        position: 'absolute',
+        width: CARD_WIDTH - 8,
+        height: CARD_HEIGHT - 8,
+        borderRadius: 6,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212, 175, 55, 0.6)', // Golden border touch over the back Image
     },
     spriteContainer: {
         width: CARD_WIDTH,
