@@ -7,6 +7,7 @@ import Animated, {
     withTiming,
     withRepeat,
     withSequence,
+    withDelay,
     runOnJS,
     interpolate,
     Extrapolation
