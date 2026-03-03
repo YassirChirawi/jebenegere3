@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -11,6 +11,7 @@ import Animated, {
     Extrapolate,
     runOnJS,
 } from 'react-native-reanimated';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { Canvas, RoundedRect, BlurMask } from '@shopify/react-native-skia';
 import * as Haptics from 'expo-haptics';
 
@@ -18,8 +19,6 @@ const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const CARD_W = 75;
 const CARD_H = 105;
-
-// Shadow canvas is larger than the card so blur doesn't clip at the edges
 const SHADOW_CANVAS_W = CARD_W + 80;
 const SHADOW_CANVAS_H = CARD_H + 80;
 const SHADOW_PAD = 40;
@@ -35,79 +34,69 @@ export default function InteractiveHandSystem({
     onCardPlayed,
     isPlayable = true,
 }: Props) {
-    // ---- Shared Values ----
     const cardY = useSharedValue(0);
-    const liftProg = useSharedValue(0); // 0 = resting, 1 = floating
+    const liftProg = useSharedValue(0);
 
-    // ---- Haptics ----
-    const medHaptic = () => Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    // JS-thread helpers (called via runOnJS from the gesture worklet)
+    const triggerHaptic = () =>
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
-    // ---- Tap handler ----
-    const handlePress = () => {
-        if (!isPlayable) return;
-
-        runOnJS(medHaptic)();
-
-        // 1. Float up slightly (lift phase)
-        liftProg.value = withTiming(1, { duration: 180 });
-
-        // 2. After brief hover, fly off screen, then notify game
-        cardY.value = withSequence(
-            // Slight lift first for a "hover" feel
-            withSpring(-30, { damping: 10, stiffness: 200 }),
-            // Then fly off
-            withTiming(-SCREEN_HEIGHT, { duration: 350 }, (finished) => {
-                'worklet';
-                if (finished && onCardPlayed) runOnJS(onCardPlayed)();
-            })
-        );
+    // Delay matches the fly-out animation so the card is gone before the game updates
+    const notifyPlayed = () => {
+        if (onCardPlayed) setTimeout(onCardPlayed, 380);
     };
 
-    // ---- Derived values for Skia shadow ----
+    // ---- Tap Gesture (runs on UI thread) ----
+    const tapGesture = Gesture.Tap()
+        .enabled(isPlayable)
+        .onEnd((_e, success) => {
+            'worklet';
+            if (!success) return;
+
+            runOnJS(triggerHaptic)();
+
+            // 1. Hover up with spring
+            // 2. Fly off screen
+            liftProg.value = withTiming(1, { duration: 150 });
+            cardY.value = withSequence(
+                withSpring(-30, { damping: 10, stiffness: 220 }),
+                withTiming(-SCREEN_HEIGHT, { duration: 330 })
+            );
+
+            // Notify the game after the fly-out delay
+            runOnJS(notifyPlayed)();
+        });
+
+    // ---- Skia shadow (derived from liftProg) ----
     const shadowBlur = useDerivedValue(() =>
         interpolate(liftProg.value, [0, 1], [3, 22])
     );
-
     const shadowDY = useDerivedValue(() =>
         interpolate(liftProg.value, [0, 1], [4, 22])
     );
-
     const shadowAlpha = useDerivedValue(() =>
         interpolate(liftProg.value, [0, 1], [0.22, 0.55])
     );
 
-    // ---- Animated Styles ----
+    // ---- Animated styles ----
+    const cardAnimatedStyle = useAnimatedStyle(() => ({
+        transform: [
+            { translateY: cardY.value },
+            { scale: interpolate(liftProg.value, [0, 1], [1, 1.08], Extrapolate.CLAMP) },
+        ],
+        zIndex: liftProg.value > 0 ? 100 : 1,
+    }));
 
-    // Card: lift + scale on tap, then fly upward
-    const cardAnimatedStyle = useAnimatedStyle(() => {
-        const sc = interpolate(liftProg.value, [0, 1], [1, 1.08], Extrapolate.CLAMP);
-        return {
-            transform: [
-                { translateY: cardY.value },
-                { scale: sc },
-            ],
-            zIndex: liftProg.value > 0 ? 100 : 1,
-        };
-    });
-
-    // Shadow follows card, offset downward by dynamic amount
     const shadowCanvasStyle = useAnimatedStyle(() => ({
         position: 'absolute',
         left: -SHADOW_PAD,
         top: -SHADOW_PAD,
-        transform: [
-            { translateY: cardY.value + shadowDY.value },
-        ],
+        transform: [{ translateY: cardY.value + shadowDY.value }],
         zIndex: 0,
     }));
 
     return (
-        <TouchableOpacity
-            onPress={handlePress}
-            disabled={!isPlayable}
-            activeOpacity={0.85}
-            style={styles.touchable}
-        >
+        <GestureDetector gesture={tapGesture}>
             <Animated.View style={styles.container}>
 
                 {/* Dynamic Skia drop-shadow */}
@@ -126,21 +115,17 @@ export default function InteractiveHandSystem({
                     </Canvas>
                 </Animated.View>
 
-                {/* Card visuals with float + fly transform */}
+                {/* Card with hover + fly animation */}
                 <Animated.View style={cardAnimatedStyle}>
                     {children}
                 </Animated.View>
 
             </Animated.View>
-        </TouchableOpacity>
+        </GestureDetector>
     );
 }
 
 const styles = StyleSheet.create({
-    touchable: {
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
     container: {
         justifyContent: 'center',
         alignItems: 'center',
