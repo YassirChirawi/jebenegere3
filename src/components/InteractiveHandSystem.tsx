@@ -16,8 +16,6 @@ import * as Haptics from 'expo-haptics';
 
 const { height: SCREEN_HEIGHT } = Dimensions.get('window');
 
-const HAND_IMG = require('../../assets/virtual_hand.png');
-
 const CARD_W = 75;
 const CARD_H = 105;
 
@@ -161,26 +159,6 @@ export default function InteractiveHandSystem({
         zIndex: 0,
     }));
 
-    // Hand image: instant finger tracking + zooms in from below on grab
-    const handAnimatedStyle = useAnimatedStyle(() => {
-        const ty = interpolate(isDragging.value, [0, 1], [80, 0]);
-        const sc = interpolate(isDragging.value, [0, 1], [0.4, 1]);
-        return {
-            position: 'absolute',
-            left: '50%',
-            top: '50%',
-            opacity: isDragging.value,
-            transform: [
-                { translateX: gestureX.value - 40 },
-                { translateY: gestureY.value + ty + 30 },
-                { scale: sc },
-                { rotateZ: '-12deg' },
-            ],
-            zIndex: 150,
-            pointerEvents: 'none',
-        };
-    });
-
     return (
         <GestureDetector gesture={panGesture}>
             <Animated.View style={styles.container}>
@@ -206,13 +184,6 @@ export default function InteractiveHandSystem({
                     {children}
                 </Animated.View>
 
-                {/* 3. Virtual pinch hand image over the card */}
-                <Animated.Image
-                    source={HAND_IMG}
-                    style={[styles.handImage, handAnimatedStyle]}
-                    resizeMode="contain"
-                />
-
             </Animated.View>
         </GestureDetector>
     );
@@ -222,9 +193,5 @@ const styles = StyleSheet.create({
     container: {
         justifyContent: 'center',
         alignItems: 'center',
-    },
-    handImage: {
-        width: 110,
-        height: 110,
     },
 });

@@ -354,6 +354,7 @@ export default function GameScreen({ route, navigation }) {
             source={TABLE_BG}
             style={styles.container}
             resizeMode="cover"
+            imageStyle={{ top: '-10%' }}
         >
             <Animated.View style={[styles.boardOverlay, shakeAnimatedStyle]}>
                 {/* Info Button Top Right */}
@@ -552,15 +553,6 @@ export default function GameScreen({ route, navigation }) {
                         <Text style={[styles.playerName, { fontSize: 20 }]}>👀 Vous êtes en attente (Spectateur)</Text>
                     ) : (
                         <>
-                            {/* Bar de reactions rapide */}
-                            <View style={styles.reactionBar}>
-                                {['😂', '😡', '😱', '👏'].map(emoji => (
-                                    <TouchableOpacity key={emoji} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
-                                        <Text style={styles.reactionBtnText}>{emoji}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
-
                             <View style={styles.playerNameRow}>
                                 <View>
                                     <PlayerAvatar name="Vous" size={40} active={gameState.turn === localPlayerIndex} />
@@ -588,6 +580,15 @@ export default function GameScreen({ route, navigation }) {
                                         />
                                     );
                                 })}
+                            </View>
+
+                            {/* Bar de reactions rapide — en bas */}
+                            <View style={styles.reactionBar}>
+                                {['😂', '😡', '😱', '👏'].map(emoji => (
+                                    <TouchableOpacity key={emoji} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
+                                        <Text style={styles.reactionBtnText}>{emoji}</Text>
+                                    </TouchableOpacity>
+                                ))}
                             </View>
                         </>
                     )}
@@ -800,10 +801,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     playerArea: {
-        height: 150,
-        justifyContent: 'center',
+        height: 170,
+        justifyContent: 'space-between',
         alignItems: 'center',
         marginTop: 10,
+        paddingBottom: 6,
     },
     boardArea: {
         flex: 1,

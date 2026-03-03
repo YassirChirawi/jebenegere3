@@ -20,7 +20,7 @@ const img1 = require('../../assets/Galleria_01.jpg');
 const img2 = require('../../assets/Galleria_02.jpg');
 const img3 = require('../../assets/Galleria_03.jpg');
 const img4 = require('../../assets/Galleria_04.jpg');
-const ramadanBack = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png'); // NOUVEAU DOS DE CARTE
+const gameLogoBack = require('../../assets/icon.png'); // Dos de carte — logo du jeu
 const images = [img1, img2, img3, img4];
 
 const suitOrder = { Oros: 0, Bastos: 1, Espadas: 2, Copas: 3 };
@@ -154,12 +154,12 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
                     </View>
                 </Animated.View>
 
-                {/* Back Face of the Card (Sophisticated Deal dos) */}
-                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#FFF', justifyContent: 'center', alignItems: 'center' }]}>
+                {/* Back Face of the Card — Logo du jeu */}
+                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#1C0F13', justifyContent: 'center', alignItems: 'center' }]}>
                     <Image
-                        source={ramadanBack}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
+                        source={gameLogoBack}
+                        style={{ width: '85%', height: '85%' }}
+                        resizeMode="contain"
                     />
                     {/* Inner elegant border */}
                     <View style={styles.innerBorder} />
