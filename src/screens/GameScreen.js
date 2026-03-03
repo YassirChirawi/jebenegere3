@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ImageBackground, Image, TextInput } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, ImageBackground, Image, TextInput, StatusBar } from 'react-native';
 import Animated, {
     LinearTransition,
     FadeIn,
@@ -33,11 +33,35 @@ export default function GameScreen({ route, navigation }) {
     const [timeLeft, setTimeLeft] = useState(15);
     const [showRules, setShowRules] = useState(false);
     const [showChatMenu, setShowChatMenu] = useState(false);
-    const [chatMessages, setChatMessages] = useState([]); // {id, playerName, message, timestamp}
-    const [activeReactions, setActiveReactions] = useState({}); // { [playerIndex]: 'reaction_emoji' }
+    const [chatMessages, setChatMessages] = useState([]);
+    const [activeReactions, setActiveReactions] = useState({});
     const [customMsg, setCustomMsg] = useState('');
     const [isInitialDeal, setIsInitialDeal] = useState(true);
+    const [isMuted, setIsMuted] = useState(audioService.muted);
     const prevGameStateRef = useRef(initialGameState);
+
+    const handleQuit = () => {
+        Alert.alert(
+            'Quitter la partie',
+            'Êtes-vous sûr de vouloir quitter ?',
+            [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: 'Quitter', style: 'destructive',
+                    onPress: () => {
+                        audioService.stopTickTock();
+                        socketService.disconnect();
+                        navigation.replace('Home');
+                    },
+                },
+            ]
+        );
+    };
+
+    const handleToggleMute = async () => {
+        const newMuted = await audioService.toggleMute();
+        setIsMuted(newMuted);
+    };
 
     // --- Screen Shake Animation Value ---
     const shakeOffset = useSharedValue(0);
@@ -357,16 +381,28 @@ export default function GameScreen({ route, navigation }) {
             resizeMode="cover"
             imageStyle={{ top: '-10%' }}
         >
+            <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <Animated.View style={[styles.boardOverlay, shakeAnimatedStyle]}>
-                {/* Info Button Top Right */}
-                <TouchableOpacity style={styles.infoBtn} onPress={() => setShowRules(true)}>
-                    <Text style={styles.infoBtnText}>ℹ️</Text>
-                </TouchableOpacity>
 
-                {/* Chat Button Top Left */}
-                <TouchableOpacity style={styles.chatBtn} onPress={() => setShowChatMenu(true)}>
-                    <Text style={styles.chatBtnText}>💬</Text>
-                </TouchableOpacity>
+                {/* Top-left: Quit + Chat */}
+                <View style={styles.topLeftBtns}>
+                    <TouchableOpacity style={styles.headerBtn} onPress={handleQuit}>
+                        <Text style={styles.headerBtnText}>🚪</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerBtn} onPress={() => setShowChatMenu(true)}>
+                        <Text style={styles.headerBtnText}>💬</Text>
+                    </TouchableOpacity>
+                </View>
+
+                {/* Top-right: Mute + Info */}
+                <View style={styles.topRightBtns}>
+                    <TouchableOpacity style={styles.headerBtn} onPress={handleToggleMute}>
+                        <Text style={styles.headerBtnText}>{isMuted ? '🔇' : '🔊'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerBtn} onPress={() => setShowRules(true)}>
+                        <Text style={styles.headerBtnText}>ℹ️</Text>
+                    </TouchableOpacity>
+                </View>
 
                 {/* Floating Chat Messages Overlay */}
                 <View style={styles.chatMessagesOverlay} pointerEvents="none">
@@ -391,7 +427,7 @@ export default function GameScreen({ route, navigation }) {
                         <View style={styles.opponentHandContainer}>
                             <View style={styles.playerNameRow}>
                                 <View>
-                                    <PlayerAvatar name={oppTop.player.name} size={30} active={gameState.turn === oppTop.index} />
+                                    <PlayerAvatar name={oppTop.player.name} size={40} active={gameState.turn === oppTop.index} />
                                     {activeReactions[oppTop.index] && (
                                         <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextTop}>
                                             {activeReactions[oppTop.index]}
@@ -422,7 +458,7 @@ export default function GameScreen({ route, navigation }) {
                             <View style={styles.opponentHandContainer}>
                                 <View style={styles.playerNameRow}>
                                     <View>
-                                        <PlayerAvatar name={oppLeft.player.name} size={30} active={gameState.turn === oppLeft.index} />
+                                        <PlayerAvatar name={oppLeft.player.name} size={40} active={gameState.turn === oppLeft.index} />
                                         {activeReactions[oppLeft.index] && (
                                             <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
                                                 {activeReactions[oppLeft.index]}
@@ -488,34 +524,48 @@ export default function GameScreen({ route, navigation }) {
                         {/* Turn/Log Info */}
                         <View style={styles.infoArea}>
                             {gameState.mancheTerminee ? (
-                                <View style={{ alignItems: 'center' }}>
-                                    <Text style={styles.turnText}>
-                                        Manche terminée !
-                                        {gameState.loserIndex === localPlayerIndex ? "VOUS AVEZ PERDU 😢" : `${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
+                                <View style={{ alignItems: 'center', width: '100%' }}>
+                                    <Text style={styles.roundOverTitle}>
+                                        {gameState.loserIndex === localPlayerIndex ? '😢 Vous avez perdu !' : `💀 ${gameState?.players?.[gameState.loserIndex]?.name || 'Un joueur'} a perdu !`}
                                     </Text>
 
-                                    {/* Afficher les scores calculés par le serveur */}
-                                    <View style={{ marginTop: 15, padding: 10, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 10, width: '100%' }}>
-                                        <Text style={{ color: '#D4AF37', fontWeight: 'bold', fontSize: 16, marginBottom: 5, textAlign: 'center' }}>Scores :</Text>
-                                        {gameState.players?.map((p, idx) => (
-                                            <Text key={p.id} style={{ color: '#fff', fontSize: 14, marginVertical: 2 }}>
-                                                {p.name} : {gameState.scores?.[idx] || 0} pts
-                                            </Text>
-                                        ))}
+                                    {/* Tableau de scores trié */}
+                                    <View style={styles.scoreTable}>
+                                        <Text style={styles.scoreTableTitle}>🏆 Classement de la manche</Text>
+                                        {gameState.players
+                                            ?.map((p, idx) => ({ name: p.name, score: gameState.scores?.[idx] ?? 0, isMe: idx === localPlayerIndex }))
+                                            .sort((a, b) => a.score - b.score)
+                                            .map((entry, rank) => {
+                                                const medals = ['🥇', '🥈', '🥉'];
+                                                return (
+                                                    <View key={entry.name} style={[styles.scoreRow, entry.isMe && styles.scoreRowMe]}>
+                                                        <Text style={styles.scoreMedal}>{medals[rank] ?? `${rank + 1}.`}</Text>
+                                                        <Text style={[styles.scoreName, entry.isMe && { color: '#FCD34D' }]}>{entry.name}</Text>
+                                                        <Text style={styles.scoreVal}>{entry.score} pts</Text>
+                                                    </View>
+                                                );
+                                            })
+                                        }
+                                        <Text style={styles.scoreLegend}>
+                                            📌 Points = valeur des cartes restantes en main{`\n`}As=1 · 2→7=valeur · Valet=11 · Cavalier=10 · Roi=12
+                                        </Text>
                                     </View>
 
-                                    {isHost ? (
-                                        <TouchableOpacity
-                                            style={{ marginTop: 15, backgroundColor: '#D4AF37', padding: 12, borderRadius: 8, width: 200, alignItems: 'center' }}
-                                            onPress={() => socketService.playAgain(roomId)}
-                                        >
-                                            <Text style={{ color: '#000', fontWeight: 'bold' }}>REJOUER (Manche Suivante)</Text>
+                                    {/* Boutons Rejouer + Quitter */}
+                                    <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                                        {isHost ? (
+                                            <TouchableOpacity style={styles.replayBtn} onPress={() => socketService.playAgain(roomId)}>
+                                                <Text style={styles.replayBtnText}>🔄 Rejouer</Text>
+                                            </TouchableOpacity>
+                                        ) : (
+                                            <Text style={{ color: '#9CA3AF', fontSize: 12, textAlign: 'center' }}>
+                                                En attente de l'hôte...
+                                            </Text>
+                                        )}
+                                        <TouchableOpacity style={styles.quitBtn} onPress={handleQuit}>
+                                            <Text style={styles.quitBtnText}>🚪 Quitter</Text>
                                         </TouchableOpacity>
-                                    ) : (
-                                        <Text style={{ color: '#fff', fontSize: 13, marginTop: 15, textAlign: 'center' }}>
-                                            Veuillez attendre que l'hôte relance la partie...
-                                        </Text>
-                                    )}
+                                    </View>
                                 </View>
                             ) : (
                                 <>
@@ -542,7 +592,7 @@ export default function GameScreen({ route, navigation }) {
                             <View style={styles.opponentHandContainer}>
                                 <View style={styles.playerNameRow}>
                                     <View>
-                                        <PlayerAvatar name={oppRight.player.name} size={30} active={gameState.turn === oppRight.index} />
+                                        <PlayerAvatar name={oppRight.player.name} size={40} active={gameState.turn === oppRight.index} />
                                         {activeReactions[oppRight.index] && (
                                             <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
                                                 {activeReactions[oppRight.index]}
@@ -699,9 +749,12 @@ export default function GameScreen({ route, navigation }) {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#1C0F13', // Fond sombre
-        paddingTop: 45,
-        paddingBottom: 20,
+        backgroundColor: '#1C0F13',
+    },
+    boardOverlay: {
+        flex: 1,
+        paddingTop: 50,
+        paddingBottom: 8,
     },
     // ---- REACTIONS STYLES ----
     reactionBar: {
@@ -743,36 +796,35 @@ const styles = StyleSheet.create({
         fontSize: 32,
         zIndex: 50,
     },
-    // --------------------------
-    infoBtn: {
+    // ---- HEADER BUTTONS ----
+    topLeftBtns: {
         position: 'absolute',
-        top: 45,
-        right: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
+        top: 8,
+        left: 12,
+        flexDirection: 'row',
+        gap: 8,
         zIndex: 10,
     },
-    infoBtnText: {
-        fontSize: 20,
-    },
-    chatBtn: {
+    topRightBtns: {
         position: 'absolute',
-        top: 45,
-        left: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
+        top: 8,
+        right: 12,
+        flexDirection: 'row',
+        gap: 8,
         zIndex: 10,
     },
-    chatBtnText: {
-        fontSize: 20,
+    headerBtn: {
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        width: 38,
+        height: 38,
+        borderRadius: 19,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(212,175,55,0.35)',
+    },
+    headerBtnText: {
+        fontSize: 18,
     },
     chatMessagesOverlay: {
         position: 'absolute',
@@ -804,10 +856,10 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     topArea: {
-        height: 80,
+        height: 105,
         justifyContent: 'center',
         alignItems: 'center',
-        marginBottom: 10,
+        marginBottom: 6,
     },
     middleArea: {
         flex: 1,
@@ -1101,5 +1153,88 @@ const styles = StyleSheet.create({
     customChatBtnText: {
         color: '#fff',
         fontWeight: 'bold',
+    },
+    // ---- END OF ROUND ----
+    roundOverTitle: {
+        color: '#FCD34D',
+        fontWeight: '900',
+        fontSize: 18,
+        textAlign: 'center',
+        marginBottom: 10,
+        textShadowColor: '#000',
+        textShadowRadius: 4,
+    },
+    scoreTable: {
+        width: '100%',
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        borderRadius: 12,
+        padding: 10,
+        marginBottom: 6,
+    },
+    scoreTableTitle: {
+        color: '#D4AF37',
+        fontWeight: 'bold',
+        fontSize: 14,
+        textAlign: 'center',
+        marginBottom: 8,
+    },
+    scoreRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 4,
+        paddingHorizontal: 6,
+        borderRadius: 8,
+        marginBottom: 2,
+    },
+    scoreRowMe: {
+        backgroundColor: 'rgba(212,175,55,0.15)',
+    },
+    scoreMedal: {
+        fontSize: 18,
+        width: 28,
+    },
+    scoreName: {
+        flex: 1,
+        color: '#fff',
+        fontWeight: 'bold',
+        fontSize: 13,
+    },
+    scoreVal: {
+        color: '#D4AF37',
+        fontWeight: '900',
+        fontSize: 14,
+    },
+    scoreLegend: {
+        color: '#9CA3AF',
+        fontSize: 10,
+        marginTop: 8,
+        textAlign: 'center',
+        lineHeight: 15,
+    },
+    replayBtn: {
+        backgroundColor: '#D4AF37',
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    replayBtnText: {
+        color: '#1C0F13',
+        fontWeight: '900',
+        fontSize: 14,
+    },
+    quitBtn: {
+        backgroundColor: 'rgba(239,68,68,0.2)',
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: 10,
+        borderWidth: 1,
+        borderColor: '#EF4444',
+        alignItems: 'center',
+    },
+    quitBtnText: {
+        color: '#EF4444',
+        fontWeight: '900',
+        fontSize: 14,
     },
 });
