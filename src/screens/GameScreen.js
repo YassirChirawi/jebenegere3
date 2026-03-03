@@ -429,9 +429,9 @@ export default function GameScreen({ route, navigation }) {
                                 <View>
                                     <PlayerAvatar name={oppTop.player.name} size={40} active={gameState.turn === oppTop.index} />
                                     {activeReactions[oppTop.index] && (
-                                        <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextTop}>
-                                            {activeReactions[oppTop.index]}
-                                        </Animated.Text>
+                                        <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextTop}>
+                                            <Text style={{ fontSize: 32 }}>{activeReactions[oppTop.index]}</Text>
+                                        </Animated.View>
                                     )}
                                 </View>
                                 <Text style={[styles.playerName, gameState.turn === oppTop.index && styles.activePlayer]}>
@@ -460,9 +460,9 @@ export default function GameScreen({ route, navigation }) {
                                     <View>
                                         <PlayerAvatar name={oppLeft.player.name} size={40} active={gameState.turn === oppLeft.index} />
                                         {activeReactions[oppLeft.index] && (
-                                            <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
-                                                {activeReactions[oppLeft.index]}
-                                            </Animated.Text>
+                                            <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
+                                                <Text style={{ fontSize: 32 }}>{activeReactions[oppLeft.index]}</Text>
+                                            </Animated.View>
                                         )}
                                     </View>
                                     <Text style={[styles.playerName, gameState.turn === oppLeft.index && styles.activePlayer]}>
@@ -594,9 +594,9 @@ export default function GameScreen({ route, navigation }) {
                                     <View>
                                         <PlayerAvatar name={oppRight.player.name} size={40} active={gameState.turn === oppRight.index} />
                                         {activeReactions[oppRight.index] && (
-                                            <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
-                                                {activeReactions[oppRight.index]}
-                                            </Animated.Text>
+                                            <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSide}>
+                                                <Text style={{ fontSize: 32 }}>{activeReactions[oppRight.index]}</Text>
+                                            </Animated.View>
                                         )}
                                     </View>
                                     <Text style={[styles.playerName, gameState.turn === oppRight.index && styles.activePlayer]}>
@@ -627,9 +627,9 @@ export default function GameScreen({ route, navigation }) {
                                 <View>
                                     <PlayerAvatar name="Vous" size={40} active={gameState.turn === localPlayerIndex} />
                                     {activeReactions[localPlayerIndex] && (
-                                        <Animated.Text entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSelf}>
-                                            {activeReactions[localPlayerIndex]}
-                                        </Animated.Text>
+                                        <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.reactionTextSelf}>
+                                            <Text style={{ fontSize: 32, textShadowColor: '#FFD700', textShadowRadius: 10 }}>{activeReactions[localPlayerIndex]}</Text>
+                                        </Animated.View>
                                     )}
                                 </View>
                                 <Text style={[styles.playerName, gameState.turn === localPlayerIndex && styles.activePlayer, { fontSize: 18 }]}>Vous</Text>
@@ -777,23 +777,18 @@ const styles = StyleSheet.create({
         position: 'absolute',
         top: -30,
         alignSelf: 'center',
-        fontSize: 32,
-        textShadowColor: '#FFD700',
-        textShadowRadius: 10,
         zIndex: 50,
     },
     reactionTextTop: {
         position: 'absolute',
         bottom: -30,
         alignSelf: 'center',
-        fontSize: 32,
         zIndex: 50,
     },
     reactionTextSide: {
         position: 'absolute',
         top: -25,
         alignSelf: 'center',
-        fontSize: 32,
         zIndex: 50,
     },
     // ---- HEADER BUTTONS ----

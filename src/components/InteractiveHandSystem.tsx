@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, Dimensions } from 'react-native';
+import { StyleSheet, Dimensions, Platform } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -99,21 +99,23 @@ export default function InteractiveHandSystem({
         <GestureDetector gesture={tapGesture}>
             <Animated.View style={styles.container}>
 
-                {/* Dynamic Skia drop-shadow */}
-                <Animated.View style={shadowCanvasStyle}>
-                    <Canvas style={{ width: SHADOW_CANVAS_W, height: SHADOW_CANVAS_H }}>
-                        <RoundedRect
-                            x={SHADOW_PAD}
-                            y={SHADOW_PAD}
-                            width={CARD_W}
-                            height={CARD_H}
-                            r={10}
-                            color={`rgba(0,0,0,${shadowAlpha.value})`}
-                        >
-                            <BlurMask blur={shadowBlur.value} style="normal" />
-                        </RoundedRect>
-                    </Canvas>
-                </Animated.View>
+                {/* Dynamic Skia drop-shadow (Disabled on Web to prevent CanvasKit WASM crash) */}
+                {Platform.OS !== 'web' && (
+                    <Animated.View style={shadowCanvasStyle}>
+                        <Canvas style={{ width: SHADOW_CANVAS_W, height: SHADOW_CANVAS_H }}>
+                            <RoundedRect
+                                x={SHADOW_PAD}
+                                y={SHADOW_PAD}
+                                width={CARD_W}
+                                height={CARD_H}
+                                r={10}
+                                color={`rgba(0,0,0,${shadowAlpha.value})`}
+                            >
+                                <BlurMask blur={shadowBlur.value} style="normal" />
+                            </RoundedRect>
+                        </Canvas>
+                    </Animated.View>
+                )}
 
                 {/* Card with hover + fly animation */}
                 <Animated.View style={cardAnimatedStyle}>
