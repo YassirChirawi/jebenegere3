@@ -14,8 +14,6 @@ import PlayerAvatar from '../components/PlayerAvatar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getRankInfo } from '../utils/stats';
 
-const GAME_LOGO = require('../../assets/icon.png'); // Assuming this is the game logo
-
 export default function HomeScreen({ navigation }) {
     const [name, setName] = useState('');
     const [roomIdInput, setRoomIdInput] = useState('');
@@ -165,11 +163,6 @@ export default function HomeScreen({ navigation }) {
                 resizeMode="cover"
             >
                 <View style={styles.loaderContainer}>
-                    <Animated.Image
-                        source={require('../../assets/icon.png')}
-                        style={[styles.loaderImage, animatedStyle]}
-                        resizeMode="contain"
-                    />
                     <Text style={styles.loaderTitle}>Réveil du serveur...</Text>
                     <Text style={styles.loaderSubtitle}>Veuillez patienter quelques secondes</Text>
                 </View>
@@ -197,7 +190,6 @@ export default function HomeScreen({ navigation }) {
 
                         {/* Titre Principal */}
                         <Animated.View style={[styles.titleContainer, animatedStyle]}>
-                            <Image source={GAME_LOGO} style={styles.headerLogo} resizeMode="contain" />
                             <Text style={styles.titleText}>JEBAN</Text>
                             <Text style={styles.titleTextHighlight}>GERE3</Text>
                         </Animated.View>
