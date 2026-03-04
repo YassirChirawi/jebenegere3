@@ -861,6 +861,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         paddingHorizontal: 10,
+        zIndex: 50,
+        elevation: 50,
     },
     sideArea: {
         width: 100,
@@ -873,6 +875,8 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 10,
         paddingBottom: 6,
+        zIndex: 10,
+        elevation: 10,
     },
     boardArea: {
         flex: 1,

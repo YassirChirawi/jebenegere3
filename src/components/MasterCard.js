@@ -11,8 +11,18 @@ import Animated, {
     runOnJS,
     interpolate,
 } from 'react-native-reanimated';
-import { Canvas, RoundedRect, SweepGradient, vec, BlurMask } from '@shopify/react-native-skia';
+import { Platform } from 'react-native';
 import InteractiveHandSystem from './InteractiveHandSystem';
+
+// Load Skia dynamically only on native platforms to prevent Web crashes (CanvasKit missing)
+let SkiaComponents = null;
+if (Platform.OS !== 'web') {
+    try {
+        SkiaComponents = require('@shopify/react-native-skia');
+    } catch (e) {
+        console.warn('Failed to load Skia:', e);
+    }
+}
 
 const { height } = Dimensions.get('window');
 
@@ -114,23 +124,23 @@ export default function MasterCard({ card, isPlayable, onPlay, index, totalCards
         <InteractiveHandSystem isPlayable={isPlayable} onCardPlayed={onPlay}>
             <Animated.View style={[styles.container, animatedStyle]}>
 
-                {/* Skia Glow Effect if Playable */}
-                {isPlayable && (
-                    <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-                        <RoundedRect
+                {/* Skia Glow Effect if Playable (Native only) */}
+                {isPlayable && Platform.OS !== 'web' && SkiaComponents && (
+                    <SkiaComponents.Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
+                        <SkiaComponents.RoundedRect
                             x={-5} y={-5}
                             width={CARD_WIDTH + 10}
                             height={CARD_HEIGHT + 10}
                             r={12}
                         >
-                            <SweepGradient
-                                c={vec((CARD_WIDTH + 10) / 2, (CARD_HEIGHT + 10) / 2)}
+                            <SkiaComponents.SweepGradient
+                                c={SkiaComponents.vec((CARD_WIDTH + 10) / 2, (CARD_HEIGHT + 10) / 2)}
                                 colors={['#FFD700', '#FF8C00', '#FFD700']}
-                                transform={[{ rotate: glowRotation.value * (Math.PI / 180) }]}
+                                transform={[{ rotate: (glowRotation?.value || 0) * (Math.PI / 180) }]}
                             />
-                            <BlurMask blur={8} style="normal" />
-                        </RoundedRect>
-                    </Canvas>
+                            <SkiaComponents.BlurMask blur={8} style="normal" />
+                        </SkiaComponents.RoundedRect>
+                    </SkiaComponents.Canvas>
                 )}
 
                 {/* Front Face of the Card */}
