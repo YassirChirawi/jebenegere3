@@ -152,7 +152,9 @@ function resetTimer(roomId) {
         const player = room.activePlayers[turnIndex];
 
         if (player && player.isBot) {
-            const timeoutDelay = (room.gameState && room.gameState.pendingAction) ? 1500 : 2500;
+            // Le bot joue rapidement (entre 1.5s et 3s max)
+            const timeoutDelay = (room.gameState && room.gameState.pendingAction) ? 1500 : 1500 + Math.random() * 1500;
+
             setTimeout(() => {
                 // S'assurer que le jeu n'est pas terminé et que c'est toujours à son tour
                 const currentState = rooms[roomId]?.gameState;
@@ -162,25 +164,98 @@ function resetTimer(roomId) {
 
                 const hand = currentState.hands[turnIndex];
 
-                let cardToPlayIndex = -1;
+                // 1. Lister les cartes jouables
+                const playableCards = [];
                 for (let i = 0; i < hand.length; i++) {
                     if (canPlayCard(hand[i], currentState)) {
-                        cardToPlayIndex = i;
-                        break;
+                        playableCards.push({ card: hand[i], originalIndex: i });
                     }
                 }
 
-                if (cardToPlayIndex !== -1) {
-                    const card = hand[cardToPlayIndex];
-                    const suits = ['Oros', 'Copas', 'Espadas', 'Bastos'];
-                    const newSuit = card.value === 7 ? suits[Math.floor(Math.random() * suits.length)] : null;
-                    processPlayCard(roomId, turnIndex, cardToPlayIndex, newSuit);
+                if (playableCards.length > 0) {
+                    let chosenOriginalIndex = -1;
+                    let newSuit = null;
+
+                    // 2. Intelligence Artificielle (Priorités)
+                    if (currentState.pendingAction) {
+                        // LE BOT SE FAIT ATTAQUER (+2) : Priorité absolue à la défense (un autre 2, ou idéalement un 1)
+                        // Note: hezz2 stipule souvent qu'on se défend d'un 2 par un 2 (cumul) ou par un 1 (skip/shield), selon vos règles.
+                        // On va chercher le meilleur contre.
+                        const defenseCards = playableCards.filter(p => p.card.value === 1 || p.card.value === 2);
+                        if (defenseCards.length > 0) {
+                            // On prend la première défense trouvée (privilège au 1 si on veut esquiver, ou 2 pour surenchérir)
+                            chosenOriginalIndex = defenseCards[0].originalIndex;
+                        } else {
+                            // Sinon il joue n'importe quelle carte jouable (ex: si le pendingAction = skip_response)
+                            chosenOriginalIndex = playableCards[0].originalIndex;
+                        }
+                    } else {
+                        // LE BOT EST TRANQUILLE :
+                        // Normal > 2 > 1 > 7
+                        const normals = playableCards.filter(p => ![1, 2, 7].includes(p.card.value));
+                        const twos = playableCards.filter(p => p.card.value === 2);
+                        const ones = playableCards.filter(p => p.card.value === 1);
+                        const sevens = playableCards.filter(p => p.card.value === 7);
+
+                        if (normals.length > 0) {
+                            // Jouer une carte normale aléatoire
+                            chosenOriginalIndex = normals[Math.floor(Math.random() * normals.length)].originalIndex;
+                        } else if (twos.length > 0) {
+                            // Si plus de normales, on joue un +2
+                            chosenOriginalIndex = twos[Math.floor(Math.random() * twos.length)].originalIndex;
+                        } else if (ones.length > 0) {
+                            // Si plus rien de tout ça, on joue un 1
+                            chosenOriginalIndex = ones[Math.floor(Math.random() * ones.length)].originalIndex;
+                        } else if (sevens.length > 0) {
+                            // Le 7 est la dernière carte qu'on veut jouer (c'est un joker précieux)
+                            chosenOriginalIndex = sevens[0].originalIndex;
+                        } else {
+                            // Fallback
+                            chosenOriginalIndex = playableCards[0].originalIndex;
+                        }
+                    }
+
+                    // 3. Gestion Tactique du Joker (7)
+                    const selectedCard = hand[chosenOriginalIndex];
+                    if (selectedCard.value === 7) {
+                        // Le bot compte ses familles
+                        const suitCount = { Oros: 0, Copas: 0, Espadas: 0, Bastos: 0 };
+                        hand.forEach(c => {
+                            if (c.value !== 7) suitCount[c.suit]++;
+                        });
+
+                        // Trouve la famille avec le plus de cartes
+                        let maxCount = -1;
+                        for (const suit of Object.keys(suitCount)) {
+                            if (suitCount[suit] > maxCount) {
+                                maxCount = suitCount[suit];
+                                newSuit = suit;
+                            }
+                        }
+                    }
+
+                    processPlayCard(roomId, turnIndex, chosenOriginalIndex, newSuit);
                 } else {
-                    if (!currentState.pendingAction) {
+                    // LE BOT NE PEUT PAS JOUER
+                    if (currentState.pendingAction) {
+                        // Le bot va se manger des pénalités -> Réaction humaine !
+                        const emojis = ['😡', '😱', '😭', '🤬'];
+                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                        io.to(roomId).emit('player_reaction_broadcast', {
+                            playerIndex: turnIndex,
+                            reactionType: randomEmoji
+                        });
+
+                        // Le processDrawCard appliquera la pénalité via le GameEngine
+                        setTimeout(() => {
+                            processDrawCard(roomId, turnIndex);
+                        }, 800); // Petit délai supplémentaire pour apprécier sa rage
+                    } else {
+                        // Juste une pioche normale
                         processDrawCard(roomId, turnIndex);
                     }
                 }
-            }, timeoutDelay); // Le bot réfléchit plus vite s'il est attaqué
+            }, timeoutDelay);
         }
     }
 }

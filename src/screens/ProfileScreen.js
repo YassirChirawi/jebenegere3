@@ -2,15 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { getRankInfo } from '../utils/stats';
 
 export default function ProfileScreen({ navigation }) {
     const [stats, setStats] = useState({
         gamesPlayed: 0,
         wins: 0,
         losses: 0,
+        xp: 0,
         playerName: 'Joueur'
     });
     const [history, setHistory] = useState([]);
+    const [rankInfo, setRankInfo] = useState(null);
 
     useEffect(() => {
         loadStats();
@@ -22,14 +25,20 @@ export default function ProfileScreen({ navigation }) {
             const gamesPlayed = await AsyncStorage.getItem('gamesPlayed');
             const wins = await AsyncStorage.getItem('wins');
             const losses = await AsyncStorage.getItem('losses');
+            const xpStr = await AsyncStorage.getItem('playerXP');
             const historyStr = await AsyncStorage.getItem('matchHistory');
+
+            const xp = parseInt(xpStr || '0', 10);
 
             setStats({
                 playerName: savedName || 'Joueur',
                 gamesPlayed: parseInt(gamesPlayed || '0', 10),
                 wins: parseInt(wins || '0', 10),
                 losses: parseInt(losses || '0', 10),
+                xp: xp
             });
+
+            setRankInfo(getRankInfo(xp));
 
             if (historyStr) {
                 setHistory(JSON.parse(historyStr));
@@ -58,11 +67,29 @@ export default function ProfileScreen({ navigation }) {
                 <View style={{ width: 60 }} />
             </View>
 
-            {/* Profile Info */}
+            {/* Profile Info & XP */}
             <View style={styles.profileCard}>
-                <PlayerAvatar name={stats.playerName} size={80} />
+                <PlayerAvatar name={stats.playerName} size={90} />
                 <Text style={styles.playerName}>{stats.playerName}</Text>
-                <Text style={styles.titleText}>Titres : {winRate >= 50 && stats.gamesPlayed >= 10 ? '🏆 Pro du Hezz2' : '🎮 Joueur du dimanche'}</Text>
+
+                {rankInfo && (
+                    <View style={styles.rankContainer}>
+                        <Text style={styles.rankTitle}>{rankInfo.emoji} {rankInfo.name}</Text>
+
+                        <View style={styles.xpBox}>
+                            <Text style={styles.xpTextTotal}>{stats.xp} XP</Text>
+
+                            {/* Barre de Progression */}
+                            <View style={styles.progressTrack}>
+                                <View style={[styles.progressFill, { width: `${Math.max(5, rankInfo.levelProgress * 100)}%` }]} />
+                            </View>
+
+                            {rankInfo.nextXP && (
+                                <Text style={styles.xpNextText}>Prochain rang : {rankInfo.maxXP} XP</Text>
+                            )}
+                        </View>
+                    </View>
+                )}
             </View>
 
             {/* Statistics Grid */}
@@ -149,10 +176,51 @@ const styles = StyleSheet.create({
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 3,
     },
-    titleText: {
-        color: '#D1D5DB',
-        fontSize: 16,
-        marginTop: 5,
+    rankContainer: {
+        width: '80%',
+        alignItems: 'center',
+        marginTop: 15,
+        backgroundColor: 'rgba(15, 23, 42, 0.7)',
+        padding: 15,
+        borderRadius: 15,
+        borderWidth: 1,
+        borderColor: '#D4AF37',
+    },
+    rankTitle: {
+        color: '#FFD700',
+        fontSize: 22,
+        fontWeight: '900',
+        marginBottom: 10,
+    },
+    xpBox: {
+        width: '100%',
+        alignItems: 'center',
+    },
+    xpTextTotal: {
+        color: '#F8FAFC',
+        fontSize: 18,
+        fontWeight: 'bold',
+        marginBottom: 8,
+    },
+    progressTrack: {
+        width: '100%',
+        height: 12,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        borderRadius: 6,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#334155',
+    },
+    progressFill: {
+        height: '100%',
+        backgroundColor: '#10B981', // Vert émeraude
+        borderRadius: 6,
+    },
+    xpNextText: {
+        color: '#9CA3AF',
+        fontSize: 12,
+        marginTop: 6,
+        fontStyle: 'italic',
     },
     statsGrid: {
         flexDirection: 'row',

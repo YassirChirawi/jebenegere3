@@ -19,6 +19,7 @@ import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import * as Haptics from 'expo-haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getRankInfo } from '../utils/stats';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
 const TABLE_BG = require('../../assets/table.png');
@@ -38,7 +39,9 @@ export default function GameScreen({ route, navigation }) {
     const [customMsg, setCustomMsg] = useState('');
     const [isInitialDeal, setIsInitialDeal] = useState(true);
     const [isMuted, setIsMuted] = useState(audioService.muted);
+    const [xpEarnedThisRound, setXpEarnedThisRound] = useState(0);
     const prevGameStateRef = useRef(initialGameState);
+    const hasAllocatedXP = useRef(false);
 
     const handleQuit = () => {
         Alert.alert(
@@ -51,11 +54,38 @@ export default function GameScreen({ route, navigation }) {
                     onPress: () => {
                         audioService.stopTickTock();
                         socketService.disconnect();
-                        navigation.replace('Home');
+                        navigation.navigate('Home');
                     },
                 },
             ]
         );
+    };
+
+    const handleForceQuit = () => {
+        const isBotMatch = gameState?.players?.some(p => p.isBot);
+
+        if (isBotMatch) {
+            audioService.stopTickTock();
+            socketService.disconnect();
+            navigation.navigate('Home');
+        } else {
+            // Demande de confirmation si c'est une vraie partie en ligne
+            Alert.alert(
+                'Quitter le salon ?',
+                'Êtes-vous sûr de vouloir quitter le salon multijoueur ?',
+                [
+                    { text: 'Rester', style: 'cancel' },
+                    {
+                        text: 'Quitter', style: 'destructive',
+                        onPress: () => {
+                            audioService.stopTickTock();
+                            socketService.disconnect();
+                            navigation.navigate('Home');
+                        },
+                    },
+                ]
+            );
+        }
     };
 
     const handleToggleMute = async () => {
@@ -103,6 +133,8 @@ export default function GameScreen({ route, navigation }) {
         socketService.onGameStarted((newState) => {
             setGameState(newState);
             setIsInitialDeal(true);
+            setXpEarnedThisRound(0);
+            hasAllocatedXP.current = false;
             const timer = setTimeout(() => {
                 setIsInitialDeal(false);
             }, 2500);
@@ -145,6 +177,39 @@ export default function GameScreen({ route, navigation }) {
     useEffect(() => {
         const prevState = prevGameStateRef.current;
         if (!prevState || !gameState) return;
+
+        // GESTION MANCHE TERMINEE (XP)
+        if (!prevState.mancheTerminee && gameState.mancheTerminee && gameState.players && gameState.scores) {
+            audioService.playEndRound();
+
+            if (!hasAllocatedXP.current) {
+                hasAllocatedXP.current = true;
+
+                // Calculer le classement du joueur local
+                let rank = 1;
+                const myScore = gameState.scores[localPlayerIndex];
+
+                gameState.scores.forEach(score => {
+                    if (score < myScore) {
+                        rank++;
+                    }
+                });
+
+                // Calcul XP : 1er(100), 2ème(50), 3ème(20), Dernier(10)
+                let xpToGive = 10;
+                if (rank === 1) xpToGive = 100;
+                else if (rank === 2) xpToGive = 50;
+                else if (rank === 3) xpToGive = 20;
+
+                setXpEarnedThisRound(xpToGive);
+
+                // Sauvegarder dans AsyncStorage
+                AsyncStorage.getItem('playerXP').then(currentXp => {
+                    const newXp = parseInt(currentXx || '0', 10) + xpToGive;
+                    AsyncStorage.setItem('playerXP', newXp.toString());
+                });
+            }
+        }
 
         // Si le tour a changé et que la manche n'est pas finie
         if (prevState.turn !== gameState.turn && !gameState.mancheTerminee) {
@@ -285,7 +350,7 @@ export default function GameScreen({ route, navigation }) {
         }
         if (state.drawPenalty > 0) return card.value === 2;
         if (state.activeSuitOverride) return card.suit === state.activeSuitOverride || card.value === 7;
-        return card.suit === currentMiddleCard.suit || card.value === currentMiddleCard.value;
+        return card.suit === currentMiddleCard.suit || card.value === currentMiddleCard.value || card.value === 7;
     };
 
     const handlePlayerPlayCard = (cardIndex) => {
@@ -378,8 +443,7 @@ export default function GameScreen({ route, navigation }) {
         <ImageBackground
             source={TABLE_BG}
             style={styles.container}
-            resizeMode="cover"
-            imageStyle={{ top: '-10%' }}
+            resizeMode="stretch"
         >
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <Animated.View style={[styles.boardOverlay, shakeAnimatedStyle]}>
@@ -541,7 +605,14 @@ export default function GameScreen({ route, navigation }) {
                                                     <View key={entry.name} style={[styles.scoreRow, entry.isMe && styles.scoreRowMe]}>
                                                         <Text style={styles.scoreMedal}>{medals[rank] ?? `${rank + 1}.`}</Text>
                                                         <Text style={[styles.scoreName, entry.isMe && { color: '#FCD34D' }]}>{entry.name}</Text>
-                                                        <Text style={styles.scoreVal}>{entry.score} pts</Text>
+                                                        <View style={{ alignItems: 'flex-end' }}>
+                                                            <Text style={styles.scoreVal}>{entry.score} pts</Text>
+                                                            {entry.isMe && xpEarnedThisRound > 0 && (
+                                                                <Animated.Text entering={FadeInUp.delay(800)} style={{ color: '#10B981', fontWeight: 'bold', fontSize: 14 }}>
+                                                                    +{xpEarnedThisRound} XP
+                                                                </Animated.Text>
+                                                            )}
+                                                        </View>
                                                     </View>
                                                 );
                                             })
@@ -562,7 +633,7 @@ export default function GameScreen({ route, navigation }) {
                                                 En attente de l'hôte...
                                             </Text>
                                         )}
-                                        <TouchableOpacity style={styles.quitBtn} onPress={handleQuit}>
+                                        <TouchableOpacity style={styles.quitBtn} onPress={handleForceQuit}>
                                             <Text style={styles.quitBtnText}>🚪 Quitter</Text>
                                         </TouchableOpacity>
                                     </View>
@@ -635,6 +706,16 @@ export default function GameScreen({ route, navigation }) {
                                 <Text style={[styles.playerName, gameState.turn === localPlayerIndex && styles.activePlayer, { fontSize: 18 }]}>Vous</Text>
                                 {gameState.turn === localPlayerIndex && <Image source={require('../../assets/menthe-poivree-removebg-preview.png')} style={[styles.mintIcon, { width: 34, height: 34 }]} />}
                             </View>
+
+                            {/* Bar de reactions rapide — juste au dessus des cartes */}
+                            <View style={[styles.reactionBar, { marginBottom: 15 }]}>
+                                {['😂', '😡', '😱', '👏'].map(emoji => (
+                                    <TouchableOpacity key={emoji} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
+                                        <Text style={styles.reactionBtnText}>{emoji}</Text>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+
                             <View style={styles.masterHandContainer}>
                                 {localPlayerIndex !== -1 && gameState.hands[localPlayerIndex].map((card, idx) => {
                                     const isPlayable = gameState.turn === localPlayerIndex && canPlayCardLocal(card, gameState);
@@ -651,15 +732,6 @@ export default function GameScreen({ route, navigation }) {
                                     );
                                 })}
                             </View>
-
-                            {/* Bar de reactions rapide — en bas */}
-                            <View style={styles.reactionBar}>
-                                {['😂', '😡', '😱', '👏'].map(emoji => (
-                                    <TouchableOpacity key={emoji} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
-                                        <Text style={styles.reactionBtnText}>{emoji}</Text>
-                                    </TouchableOpacity>
-                                ))}
-                            </View>
                         </>
                     )}
                 </View>
@@ -671,10 +743,10 @@ export default function GameScreen({ route, navigation }) {
                             <Text style={styles.suitSelectorTitle}>🃏 Quelle famille tu veux ?</Text>
                             <View style={styles.suitButtons}>
                                 {[
-                                    { suit: 'Oros', moroccan: 'الفلوس (Flouss)', emoji: '🪙' },
-                                    { suit: 'Copas', moroccan: 'الجبابن (Jbaben)', emoji: '🫖' },
-                                    { suit: 'Bastos', moroccan: 'الگرعة (Gere3)', emoji: '🪵' },
-                                    { suit: 'Espadas', moroccan: 'السيوف (Syouf)', emoji: '⚔️' },
+                                    { suit: 'Oros', moroccan: 'الفلوس (Flouss)', emoji: '💰' },
+                                    { suit: 'Copas', moroccan: 'الجبابن (Jbaben)', emoji: '🏆' },
+                                    { suit: 'Bastos', moroccan: 'الگرعة (Gere3)', emoji: '🏏' },
+                                    { suit: 'Espadas', moroccan: 'السيوف (Syouf)', emoji: '🗡️' },
                                 ].map(({ suit, moroccan, emoji }) => (
                                     <TouchableOpacity key={suit} style={styles.suitBtn} onPress={() => handleSuitSelected(suit)}>
                                         <Text style={styles.suitEmoji}>{emoji}</Text>
@@ -1086,9 +1158,11 @@ const styles = StyleSheet.create({
     suitSelectorOverlay: {
         position: 'absolute',
         top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0,0,0,0.7)',
+        backgroundColor: 'rgba(0,0,0,0.85)',
         justifyContent: 'center',
         alignItems: 'center',
+        zIndex: 9999,
+        elevation: 9999,
     },
     suitSelectorModal: {
         backgroundColor: '#fff',

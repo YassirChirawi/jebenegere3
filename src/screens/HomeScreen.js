@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, Alert, ScrollView } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, Alert, ScrollView, Image } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -12,6 +12,9 @@ import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import PlayerAvatar from '../components/PlayerAvatar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getRankInfo } from '../utils/stats';
+
+const GAME_LOGO = require('../../assets/icon.png'); // Assuming this is the game logo
 
 export default function HomeScreen({ navigation }) {
     const [name, setName] = useState('');
@@ -20,6 +23,7 @@ export default function HomeScreen({ navigation }) {
     const [showBotMenu, setShowBotMenu] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isConnected, setIsConnected] = useState(false);
+    const [rankInfo, setRankInfo] = useState(null);
 
     // UI Matchmaking aléatoire
     const [isSearching, setIsSearching] = useState(false);
@@ -63,6 +67,10 @@ export default function HomeScreen({ navigation }) {
             try {
                 const savedName = await AsyncStorage.getItem('playerName');
                 if (savedName) setName(savedName);
+
+                const xpStr = await AsyncStorage.getItem('playerXP');
+                const xp = parseInt(xpStr || '0', 10);
+                setRankInfo(getRankInfo(xp));
 
                 // Synchroniser avec l'état actuel de l'audioService
                 setIsMuted(audioService.muted);
@@ -134,6 +142,21 @@ export default function HomeScreen({ navigation }) {
         });
     };
 
+    // Placeholder for handleSearchMatch and handleCancelSearch
+    const handleSearchMatch = (size) => {
+        Alert.alert("Matchmaking", `Searching for a ${size}-player match... (Not implemented yet)`);
+        setIsSearching(true);
+        setSearchingSize(size);
+        // Implement actual matchmaking logic here
+    };
+
+    const handleCancelSearch = () => {
+        Alert.alert("Matchmaking", "Search cancelled. (Not implemented yet)");
+        setIsSearching(false);
+        setSearchingSize(null);
+        // Implement actual cancellation logic here
+    };
+
     if (!isConnected) {
         return (
             <ImageBackground
@@ -160,29 +183,39 @@ export default function HomeScreen({ navigation }) {
             style={styles.container}
             resizeMode="cover"
         >
-            {/* Sound Toggle Icon Top Left */}
-            <TouchableOpacity
-                style={styles.soundBtn}
-                onPress={handleToggleSound}
-            >
-                <Text style={styles.profileBtnText}>{isMuted ? '🔇' : '🔊'}</Text>
-            </TouchableOpacity>
-
-            {/* Profile Icon Top Right */}
-            <TouchableOpacity
-                style={styles.profileBtn}
-                onPress={() => navigation.navigate('Profile')}
-            >
-                <Text style={styles.profileBtnText}>👤</Text>
-            </TouchableOpacity>
-
             <ScrollView
                 style={{ width: '100%' }}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
                 <View style={styles.overlay}>
-                    <Text style={styles.title}>JEBEN GERE3</Text>
+                    <View style={styles.header}>
+                        {/* Botton Paramètres / Profil (Temporaire) */}
+                        <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Profile')}>
+                            <Text style={styles.profileBtnText}>👤</Text>
+                        </TouchableOpacity>
+
+                        {/* Titre Principal */}
+                        <Animated.View style={[styles.titleContainer, animatedStyle]}>
+                            <Image source={GAME_LOGO} style={styles.headerLogo} resizeMode="contain" />
+                            <Text style={styles.titleText}>JEBAN</Text>
+                            <Text style={styles.titleTextHighlight}>GERE3</Text>
+                        </Animated.View>
+
+                        {/* Soutien Audio */}
+                        <TouchableOpacity style={styles.soundBtn} onPress={handleToggleSound}>
+                            <Text style={styles.profileBtnText}>{isMuted ? '🔇' : '🔊'}</Text>
+                        </TouchableOpacity>
+                    </View>
+
+                    {/* Affichage du Rang du Joueur (si le nom est entré ou lu) */}
+                    {rankInfo && name.trim().length > 0 && (
+                        <View style={styles.homeRankContainer}>
+                            <Text style={styles.homeRankText}>{rankInfo.emoji} {rankInfo.name}</Text>
+                            <Text style={styles.homeXpText}>{rankInfo.currentXP} XP</Text>
+                        </View>
+                    )}
+
                     <Text style={styles.subtitle}>En Ligne (jusqu'à 6 joueurs)</Text>
 
                     <View style={styles.inputContainer}>
@@ -302,10 +335,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
     },
+    header: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        marginBottom: 20,
+    },
     profileBtn: {
-        position: 'absolute',
-        top: 50,
-        right: 20,
         backgroundColor: 'rgba(28, 46, 74, 0.8)',
         width: 45,
         height: 45,
@@ -317,9 +354,6 @@ const styles = StyleSheet.create({
         zIndex: 10,
     },
     soundBtn: {
-        position: 'absolute',
-        top: 50,
-        left: 20,
         backgroundColor: 'rgba(28, 46, 74, 0.8)',
         width: 45,
         height: 45,
