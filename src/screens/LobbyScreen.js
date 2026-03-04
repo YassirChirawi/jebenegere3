@@ -60,7 +60,12 @@ export default function LobbyScreen({ route, navigation }) {
                                     {item.name}
                                 </Text>
                             </View>
-                            {item.id === room.hostId && <Text style={styles.hostBadge}>👑 HÔTE</Text>}
+                            {/* Afficher icône Robot pour les bots */}
+                            {item.isBot ? (
+                                <Text style={styles.hostBadge}>🤖 BOT</Text>
+                            ) : item.id === room.hostId ? (
+                                <Text style={styles.hostBadge}>👑 HÔTE</Text>
+                            ) : null}
                         </View>
                     )}
                 />

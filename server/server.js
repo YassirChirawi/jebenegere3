@@ -22,6 +22,17 @@ const { initializeGame, playCard, drawCards, canPlayCard, applyPendingAction } =
 // Structure d'une room : { id: string, hostId: string, activePlayers: [{id, name}], spectators: [{id, name}], gameState: object | null }
 const rooms = {};
 
+// === FILES D'ATTENTE (MATCHMAKING) ===
+// Chaque joueur dans la file possède : { socketId, playerName, joinedAt }
+const matchmakingQueues = {
+    2: [], // file pour parties à 2 joueurs
+    3: [], // file pour parties à 3 joueurs
+    4: []  // file pour parties à 4 joueurs
+};
+
+// Temps d'attente maximum (en ms) avant que le serveur ne remplisse la room avec des bots (ex: 10 secondes)
+const MAX_QUEUE_WAIT_TIME = 10000;
+
 // Fonction utilitaire pour générer un code de room à 4-5 lettres
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -174,6 +185,89 @@ function resetTimer(roomId) {
     }
 }
 
+// === GESTION DU MATCHMAKING (WORKER) ===
+setInterval(() => {
+    const now = Date.now();
+
+    for (const sizeStr in matchmakingQueues) {
+        const targetSize = parseInt(sizeStr);
+        const queue = matchmakingQueues[sizeStr];
+
+        if (queue.length === 0) continue;
+
+        // Condition 1 : La file a atteint le nombre requis de vrais joueurs
+        if (queue.length >= targetSize) {
+            createMatchmakingRoom(targetSize, queue.splice(0, targetSize));
+            continue;
+        }
+
+        // Condition 2 : Des joueurs attendent depuis trop longtemps (remplissage avec des bots)
+        const oldestPlayer = queue[0];
+        if (now - oldestPlayer.joinedAt > MAX_QUEUE_WAIT_TIME) {
+            // Retirer tous les joueurs de cette file (qui voulaient cette taille)
+            // On peut même regrouper ceux qui attendent dans cette sous-file précise.
+            createMatchmakingRoom(targetSize, queue.splice(0, queue.length));
+        }
+    }
+}, 2000); // Check la file toutes les 2 secondes
+
+function createMatchmakingRoom(targetSize, realPlayers) {
+    const roomId = generateRoomCode();
+
+    // Le premier joueur de la file sera le host technique
+    const hostId = realPlayers[0].socketId;
+
+    const activePlayers = [];
+    realPlayers.forEach(p => {
+        activePlayers.push({ id: p.socketId, name: p.playerName });
+        // S'assurer qu'ils rejoignent bien le socket
+        const playerSocket = io.sockets.sockets.get(p.socketId);
+        if (playerSocket) playerSocket.join(roomId);
+    });
+
+    // Remplir avec des bots si besoin
+    const botNames = ["Bot Hassan", "Bot Fatima", "Bot Yassine", "Bot Karim"];
+    let botIndex = 0;
+    while (activePlayers.length < targetSize) {
+        activePlayers.push({
+            id: `bot_${roomId}_${botIndex}`,
+            name: botNames[botIndex % botNames.length],
+            isBot: true
+        });
+        botIndex++;
+    }
+
+    // Création de la room
+    rooms[roomId] = {
+        id: roomId,
+        hostId: hostId,
+        activePlayers: activePlayers,
+        spectators: [],
+        gameState: null,
+        isBotMatch: botIndex > 0 // S'il y a au moins un bot, on active l'IA
+    };
+
+    console.log(`[MATCHMAKING] Room ${roomId} créée pour ${targetSize} joueurs (${realPlayers.length} réels, ${botIndex} bots).`);
+
+    // Démarrage automatique puisque la room est pleine
+    rooms[roomId].gameState = initializeGame(targetSize);
+    rooms[roomId].gameState.players = rooms[roomId].activePlayers;
+
+    // Avertir les vrais joueurs que leur match est prêt
+    realPlayers.forEach(p => {
+        io.to(p.socketId).emit('match_found', {
+            roomId,
+            roomData: rooms[roomId],
+            gameState: rooms[roomId].gameState
+        });
+    });
+
+    // Dire à toute la room que la partie démarre
+    io.to(roomId).emit('game_started', rooms[roomId].gameState);
+    broadcastRoomUpdate(roomId, rooms[roomId]);
+    resetTimer(roomId);
+}
+
 io.on('connection', (socket) => {
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
 
@@ -263,6 +357,34 @@ io.on('connection', (socket) => {
             delete safeRoomData.timerInterval;
             callback({ success: true, roomData: safeRoomData });
         }
+    });
+
+    // --- MATCHMAKING ---
+    socket.on('find_match', (data, callback) => {
+        const { playerName, targetSize } = data || { playerName: "Joueur Anonyme", targetSize: 4 };
+        // Clean up from other queues just in case
+        for (const size in matchmakingQueues) {
+            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        }
+
+        if (matchmakingQueues[targetSize]) {
+            matchmakingQueues[targetSize].push({
+                socketId: socket.id,
+                playerName: playerName,
+                joinedAt: Date.now()
+            });
+            console.log(`[MATCHMAKING] ${playerName} cherche une partie à ${targetSize}. En attente...`);
+            if (callback) callback({ success: true, message: `Recherche d'une partie à ${targetSize} joueurs...` });
+        } else {
+            if (callback) callback({ success: false, message: `Taille cible ${targetSize} invalide.` });
+        }
+    });
+
+    socket.on('cancel_match', () => {
+        for (const size in matchmakingQueues) {
+            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        }
+        console.log(`[MATCHMAKING] ${socket.id} a annulé sa recherche.`);
     });
 
     // --- CHAT DE JEU ---

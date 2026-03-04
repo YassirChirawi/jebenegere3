@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ImageBackground, Alert, ScrollView } from 'react-native';
+import Animated, {
+    useSharedValue,
+    useAnimatedStyle,
+    withRepeat,
+    withTiming,
+    Easing
+} from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
@@ -12,15 +19,44 @@ export default function HomeScreen({ navigation }) {
     const [showRules, setShowRules] = useState(true);
     const [showBotMenu, setShowBotMenu] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
+    const [isConnected, setIsConnected] = useState(false);
+
+    // UI Matchmaking aléatoire
+    const [isSearching, setIsSearching] = useState(false);
+    const [searchingSize, setSearchingSize] = useState(null); // 2, 3 ou 4
+    const [showMatchmakingMenu, setShowMatchmakingMenu] = useState(false);
+
+    const rotation = useSharedValue(0);
 
     useEffect(() => {
+        // Start spinning animation
+        rotation.value = withRepeat(
+            withTiming(360, { duration: 2000, easing: Easing.linear }),
+            -1,
+            false
+        );
+
         // Init socket connection when app starts
         socketService.connect();
+
+        socketService.onConnect(() => {
+            setIsConnected(true);
+        });
+
+        socketService.onDisconnect(() => {
+            setIsConnected(false);
+        });
 
         return () => {
             // Unmount cleanup if needed (usually we keep socket alive for the session)
         };
     }, []);
+
+    const animatedStyle = useAnimatedStyle(() => {
+        return {
+            transform: [{ rotateY: `${rotation.value}deg` }]
+        };
+    });
 
     useEffect(() => {
         const loadName = async () => {
@@ -98,6 +134,26 @@ export default function HomeScreen({ navigation }) {
         });
     };
 
+    if (!isConnected) {
+        return (
+            <ImageBackground
+                source={require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png')}
+                style={styles.container}
+                resizeMode="cover"
+            >
+                <View style={styles.loaderContainer}>
+                    <Animated.Image
+                        source={require('../../assets/icon.png')}
+                        style={[styles.loaderImage, animatedStyle]}
+                        resizeMode="contain"
+                    />
+                    <Text style={styles.loaderTitle}>Réveil du serveur...</Text>
+                    <Text style={styles.loaderSubtitle}>Veuillez patienter quelques secondes</Text>
+                </View>
+            </ImageBackground>
+        );
+    }
+
     return (
         <ImageBackground
             source={require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png')}
@@ -144,47 +200,89 @@ export default function HomeScreen({ navigation }) {
                         />
                     </View>
 
-                    <TouchableOpacity style={styles.btnPrimary} onPress={handleCreateRoom}>
-                        <Text style={styles.btnText}>🌐 CRÉER UN SALON MULTI-JOUEUR</Text>
-                    </TouchableOpacity>
+                    {/* SI LE JOUEUR CHERCHE UNE PARTIE */}
+                    {isSearching ? (
+                        <View style={styles.searchingContainer}>
+                            <Animated.Image
+                                source={require('../../assets/icon.png')}
+                                style={[styles.searchingIcon, animatedStyle]}
+                            />
+                            <Text style={styles.searchingTitle}>Recherche d'adversaires...</Text>
+                            <Text style={styles.searchingSubtitle}>Partie à {searchingSize} joueurs sélectionnée</Text>
+                            <Text style={styles.searchingWaitInfo}>(Des bots rejoindront si l'attente est trop longue)</Text>
 
-                    <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#10B981', marginTop: 10 }]} onPress={() => setShowBotMenu(!showBotMenu)}>
-                        <Text style={styles.btnText}>🤖 JOUER CONTRE L'IA</Text>
-                    </TouchableOpacity>
-
-                    {showBotMenu && (
-                        <View style={styles.botMenu}>
-                            <Text style={styles.botMenuTitle}>Nombre total de joueurs :</Text>
-                            <View style={styles.botButtonsRow}>
-                                <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(2)}><Text style={styles.btnText}>2</Text></TouchableOpacity>
-                                <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(3)}><Text style={styles.btnText}>3</Text></TouchableOpacity>
-                                <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(4)}><Text style={styles.btnText}>4</Text></TouchableOpacity>
-                            </View>
+                            <TouchableOpacity style={styles.btnCancelSearch} onPress={handleCancelSearch}>
+                                <Text style={styles.btnTextCancel}>❌ ANNULER LA RECHERCHE</Text>
+                            </TouchableOpacity>
                         </View>
+                    ) : (
+                        // BOUTONS NORMAUX
+                        <>
+                            {/* BOUTON MATCHMAKING */}
+                            <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#F59E0B' }]} onPress={() => setShowMatchmakingMenu(!showMatchmakingMenu)}>
+                                <Text style={styles.btnText}>🌍 CHERCHER DES JOUEURS EN LIGNE</Text>
+                            </TouchableOpacity>
+
+                            {showMatchmakingMenu && (
+                                <View style={styles.botMenu}>
+                                    <Text style={styles.botMenuTitle}>Trouver une partie en ligne de :</Text>
+                                    <View style={styles.botButtonsRow}>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleSearchMatch(2)}><Text style={styles.btnText}>2</Text></TouchableOpacity>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleSearchMatch(3)}><Text style={styles.btnText}>3</Text></TouchableOpacity>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleSearchMatch(4)}><Text style={styles.btnText}>4</Text></TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+
+                            <View style={styles.divider}>
+                                <View style={styles.line} />
+                                <Text style={styles.dividerText}>CRÉER OU REJOINDRE</Text>
+                                <View style={styles.line} />
+                            </View>
+
+                            <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#3B82F6', marginTop: 10 }]} onPress={handleCreateRoom}>
+                                <Text style={styles.btnText}>🔒 CRÉER UN SALON PRIVÉ</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity style={[styles.btnPrimary, { backgroundColor: '#10B981', marginTop: 10 }]} onPress={() => setShowBotMenu(!showBotMenu)}>
+                                <Text style={styles.btnText}>🤖 PRATIQUE CONTRE L'IA</Text>
+                            </TouchableOpacity>
+
+                            {showBotMenu && (
+                                <View style={styles.botMenu}>
+                                    <Text style={styles.botMenuTitle}>Créer un match IA avec joueurs :</Text>
+                                    <View style={styles.botButtonsRow}>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(2)}><Text style={styles.btnText}>2</Text></TouchableOpacity>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(3)}><Text style={styles.btnText}>3</Text></TouchableOpacity>
+                                        <TouchableOpacity style={styles.botBtn} onPress={() => handleCreateBotRoom(4)}><Text style={styles.btnText}>4</Text></TouchableOpacity>
+                                    </View>
+                                </View>
+                            )}
+
+                            <View style={styles.divider}>
+                                <View style={styles.line} />
+                                <Text style={styles.dividerText}>OU</Text>
+                                <View style={styles.line} />
+                            </View>
+
+                            <View style={styles.inputContainer}>
+                                <Text style={styles.label}>Code du Salon Privé</Text>
+                                <TextInput
+                                    style={[styles.input, styles.codeInput]}
+                                    placeholder="ABCD..."
+                                    placeholderTextColor="#9CA3AF"
+                                    value={roomIdInput}
+                                    onChangeText={setRoomIdInput}
+                                    autoCapitalize="characters"
+                                    maxLength={5}
+                                />
+                            </View>
+
+                            <TouchableOpacity style={styles.btnSecondary} onPress={handleJoinRoom}>
+                                <Text style={styles.btnTextSecondary}>REJOINDRE LE SALON</Text>
+                            </TouchableOpacity>
+                        </>
                     )}
-
-                    <View style={styles.divider}>
-                        <View style={styles.line} />
-                        <Text style={styles.dividerText}>OU</Text>
-                        <View style={styles.line} />
-                    </View>
-
-                    <View style={styles.inputContainer}>
-                        <Text style={styles.label}>Code du Salon</Text>
-                        <TextInput
-                            style={[styles.input, styles.codeInput]}
-                            placeholder="ABCD..."
-                            placeholderTextColor="#9CA3AF"
-                            value={roomIdInput}
-                            onChangeText={setRoomIdInput}
-                            autoCapitalize="characters"
-                            maxLength={5}
-                        />
-                    </View>
-
-                    <TouchableOpacity style={styles.btnSecondary} onPress={handleJoinRoom}>
-                        <Text style={styles.btnTextSecondary}>REJOINDRE LE SALON</Text>
-                    </TouchableOpacity>
 
                     {/* Bouton Info pour rouvrir les règles du menu */}
                     <TouchableOpacity onPress={() => setShowRules(true)} style={styles.infoButton}>
@@ -389,5 +487,31 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
         paddingHorizontal: 20,
         borderRadius: 8,
+    },
+    loaderContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(28, 15, 19, 0.85)',
+        padding: 40,
+        borderRadius: 20,
+        borderWidth: 2,
+        borderColor: '#D4AF37',
+    },
+    loaderImage: {
+        width: 100,
+        height: 140,
+        marginBottom: 20,
+    },
+    loaderTitle: {
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: '#FFD700',
+        marginBottom: 10,
+        textAlign: 'center',
+    },
+    loaderSubtitle: {
+        fontSize: 16,
+        color: '#E2E8F0',
+        textAlign: 'center',
     },
 });

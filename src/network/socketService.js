@@ -37,6 +37,15 @@ class SocketService {
         this.socket.emit('join_room', { roomId, playerName }, callback);
     }
 
+    // -- MATCHMAKING ACTIONS --
+    findMatch(playerName, targetSize, callback) {
+        this.socket.emit('find_match', { playerName, targetSize }, callback);
+    }
+
+    cancelMatch() {
+        this.socket.emit('cancel_match');
+    }
+
     // -- IN-GAME ACTIONS --
     startGame(roomId) {
         this.socket.emit('start_game', { roomId });
@@ -63,8 +72,27 @@ class SocketService {
     }
 
     // -- LISTENERS --
+    onConnect(callback) {
+        if (this.socket) {
+            if (this.socket.connected) {
+                callback();
+            }
+            this.socket.on('connect', callback);
+        }
+    }
+
+    onDisconnect(callback) {
+        if (this.socket) {
+            this.socket.on('disconnect', callback);
+        }
+    }
+
     onRoomUpdated(callback) {
         this.socket.on('room_updated', callback);
+    }
+
+    onMatchFound(callback) {
+        this.socket.on('match_found', callback);
     }
 
     onGameStarted(callback) {
@@ -94,6 +122,7 @@ class SocketService {
     offAll() {
         if (this.socket) {
             this.socket.off('room_updated');
+            this.socket.off('match_found');
             this.socket.off('game_started');
             this.socket.off('game_state_update');
             this.socket.off('game_error');

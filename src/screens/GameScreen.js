@@ -955,6 +955,8 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(0,0,0,0.5)',
         borderRadius: 12,
         width: '100%',
+        zIndex: 100,
+        elevation: 100,
     },
     playerName: {
         color: '#D4AF37',
