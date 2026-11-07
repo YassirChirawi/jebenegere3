@@ -327,6 +327,7 @@ function createMatchmakingRoom(targetSize, realPlayers) {
     // Démarrage automatique puisque la room est pleine
     rooms[roomId].gameState = initializeGame(targetSize);
     rooms[roomId].gameState.players = rooms[roomId].activePlayers;
+    rooms[roomId].gameState.hostId = rooms[roomId].hostId; // Permet au client de savoir qui peut relancer
 
     // Avertir les vrais joueurs que leur match est prêt
     realPlayers.forEach(p => {
@@ -392,6 +393,7 @@ io.on('connection', (socket) => {
         const numPlayers = rooms[roomId].activePlayers.length;
         rooms[roomId].gameState = initializeGame(numPlayers);
         rooms[roomId].gameState.players = rooms[roomId].activePlayers; // Injected for client ID mapping
+        rooms[roomId].gameState.hostId = rooms[roomId].hostId; // Permet au client de savoir qui peut relancer
 
         if (callback) callback({ success: true, roomId, gameState: rooms[roomId].gameState });
 
@@ -412,9 +414,12 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         const newPlayer = { id: socket.id, name: playerName || `Joueur ${socket.id.substring(0, 4)}` };
 
-        if (room.activePlayers.length < 4) {
+        const gameInProgress = room.gameState && !room.gameState.mancheTerminee;
+
+        if (!gameInProgress && room.activePlayers.length < 4) {
             room.activePlayers.push(newPlayer);
         } else if (room.spectators.length < 2) {
+            // Partie en cours (ou table pleine) : on attend la prochaine manche en spectateur
             room.spectators.push(newPlayer);
         } else {
             if (callback) callback({ success: false, message: "Le salon est plein (6 joueurs max)." });
@@ -462,27 +467,6 @@ io.on('connection', (socket) => {
         console.log(`[MATCHMAKING] ${socket.id} a annulé sa recherche.`);
     });
 
-    // --- CHAT DE JEU ---
-    socket.on('send_chat', (data) => {
-        const { roomId, message } = data;
-        const room = rooms[roomId];
-        if (!room) return;
-
-        let playerName = "Unknown";
-        const activePlayer = room.activePlayers.find(p => p.id === socket.id);
-        const spectator = room.spectators.find(p => p.id === socket.id);
-
-        if (activePlayer) playerName = activePlayer.name;
-        else if (spectator) playerName = spectator.name;
-
-        io.to(roomId).emit('chat_message', {
-            id: Math.random().toString(36).substr(2, 9),
-            playerName,
-            message,
-            timestamp: Date.now()
-        });
-    });
-
     // --- LOGIQUE DE JEU ---
 
     // Démarrer la partie
@@ -501,6 +485,7 @@ io.on('connection', (socket) => {
 
         room.gameState = initializeGame(numPlayers);
         room.gameState.players = room.activePlayers; // Injected for client ID mapping
+        room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
 
         io.to(roomId).emit('game_started', room.gameState);
         broadcastRoomUpdate(roomId, room); // Met à jour le fait qu'une partie est en cours
@@ -525,11 +510,13 @@ io.on('connection', (socket) => {
         }
 
         // Récupérer les anciens scores pour ne pas les perdre
-        const previousScores = room.gameState.scores;
+        // (un joueur a pu arriver/partir entre deux manches : on aligne la taille)
+        const previousScores = Array.from({ length: numPlayers }, (_, i) => room.gameState.scores?.[i] ?? 0);
 
         // Relancer une nouvelle partie avec les anciens scores
         room.gameState = initializeGame(numPlayers, previousScores);
         room.gameState.players = room.activePlayers;
+        room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
 
         io.to(roomId).emit('game_started', room.gameState);
         broadcastRoomUpdate(roomId, room);
@@ -599,32 +586,60 @@ io.on('connection', (socket) => {
     // --- GESTION DE LA DÉCONNEXION ---
     socket.on('disconnect', () => {
         console.log(`Utilisateur déconnecté: ${socket.id}`);
-        // Retirer l'utilisateur de toutes les rooms où il était
+
+        // Retirer le joueur des files de matchmaking
+        for (const size in matchmakingQueues) {
+            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        }
+
         for (const roomId in rooms) {
-            let room = rooms[roomId];
-            const isActive = room.activePlayers.findIndex(p => p.id === socket.id);
-            const isSpectator = room.spectators.findIndex(p => p.id === socket.id);
+            const room = rooms[roomId];
+            const activeIdx = room.activePlayers.findIndex(p => p.id === socket.id);
+            const spectatorIdx = room.spectators.findIndex(p => p.id === socket.id);
+            if (activeIdx === -1 && spectatorIdx === -1) continue;
 
-            if (isActive !== -1) {
-                room.activePlayers.splice(isActive, 1);
-            }
-            if (isSpectator !== -1) {
-                room.spectators.splice(isSpectator, 1);
+            if (spectatorIdx !== -1) room.spectators.splice(spectatorIdx, 1);
+
+            const gameInProgress = room.gameState && !room.gameState.mancheTerminee;
+
+            if (activeIdx !== -1) {
+                if (gameInProgress) {
+                    // Partie en cours : un bot reprend sa place pour ne pas décaler les indices
+                    // ni bloquer la table avec des tours de 15s dans le vide.
+                    const leaver = room.activePlayers[activeIdx];
+                    room.activePlayers[activeIdx] = {
+                        id: `bot_${roomId}_r${activeIdx}_${Date.now()}`,
+                        name: `${leaver.name} (bot)`,
+                        isBot: true,
+                        replaced: true,
+                    };
+                    room.isBotMatch = true;
+                    room.gameState.players = room.activePlayers;
+                    room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
+                    room.gameState.log.push(`🔌 ${leaver.name} a quitté, un bot prend sa place.`);
+                } else {
+                    room.activePlayers.splice(activeIdx, 1);
+                }
             }
 
-            if (room.activePlayers.length === 0 && room.spectators.length === 0) {
-                console.log(`Room ${roomId} supprimée (vide)`);
+            const humans = [...room.activePlayers, ...room.spectators].filter(p => !p.isBot);
+            if (humans.length === 0) {
+                console.log(`Room ${roomId} supprimée (plus aucun humain)`);
                 if (room.timerInterval) clearInterval(room.timerInterval);
                 delete rooms[roomId];
-            } else {
-                if (room.hostId === socket.id) {
-                    if (room.activePlayers.length > 0) {
-                        room.hostId = room.activePlayers[0].id;
-                    } else if (room.spectators.length > 0) {
-                        room.hostId = room.spectators[0].id;
-                    }
-                }
-                broadcastRoomUpdate(roomId, room);
+                continue;
+            }
+
+            if (room.hostId === socket.id) {
+                room.hostId = humans[0].id;
+                if (room.gameState) room.gameState.hostId = room.hostId;
+            }
+
+            broadcastRoomUpdate(roomId, room);
+            if (gameInProgress && activeIdx !== -1) {
+                io.to(roomId).emit('game_state_update', room.gameState);
+                // Si c'était son tour, le bot joue tout de suite
+                if (room.gameState.turn === activeIdx) resetTimer(roomId);
             }
         }
     });

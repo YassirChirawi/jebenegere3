@@ -150,7 +150,11 @@ export default function LobbyScreen({ route, navigation }) {
                     />
                 ) : (
                     <View style={styles.waitingBox}>
-                        <Text style={styles.waitingText}>En attente du lancement par l'hôte</Text>
+                        <Text style={styles.waitingText}>
+                            {room?.gameState && !room.gameState.mancheTerminee
+                                ? 'Partie en cours, tu joueras à la prochaine manche'
+                                : "En attente du lancement par l'hôte"}
+                        </Text>
                         <WaitingDots />
                     </View>
                 )}

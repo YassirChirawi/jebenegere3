@@ -1,4 +1,4 @@
-﻿const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
+const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
 const VALUES = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 
 function generateDeck() {
@@ -160,20 +160,17 @@ function playCard(state, playerIndex, cardIndex, newSuitFor7 = null) {
     let nextTurnOffset = 1;
 
     if (card.value === 1) {
-        let currentAmount = 1;
-        if (state.pendingAction && state.pendingAction.type === 'skip_response') {
-            currentAmount = state.pendingAction.amount + 1;
-        }
-
+        // Le 1 "rebondit" : la cible a 3s pour contrer avec un autre 1,
+        // sinon elle saute UN tour (pas de cumul).
         const target = nextActiveTurn(playerIndex, newState.hands, newState.finishedPlayers);
 
         newState.pendingAction = {
             type: 'skip_response',
             target: target,
-            amount: currentAmount
+            amount: 1
         };
 
-        newState.log.push(`Attention! Joueur ${target} a 3s pour jouer un 1, sinon il saute ${currentAmount} tour(s).`);
+        newState.log.push(`Attention! Joueur ${target} a 3s pour jouer un 1, sinon il saute son tour.`);
         newState.turn = target; // Le tour passe à la cible pour qu'elle puisse se défendre
         return newState;
     } else if (card.value === 2) {
@@ -239,15 +236,11 @@ function applyPendingAction(state) {
     newState.log = [...state.log];
 
     if (newState.pendingAction.type === 'skip_response') {
-        const { target, amount } = newState.pendingAction;
-        newState.log.push(`Pas de réponse ! Le Joueur ${target} saute ${amount} tour(s).`);
+        const { target } = newState.pendingAction;
+        newState.log.push(`Pas de réponse ! Le Joueur ${target} saute son tour.`);
 
-        // Sauter 'amount' tours à partir de target
-        let nextTurn = target;
-        for (let i = 0; i < amount; i++) {
-            nextTurn = nextActiveTurn(nextTurn, newState.hands, newState.finishedPlayers);
-        }
-        newState.turn = nextTurn;
+        // La cible saute son tour : on passe au joueur actif suivant
+        newState.turn = nextActiveTurn(target, newState.hands, newState.finishedPlayers);
     }
 
     newState.pendingAction = null;

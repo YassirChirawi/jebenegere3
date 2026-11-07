@@ -31,7 +31,7 @@ export default function RulesModal({ visible, onClose }) {
                             <Text style={styles.ruleIcon}>1️⃣</Text>
                             <View style={styles.ruleTextContainer}>
                                 <Text style={styles.ruleName}>Carte 1</Text>
-                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 3 secondes pour renvoyer l'attaque.</Text>
+                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 3 secondes : l'attaque rebondit alors sur le joueur d'après.</Text>
                             </View>
                         </View>
 
@@ -47,7 +47,7 @@ export default function RulesModal({ visible, onClose }) {
                             <Text style={styles.ruleIcon}>7️⃣</Text>
                             <View style={styles.ruleTextContainer}>
                                 <Text style={styles.ruleName}>Carte 7</Text>
-                                <Text style={styles.ruleDesc}>Permet de changer la famille (Couleur) en cours. Peut être jouée sur n'importe quelle carte !</Text>
+                                <Text style={styles.ruleDesc}>Se pose comme une carte normale (même famille ou même valeur), puis tu choisis la nouvelle famille. Après un 7, il faut jouer la famille demandée ou un autre 7.</Text>
                             </View>
                         </View>
 
