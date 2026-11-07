@@ -6,7 +6,7 @@
  * - Distributions 3, 3 puis 4 cartes par joueur ; en 1 contre 1, deux cycles (6 distributions).
  * - Capture : même valeur + suite ascendante 1..7,10,11,12.
  * - Darba +1 (prendre la carte que l'adversaire vient de poser), Hbel +5 (3e exemplaire à la suite),
- *   B'achra +10 (4e exemplaire), Missa +1 (vider la table, sauf la toute dernière capture).
+ *   Boug +10 (4e exemplaire), Missa +1 (vider la table, sauf la toute dernière capture).
  * - Annonces Ronda +1 / Tringa +5 avant sa première carte ; seule la plus forte marque
  *   (et prend la somme des annonces : ronda contre tringa = 6, tringa contre tringa = 10).
  * - Égalité de rondas : le camp qui mange en premier avec cette valeur perd le point, l'autre le prend.
@@ -198,7 +198,7 @@ function play(s, p, cardIndex) {
     const chainAlive = s.chain && s.lastPlay && s.lastPlay.player === prevPlayer && s.chain.value === card.value && s.chain.team !== t;
 
     if (chainAlive) {
-        // Hbel (3e exemplaire) ou B'achra (4e) : on reprend toute la chaîne
+        // Hbel (3e exemplaire) ou Boug (4e) : on reprend toute la chaîne
         const len = s.chain.cards.length;
         s.captured[s.chain.team] -= len;
         s.captured[t] += len + 1;

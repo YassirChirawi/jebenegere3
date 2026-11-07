@@ -36,7 +36,7 @@ La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La
 - **Coups spéciaux** :
   - **Darba +1** : prendre la carte que l'adversaire vient de poser.
   - **Hbel +5** : 3ᵉ exemplaire joué à la suite, on reprend 3 cartes.
-  - **B'achra +10** : 4ᵉ exemplaire, on reprend 4 cartes.
+  - **Boug +10** : 4ᵉ exemplaire, on reprend 4 cartes.
   - **Missa +1** : vider la table, sauf à la toute dernière prise.
 - **Annonces**, avant sa première carte : **Ronda +1** (une paire), **Tringa +5** (un brelan).
   - Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : 6 pour une tringa contre une ronda, 10 pour une tringa contre une tringa.

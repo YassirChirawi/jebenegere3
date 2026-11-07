@@ -344,7 +344,7 @@ export default function RondaScreen({ route, navigation }) {
                 break;
             case 'bachra':
                 pushBanner({
-                    text: "B'ACHRA !!", sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 2000,
+                    text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 2000,
                     onShow: () => { audioService.playSound('bachra'); haptic('success'); later(() => haptic('heavy'), 200); shake(18); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
@@ -616,7 +616,7 @@ export default function RondaScreen({ route, navigation }) {
                                 {preview.kind === 'capture' && `Tu manges ${preview.ids.size} carte${preview.ids.size > 1 ? 's' : ''}`}
                                 {preview.kind === 'darba' && `DARBA ! Tu manges ${preview.ids.size} carte${preview.ids.size > 1 ? 's' : ''} (+1)`}
                                 {preview.kind === 'hbel' && 'HBEL ! Tu reprends 3 cartes (+5)'}
-                                {preview.kind === 'bachra' && "B'ACHRA ! Tu reprends 4 cartes (+10)"}
+                                {preview.kind === 'bachra' && 'BOUG ! Tu reprends 4 cartes (+10)'}
                             </Animated.Text>
                         )}
                         </View>

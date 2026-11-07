@@ -79,7 +79,7 @@ test('Darba +1, puis Hbel +5, puis B\'achra +10 (2 contre 2)', () => {
     assert.ok(types(s).includes('hbel'));
     assert.deepEqual(s.scores, [5, 1]);
     assert.deepEqual(s.captured, [3, 0]);
-    s = play(s, 3, 5); // b'achra équipe 1 : reprend 4 cartes
+    s = play(s, 3, 5); // boug équipe 1 : reprend 4 cartes
     assert.ok(types(s).includes('bachra'));
     assert.deepEqual(s.scores, [5, 11]);
     assert.deepEqual(s.captured, [0, 4]);

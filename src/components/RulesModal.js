@@ -34,7 +34,7 @@ function RondaRules() {
             <Text style={styles.sectionTitle}>💥 Coups spéciaux</Text>
             <Item icon="👊" name="Darba (+1)" desc="Tu prends la carte que l'adversaire vient juste de poser." />
             <Item icon="🔥" name="Hbel (+5)" desc="Tu rejoues la même valeur juste après une darba : tu reprends les 3 cartes." />
-            <Item icon="💣" name="B'achra (+10)" desc="Le 4e exemplaire joué à la suite (darba, hbel puis b'achra) : tu reprends les 4 cartes." />
+            <Item icon="💣" name="Boug (+10)" desc="Le 4e exemplaire joué à la suite (darba, hbel puis boug) : tu reprends les 4 cartes." />
             <Item icon="🧹" name="Missa (+1)" desc="Tu vides toute la table d'un coup (sauf la toute dernière prise de la manche)." />
 
             <Text style={styles.sectionTitle}>📣 Annonces</Text>
