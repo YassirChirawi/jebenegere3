@@ -410,7 +410,7 @@ function botActions(s, isBot) {
         if (!isBot(p)) continue;
         // Annonce automatique avant la première carte
         if (s.deal.playedCount[p] === 0 && !s.deal.announced[p] && bestCombo(s.hands[p])) {
-            out.push({ player: p, delay: 500 + p * 150, action: { type: 'announce' } });
+            out.push({ player: p, delay: 900 + p * 250, action: { type: 'announce' } });
             continue;
         }
         // Dénonciation d'une ronda adverse non annoncée (pas à chaque fois)
@@ -418,7 +418,7 @@ function botActions(s, isBot) {
             if (!canDenounce(s, p, target)) continue;
             const combo = bestCombo(s.dealtHands[target]);
             if (combo && chance(s.manche, s.dealIndex, p, target) < 0.45) {
-                out.push({ player: p, delay: 900, action: { type: 'denounce', target, value: combo.value } });
+                out.push({ player: p, delay: 1400, action: { type: 'denounce', target, value: combo.value } });
                 break;
             }
         }
@@ -426,7 +426,7 @@ function botActions(s, isBot) {
     if (out.length) return out;
     const p = s.turn;
     if (p !== null && isBot(p) && s.hands[p].length) {
-        out.push({ player: p, delay: 1100 + Math.random() * 900, action: { type: 'play', cardIndex: chooseCard(s, p) } });
+        out.push({ player: p, delay: 2000 + Math.random() * 1000, action: { type: 'play', cardIndex: chooseCard(s, p) } });
     }
     return out;
 }

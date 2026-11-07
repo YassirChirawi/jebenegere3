@@ -238,7 +238,7 @@ export default function RondaScreen({ route, navigation }) {
     const showToast = (text, color) => {
         clearTimeout(toastTimer.current);
         setToast({ id: Date.now() + Math.random(), text, color });
-        toastTimer.current = setTimeout(() => setToast(null), 2400);
+        toastTimer.current = setTimeout(() => setToast(null), 3400);
     };
 
     // File de bannières : chaque coup spécial a sa bannière, son son et sa vibration
@@ -248,11 +248,12 @@ export default function RondaScreen({ route, navigation }) {
         if (!b) return;
         bannerBusy.current = true;
         b.onShow && b.onShow();
-        setBanner({ ...b, id: Date.now() + Math.random() });
+        const duration = b.duration || 2300;
+        setBanner({ ...b, hold: duration - 600, id: Date.now() + Math.random() });
         setTimeout(() => {
             bannerBusy.current = false;
             pump();
-        }, b.duration || 1300);
+        }, duration + 250);
     };
     const pushBanner = (b) => {
         bannerQueue.current.push(b);
@@ -337,14 +338,14 @@ export default function RondaScreen({ route, navigation }) {
                 break;
             case 'hbel':
                 pushBanner({
-                    text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 1600,
+                    text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2600,
                     onShow: () => { audioService.playSound('hbel'); haptic('heavy'); later(() => haptic('heavy'), 160); shake(14); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
                 break;
             case 'bachra':
                 pushBanner({
-                    text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 2000,
+                    text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
                     onShow: () => { audioService.playSound('bachra'); haptic('success'); later(() => haptic('heavy'), 200); shake(18); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
@@ -383,7 +384,7 @@ export default function RondaScreen({ route, navigation }) {
                     sub: e.warning
                         ? `${nameOf(e.target)} cachait une ${e.combo} de ${e.value} · Avertissement`
                         : `${nameOf(e.target)} cachait une ${e.combo} de ${e.value} · +${e.points} ${teamWord(e.team)}`,
-                    color: '#DC2626', textColor: '#fff', duration: 1700,
+                    color: '#DC2626', textColor: '#fff', duration: 2700,
                     onShow: () => { audioService.playSound('reveal'); haptic('heavy'); shake(10); },
                 });
                 break;
@@ -399,7 +400,7 @@ export default function RondaScreen({ route, navigation }) {
                 pushBanner({
                     text: 'DERNIÈRE CARTE !',
                     sub: e.player === me ? 'Tu es le donneur : mange avec ta dernière carte !' : `${nameOf(e.player)} (donneur) doit manger`,
-                    color: '#1E3A8A', textColor: '#fff', duration: 1600,
+                    color: '#1E3A8A', textColor: '#fff', duration: 2600,
                     onShow: () => { audioService.playSound('warning'); haptic('warning'); },
                 });
                 break;

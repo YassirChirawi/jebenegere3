@@ -35,7 +35,7 @@ export function TurnBanner({ banner }) {
         x.value = -STAGE_W;
         x.value = withSequence(
             withSpring(0, { damping: 16, stiffness: 160 }),
-            withDelay(750, withTiming(STAGE_W, { duration: 300, easing: Easing.in(Easing.cubic) }))
+            withDelay(banner?.hold ?? 1100, withTiming(STAGE_W, { duration: 300, easing: Easing.in(Easing.cubic) }))
         );
     }, [banner?.id]);
 
@@ -211,9 +211,10 @@ const styles = StyleSheet.create({
         elevation: 3000,
     },
     banner: {
-        paddingVertical: 12,
-        paddingHorizontal: 40,
-        minWidth: '85%',
+        paddingVertical: 6,
+        paddingHorizontal: 22,
+        minWidth: '55%',
+        maxWidth: '92%',
         alignItems: 'center',
         borderTopWidth: 2,
         borderBottomWidth: 2,
@@ -232,13 +233,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(255,255,255,0.18)',
     },
     bannerText: {
-        fontSize: 26,
+        fontSize: 19,
         fontWeight: '900',
         letterSpacing: 2,
         transform: [{ skewX: '8deg' }],
     },
     bannerSub: {
-        fontSize: 13,
+        fontSize: 11,
+        textAlign: 'center',
         fontWeight: '800',
         marginTop: 2,
         transform: [{ skewX: '8deg' }],
@@ -248,14 +250,14 @@ const styles = StyleSheet.create({
         backgroundColor: 'rgba(12, 5, 7, 0.85)',
         borderWidth: 1.5,
         borderRadius: 16,
-        paddingHorizontal: 14,
-        paddingVertical: 6,
-        maxWidth: '92%',
+        paddingHorizontal: 12,
+        paddingVertical: 5,
+        maxWidth: '88%',
     },
     toastText: {
         color: theme.cream,
         fontWeight: '800',
-        fontSize: 13,
+        fontSize: 12,
         textAlign: 'center',
     },
     confetti: {
