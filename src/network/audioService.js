@@ -46,7 +46,7 @@ const SFX = {
 const ALIASES = { turn: 'card_play', win: 'victory', lose: 'defeat' };
 
 const MUSIC_SRC = require('../../assets/FREE DYSTINCT X TIF X CHAABI TYPE BEAT - ZINA (1).mp3');
-const MUSIC_VOLUME = { menu: 0.22, game: 0.08 };
+const MUSIC_VOLUME = { menu: 0.1, game: 0.035 }; // discrète : fond sonore qui ne couvre pas les effets
 const TICK_SRC = require('../../assets/freesound_community-tic-tac-27828.mp3');
 
 class AudioService {
