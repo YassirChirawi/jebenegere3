@@ -23,6 +23,25 @@ export const HAND_CARD_H = 104;
 const PLAY_DRAG_THRESHOLD = -70;
 
 /**
+ * Placement en éventail d'une main (positions x, angle, courbure) selon la largeur dispo.
+ * entries : [{ card, ... }] déjà triés ; land : paysage (on garde de la place sur les côtés)
+ */
+export function computeFan(entries, stageW, land) {
+    const count = entries.length;
+    const avail = land ? Math.max(260, stageW - 300) : stageW - 28;
+    const step = count > 1 ? Math.min(HAND_CARD_W * 0.78, (avail - HAND_CARD_W) / (count - 1)) : 0;
+    const totalW = step * (count - 1) + HAND_CARD_W;
+    const startX = (stageW - totalW) / 2;
+    const angleStep = count > 1 ? Math.min(6, 40 / count) : 0;
+    const mid = (count - 1) / 2;
+    return entries.map((entry, i) => {
+        const angle = (i - mid) * angleStep;
+        const arcY = (1 - Math.cos((angle * Math.PI) / 180)) * 420;
+        return { ...entry, x: startX + i * step, angle, arcY };
+    });
+}
+
+/**
  * Carte de la main du joueur.
  * - Placement en éventail calculé par le parent (x, angle, lift)
  * - Tap ou glisser vers le haut pour jouer
@@ -38,7 +57,13 @@ export default function MasterCard({
     isMyTurn,
     onPlay,
     isInitialDeal,
+    // Mode sélection (Ronda) : 1er tap = sélectionner, 2e tap = jouer
+    selectMode = false,
+    selected = false,
+    onSelect,
+    glow,
 }) {
+    const showGlow = glow ?? isPlayable;
     // Position d'éventail animée (les cartes glissent quand la main change)
     const posX = useSharedValue(x);
     const rot = useSharedValue(angle);
@@ -56,7 +81,7 @@ export default function MasterCard({
     const flip = useSharedValue(180);
 
     // Halo des cartes jouables
-    const glow = useSharedValue(0);
+    const glowV = useSharedValue(0);
 
     const resetTimer = useRef(null);
 
@@ -76,9 +101,18 @@ export default function MasterCard({
     }, []);
 
     useEffect(() => {
-        if (isPlayable) {
-            lift.value = withSpring(1, { damping: 12 });
-            glow.value = withRepeat(
+        if (selected) {
+            lift.value = withSpring(2.2, { damping: 12 });
+        } else if (isPlayable) {
+            lift.value = withSpring(showGlow ? 1 : 0.4, { damping: 12 });
+        } else {
+            lift.value = withSpring(0, { damping: 14 });
+        }
+    }, [selected, isPlayable, showGlow]);
+
+    useEffect(() => {
+        if (showGlow) {
+            glowV.value = withRepeat(
                 withSequence(
                     withTiming(1, { duration: 750, easing: Easing.inOut(Easing.sin) }),
                     withTiming(0.35, { duration: 750, easing: Easing.inOut(Easing.sin) })
@@ -87,11 +121,10 @@ export default function MasterCard({
                 true
             );
         } else {
-            lift.value = withSpring(0, { damping: 14 });
-            cancelAnimation(glow);
-            glow.value = withTiming(0, { duration: 200 });
+            cancelAnimation(glowV);
+            glowV.value = withTiming(0, { duration: 200 });
         }
-    }, [isPlayable]);
+    }, [showGlow]);
 
     // --- Callbacks JS ---
     const play = () => {
@@ -105,6 +138,11 @@ export default function MasterCard({
             dragY.value = withSpring(0);
         }, 1600);
     };
+    const select = () => {
+        haptic('light');
+        audioService.playSound('click');
+        onSelect && onSelect();
+    };
     const refuse = () => {
         haptic('light');
         audioService.playSound('error');
@@ -116,7 +154,9 @@ export default function MasterCard({
         .onEnd((_e, success) => {
             'worklet';
             if (!success) return;
-            if (isPlayable) {
+            if (isPlayable && selectMode && !selected) {
+                runOnJS(select)();
+            } else if (isPlayable) {
                 flying.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
                 runOnJS(play)();
             } else if (isMyTurn) {
@@ -184,7 +224,7 @@ export default function MasterCard({
         transform: [{ perspective: 700 }, { rotateY: `${flip.value - 180}deg` }],
     }));
     const glowStyle = useAnimatedStyle(() => ({
-        opacity: glow.value,
+        opacity: glowV.value,
     }));
 
     return (

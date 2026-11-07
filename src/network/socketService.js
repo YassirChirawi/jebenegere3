@@ -40,12 +40,12 @@ class SocketService {
     }
 
     // -- ROOM ACTIONS --
-    createRoom(playerName, callback) {
-        this.socket.emit('create_room', { playerName }, callback);
+    createRoom(playerName, gameType, callback) {
+        this.socket.emit('create_room', { playerName, gameType }, callback);
     }
 
-    createBotRoom(playerName, botCount, callback) {
-        this.socket.emit('create_bot_room', { playerName, botCount }, callback);
+    createBotRoom(playerName, botCount, gameType, callback) {
+        this.socket.emit('create_bot_room', { playerName, botCount, gameType }, callback);
     }
 
     joinRoom(roomId, playerName, callback) {
@@ -53,8 +53,8 @@ class SocketService {
     }
 
     // -- MATCHMAKING ACTIONS --
-    findMatch(playerName, targetSize, callback) {
-        this.socket.emit('find_match', { playerName, targetSize }, callback);
+    findMatch(playerName, targetSize, gameType, callback) {
+        this.socket.emit('find_match', { playerName, targetSize, gameType }, callback);
     }
 
     cancelMatch() {
@@ -76,6 +76,11 @@ class SocketService {
 
     drawCard(roomId) {
         this.socket.emit('draw_card', { roomId });
+    }
+
+    // Action générique (Ronda et jeux suivants), validée par le serveur
+    sendAction(roomId, action) {
+        this.socket.emit('game_action', { roomId, action });
     }
 
     sendChat(roomId, message) {
@@ -120,6 +125,7 @@ class SocketService {
     onGameError(callback) { return this._listen('game_error', callback); }
     onTimerTick(callback) { return this._listen('timer_tick', callback); }
     onPlayerReaction(callback) { return this._listen('player_reaction_broadcast', callback); }
+    onActionRejected(callback) { return this._listen('action_rejected', callback); }
 
     offAll() {
         if (this.socket) {

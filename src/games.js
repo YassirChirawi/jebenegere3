@@ -1,0 +1,58 @@
+// Catalogue des jeux de l'app (côté client). Le serveur a son propre registre de moteurs.
+export const GAMES = {
+    hezz2: {
+        key: 'hezz2',
+        label: 'Hezz2',
+        tagline: 'Zid jouj ! Vide ta main avant les autres',
+        players: '2 à 4 joueurs',
+        sizes: [2, 3, 4],
+        sizeLabel: (n) => `${n} joueurs`,
+        maxPlayers: 4,
+        canStart: (n) => n >= 2 && n <= 4,
+        startHint: 'Il faut au moins 2 joueurs',
+        card: { suit: 'Copas', value: 2 },
+        color: '#C0392B',
+        available: true,
+    },
+    ronda: {
+        key: 'ronda',
+        label: 'Ronda',
+        tagline: 'Darba, hbel, missa… mange les cartes de la table',
+        players: '1 contre 1 ou 2 contre 2',
+        sizes: [2, 4],
+        sizeLabel: (n) => (n === 2 ? '1 contre 1' : '2 contre 2'),
+        maxPlayers: 4,
+        canStart: (n) => n === 2 || n === 4,
+        startHint: 'Il faut 2 ou 4 joueurs',
+        card: { suit: 'Oros', value: 1 },
+        color: '#1E8C5A',
+        available: true,
+    },
+    kdoub: {
+        key: 'kdoub',
+        label: 'Kdoub',
+        tagline: 'Le jeu du bluff : crie KDOUB !',
+        players: '3 à 6 joueurs',
+        sizes: [3, 4, 5, 6],
+        sizeLabel: (n) => `${n} joueurs`,
+        maxPlayers: 6,
+        card: { suit: 'Espadas', value: 11 },
+        color: '#7C3AED',
+        available: false,
+    },
+    sota: {
+        key: 'sota',
+        label: 'Sota Ghamla',
+        tagline: 'Fais des paires, ne garde pas la Sota',
+        players: '4 à 6 joueurs',
+        sizes: [4, 5, 6],
+        sizeLabel: (n) => `${n} joueurs`,
+        maxPlayers: 6,
+        card: { suit: 'Bastos', value: 10 },
+        color: '#B8860B',
+        available: false,
+    },
+};
+
+export const GAME_ORDER = ['hezz2', 'ronda', 'kdoub', 'sota'];
+export const gameInfo = (key) => GAMES[key] || GAMES.hezz2;

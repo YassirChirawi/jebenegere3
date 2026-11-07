@@ -22,7 +22,7 @@ const MAX_VISIBLE = 10;
  * Siège d'un adversaire : avatar, nom, nombre de cartes, mini-main en éventail.
  * position : 'top' | 'left' | 'right'
  */
-export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact }) {
+export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact, badge, badgeColor }) {
     const vertical = position !== 'top';
 
     // Petit "bump" du compteur quand le nombre de cartes change
@@ -66,6 +66,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
                 </Text>
             </View>
 
+            {badge ? <Text style={[styles.badge, badgeColor && { color: badgeColor, borderColor: badgeColor }]}>{badge}</Text> : null}
             {finished ? (
                 <Animated.Text entering={FadeIn} style={styles.finishedLabel}>Sorti 🏁</Animated.Text>
             ) : (
@@ -148,6 +149,19 @@ const styles = StyleSheet.create({
         color: '#fff',
         fontWeight: '900',
         fontSize: 11,
+    },
+    badge: {
+        marginTop: 3,
+        fontSize: 9,
+        fontWeight: '900',
+        letterSpacing: 1,
+        color: theme.goldLight,
+        borderWidth: 1,
+        borderColor: theme.gold,
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 1,
+        overflow: 'hidden',
     },
     finishedLabel: {
         color: theme.mint,

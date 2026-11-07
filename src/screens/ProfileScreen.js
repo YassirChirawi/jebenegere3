@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ImageBackground, ScrollView } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PlayerAvatar from '../components/PlayerAvatar';
-import { getRankInfo } from '../utils/stats';
+import { getRankInfo, getGameStats } from '../utils/stats';
+import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
 export default function ProfileScreen({ navigation }) {
     const [stats, setStats] = useState({
@@ -14,6 +15,7 @@ export default function ProfileScreen({ navigation }) {
     });
     const [history, setHistory] = useState([]);
     const [rankInfo, setRankInfo] = useState(null);
+    const [perGame, setPerGame] = useState({});
 
     useEffect(() => {
         loadStats();
@@ -39,6 +41,9 @@ export default function ProfileScreen({ navigation }) {
             });
 
             setRankInfo(getRankInfo(xp));
+
+            const entries = await Promise.all(GAME_ORDER.map(async (g) => [g, await getGameStats(g)]));
+            setPerGame(Object.fromEntries(entries));
 
             if (historyStr) {
                 setHistory(JSON.parse(historyStr));
@@ -112,6 +117,18 @@ export default function ProfileScreen({ navigation }) {
                 </View>
             </View>
 
+            {/* Stats par jeu */}
+            <View style={styles.perGame}>
+                {GAME_ORDER.filter((g) => GAMES[g].available).map((g) => (
+                    <View key={g} style={styles.perGameRow}>
+                        <Text style={styles.perGameName}>{GAMES[g].label}</Text>
+                        <Text style={styles.perGameStat}>{perGame[g]?.played || 0} parties</Text>
+                        <Text style={[styles.perGameStat, { color: '#10B981' }]}>{perGame[g]?.wins || 0} V</Text>
+                        <Text style={[styles.perGameStat, { color: '#EF4444' }]}>{perGame[g]?.losses || 0} D</Text>
+                    </View>
+                ))}
+            </View>
+
             {/* History Section */}
             <View style={styles.historyContainer}>
                 <Text style={styles.historyTitle}>Dernières Parties</Text>
@@ -122,6 +139,7 @@ export default function ProfileScreen({ navigation }) {
                         history.map((match) => (
                             <View key={match.id} style={styles.historyCard}>
                                 <Text style={styles.historyDate}>{match.date}</Text>
+                                <Text style={styles.historyGame}>{gameInfo(match.game).label}</Text>
                                 <Text style={styles.historyOpponents}>Contre : {match.opponents}</Text>
                                 <Text style={[styles.historyResult, { color: match.result.includes('Victoire') ? '#10B981' : '#EF4444' }]}>
                                     {match.result}
@@ -136,6 +154,37 @@ export default function ProfileScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+    perGame: {
+        marginHorizontal: 20,
+        marginBottom: 14,
+        backgroundColor: 'rgba(15, 23, 42, 0.6)',
+        borderRadius: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(212,175,55,0.4)',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+    },
+    perGameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 5,
+    },
+    perGameName: {
+        flex: 1,
+        color: '#D4AF37',
+        fontWeight: '900',
+    },
+    perGameStat: {
+        color: '#E2E8F0',
+        fontWeight: '700',
+        fontSize: 12,
+        marginLeft: 12,
+    },
+    historyGame: {
+        color: '#D4AF37',
+        fontWeight: '900',
+        fontSize: 12,
+    },
     container: {
         flex: 1,
         backgroundColor: '#1C0F13',

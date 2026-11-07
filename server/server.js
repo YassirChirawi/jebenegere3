@@ -2,610 +2,426 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
+const { getEngine, normalizeType } = require('./engines');
 
 const app = express();
 app.use(cors());
+app.get('/', (_req, res) => res.send('Jeben Gere3 server OK'));
 
 const server = http.createServer(app);
-
-// Configurer Socket.io pour accepter les connexions métier
 const io = new Server(server, {
-    cors: {
-        origin: "*", // En dev, on accepte tout. À sécuriser en prod.
-        methods: ["GET", "POST"]
-    }
+    cors: { origin: '*', methods: ['GET', 'POST'] },
 });
 
-const { initializeGame, playCard, drawCards, canPlayCard, applyPendingAction } = require('./GameEngine');
-
-// === STATE DE L'APPLICATION === 
-// Structure d'une room : { id: string, hostId: string, activePlayers: [{id, name}], spectators: [{id, name}], gameState: object | null }
+/**
+ * Room : {
+ *   id, gameType, hostId, activePlayers: [{id, name, isBot?}], spectators: [],
+ *   gameState, isBotMatch, version, timerInterval, timeLeft
+ * }
+ */
 const rooms = {};
 
-// === FILES D'ATTENTE (MATCHMAKING) ===
-// Chaque joueur dans la file possède : { socketId, playerName, joinedAt }
-const matchmakingQueues = {
-    2: [], // file pour parties à 2 joueurs
-    3: [], // file pour parties à 3 joueurs
-    4: []  // file pour parties à 4 joueurs
-};
-
-// Temps d'attente maximum (en ms) avant que le serveur ne remplisse la room avec des bots (ex: 10 secondes)
+// Files de matchmaking par jeu et par taille : clé "ronda:2", "hezz2:4"...
+const matchmakingQueues = {};
 const MAX_QUEUE_WAIT_TIME = 10000;
+const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
 
-// Fonction utilitaire pour générer un code de room à 4-5 lettres
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 7).toUpperCase();
 }
 
-// === ABSTRACTION DE LA LOGIQUE DE JEU ===
-
-// Helper to safely emit room without NodeJS Timeout circular references
-function broadcastRoomUpdate(roomId, roomObj) {
-    if (!roomObj) return;
-    const cleanRoom = { ...roomObj };
-    if (cleanRoom.timerInterval) {
-        delete cleanRoom.timerInterval;
-    }
-    io.to(roomId).emit('room_updated', cleanRoom);
+// Ce que le client a le droit de voir d'une room (jamais l'état de jeu brut)
+function publicRoom(room) {
+    return {
+        id: room.id,
+        gameType: room.gameType,
+        hostId: room.hostId,
+        activePlayers: room.activePlayers,
+        spectators: room.spectators,
+        inGame: !!(room.gameState && !getEngine(room.gameType).isOver(room.gameState)),
+        maxPlayers: getEngine(room.gameType).maxPlayers,
+    };
 }
 
-function processPlayCard(roomId, playerIndex, cardIndex, newSuitFor7) {
+function broadcastRoomUpdate(roomId) {
     const room = rooms[roomId];
-    if (!room || !room.gameState) return;
-
-    const prevState = room.gameState;
-    const newState = playCard(prevState, playerIndex, cardIndex, newSuitFor7);
-
-    if (newState !== prevState) {
-        room.gameState = newState;
-
-        // Si la manche est terminée, on nettoie tout
-        if (newState.mancheTerminee) {
-            const loserPlayer = room.activePlayers[newState.loserIndex];
-
-            // Injecter le nom du perdant dans les logs si pas déjà fait
-            const khassarMsg = `💀 Manche terminée ! Le Khasser (Grand Perdant) est ${loserPlayer?.name || '?'}.`;
-            if (!newState.log.includes(khassarMsg)) {
-                newState.log.push(khassarMsg);
-            }
-
-            // Rotation spectateur si applicable
-            if (room.spectators.length > 0 && newState.loserIndex !== null) {
-                const newActivePlayer = room.spectators.shift();
-                room.activePlayers.splice(newState.loserIndex, 1, newActivePlayer);
-                room.spectators.push(loserPlayer);
-                newState.log.push(`🔄 Rotation : ${newActivePlayer.name} entre en jeu.`);
-            }
-
-            if (room.timerInterval) clearInterval(room.timerInterval);
-        }
-
-        // Injection des joueurs actifs pour l'identification côté client
-        newState.players = room.activePlayers;
-
-        io.to(roomId).emit('game_state_update', room.gameState);
-
-        if (!newState.mancheTerminee) {
-            resetTimer(roomId);
-        } else {
-            broadcastRoomUpdate(roomId, room);
-        }
-    }
+    if (room) io.to(roomId).emit('room_updated', publicRoom(room));
 }
 
-function processDrawCard(roomId, playerIndex) {
+// État enrichi (joueurs, hôte, type de jeu) puis éventuellement masqué pour un joueur donné
+function stateFor(room, viewerIndex) {
+    const engine = getEngine(room.gameType);
+    const base = engine.viewFor ? engine.viewFor(room.gameState, viewerIndex) : room.gameState;
+    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId };
+}
+
+function emitState(roomId, event = 'game_state_update') {
     const room = rooms[roomId];
     if (!room || !room.gameState) return;
+    const engine = getEngine(room.gameType);
+    if (!engine.viewFor) {
+        io.to(roomId).emit(event, stateFor(room, -1));
+        return;
+    }
+    room.activePlayers.forEach((p, i) => {
+        if (!p.isBot) io.to(p.id).emit(event, stateFor(room, i));
+    });
+    room.spectators.forEach((p) => io.to(p.id).emit(event, stateFor(room, -1)));
+}
 
-    const prevState = room.gameState;
-    const newState = drawCards(prevState, playerIndex);
+function startGame(roomId, prevState = null) {
+    const room = rooms[roomId];
+    const engine = getEngine(room.gameType);
+    room.gameState = engine.init(room.activePlayers.length, prevState);
+    room.version = (room.version || 0) + 1;
+    emitState(roomId, 'game_started');
+    broadcastRoomUpdate(roomId);
+    resetTimer(roomId);
+}
 
-    if (newState !== prevState) {
-        room.gameState = newState;
-        io.to(roomId).emit('game_state_update', room.gameState);
+// Applique une action (joueur ou bot). Renvoie true si l'état a changé.
+function applyAction(roomId, playerIndex, action) {
+    const room = rooms[roomId];
+    if (!room || !room.gameState) return false;
+    const engine = getEngine(room.gameType);
+    const prev = room.gameState;
+    const next = engine.apply(prev, playerIndex, action);
+    if (next === prev) return false;
+    commitState(roomId, prev, next);
+    return true;
+}
+
+function commitState(roomId, prev, next) {
+    const room = rooms[roomId];
+    const engine = getEngine(room.gameType);
+    room.gameState = next;
+    room.version = (room.version || 0) + 1;
+
+    if (engine.isOver(next)) {
+        if (room.timerInterval) clearInterval(room.timerInterval);
+        if (engine.rotateLoser) rotateLoser(room);
+        emitState(roomId);
+        broadcastRoomUpdate(roomId);
+        return;
+    }
+
+    emitState(roomId);
+    // Le chrono ne repart que si le tour (ou la phase) change ; sinon on replanifie juste les bots
+    if (next.turn !== prev.turn || next.pendingAction !== prev.pendingAction || next.dealIndex !== prev.dealIndex) {
         resetTimer(roomId);
+    } else {
+        scheduleBots(roomId);
     }
 }
 
-// Fonction pour (re)démarrer le chrono d'une salle
+// Hezz2 : le Khasser laisse sa place à un spectateur
+function rotateLoser(room) {
+    const s = room.gameState;
+    const loser = room.activePlayers[s.loserIndex];
+    if (room.spectators.length > 0 && s.loserIndex !== null && s.loserIndex !== undefined) {
+        const incoming = room.spectators.shift();
+        room.activePlayers.splice(s.loserIndex, 1, incoming);
+        room.spectators.push(loser);
+        s.log && s.log.push(`🔄 Rotation : ${incoming.name} entre en jeu.`);
+    }
+}
+
 function resetTimer(roomId) {
     const room = rooms[roomId];
     if (!room) return;
+    if (room.timerInterval) clearInterval(room.timerInterval);
+    if (!room.gameState) return;
 
-    if (room.timerInterval) {
-        clearInterval(room.timerInterval);
-    }
-
-    if (room.gameState && room.gameState.mancheTerminee) {
-        return; // Ne pas démarrer de timer si le jeu est fini
-    }
-
-    room.timeLeft = (room.gameState && room.gameState.pendingAction) ? 3 : 15;
-    io.to(roomId).emit('timer_tick', { timeLeft: room.timeLeft });
-
-    room.timerInterval = setInterval(() => {
-        room.timeLeft -= 1;
+    const engine = getEngine(room.gameType);
+    const seconds = engine.timerFor(room.gameState);
+    if (seconds) {
+        room.timeLeft = seconds;
         io.to(roomId).emit('timer_tick', { timeLeft: room.timeLeft });
-
-        if (room.timeLeft <= 0) {
-            clearInterval(room.timerInterval);
-
-            if (room.gameState) {
-                if (room.gameState.pendingAction) {
-                    // Délai de 3s écoulé sans réponse
-                    room.gameState = applyPendingAction(room.gameState);
-                    io.to(roomId).emit('game_state_update', room.gameState);
-                    resetTimer(roomId);
-                } else {
-                    const turnIndex = room.gameState.turn;
-                    console.log(`[Room ${roomId}] Temps écoulé pour le joueur ${turnIndex}. Pioche forcée.`);
-                    processDrawCard(roomId, turnIndex);
-                }
+        room.timerInterval = setInterval(() => {
+            room.timeLeft -= 1;
+            io.to(roomId).emit('timer_tick', { timeLeft: room.timeLeft });
+            if (room.timeLeft <= 0) {
+                clearInterval(room.timerInterval);
+                const prev = room.gameState;
+                const next = engine.onTimeout(prev);
+                if (next !== prev) commitState(roomId, prev, next);
+                else resetTimer(roomId);
             }
-        }
-    }, 1000);
-
-    // -- BOT EMULATOR --
-    if (room.isBotMatch && room.gameState && !room.gameState.mancheTerminee) {
-        const turnIndex = room.gameState.turn;
-        const player = room.activePlayers[turnIndex];
-
-        if (player && player.isBot) {
-            // Le bot joue rapidement (entre 1.5s et 3s max)
-            const timeoutDelay = (room.gameState && room.gameState.pendingAction) ? 1500 : 1500 + Math.random() * 1500;
-
-            setTimeout(() => {
-                // S'assurer que le jeu n'est pas terminé et que c'est toujours à son tour
-                const currentState = rooms[roomId]?.gameState;
-                if (!currentState || currentState.mancheTerminee || currentState.turn !== turnIndex) return;
-                // Si le bot a déjà fini (GG), ne rien faire
-                if (currentState.finishedPlayers && currentState.finishedPlayers.includes(turnIndex)) return;
-
-                const hand = currentState.hands[turnIndex];
-
-                // 1. Lister les cartes jouables
-                const playableCards = [];
-                for (let i = 0; i < hand.length; i++) {
-                    if (canPlayCard(hand[i], currentState)) {
-                        playableCards.push({ card: hand[i], originalIndex: i });
-                    }
-                }
-
-                if (playableCards.length > 0) {
-                    let chosenOriginalIndex = -1;
-                    let newSuit = null;
-
-                    // 2. Intelligence Artificielle (Priorités)
-                    if (currentState.pendingAction) {
-                        // LE BOT SE FAIT ATTAQUER (+2) : Priorité absolue à la défense (un autre 2, ou idéalement un 1)
-                        // Note: hezz2 stipule souvent qu'on se défend d'un 2 par un 2 (cumul) ou par un 1 (skip/shield), selon vos règles.
-                        // On va chercher le meilleur contre.
-                        const defenseCards = playableCards.filter(p => p.card.value === 1 || p.card.value === 2);
-                        if (defenseCards.length > 0) {
-                            // On prend la première défense trouvée (privilège au 1 si on veut esquiver, ou 2 pour surenchérir)
-                            chosenOriginalIndex = defenseCards[0].originalIndex;
-                        } else {
-                            // Sinon il joue n'importe quelle carte jouable (ex: si le pendingAction = skip_response)
-                            chosenOriginalIndex = playableCards[0].originalIndex;
-                        }
-                    } else {
-                        // LE BOT EST TRANQUILLE :
-                        // Normal > 2 > 1 > 7
-                        const normals = playableCards.filter(p => ![1, 2, 7].includes(p.card.value));
-                        const twos = playableCards.filter(p => p.card.value === 2);
-                        const ones = playableCards.filter(p => p.card.value === 1);
-                        const sevens = playableCards.filter(p => p.card.value === 7);
-
-                        if (normals.length > 0) {
-                            // Jouer une carte normale aléatoire
-                            chosenOriginalIndex = normals[Math.floor(Math.random() * normals.length)].originalIndex;
-                        } else if (twos.length > 0) {
-                            // Si plus de normales, on joue un +2
-                            chosenOriginalIndex = twos[Math.floor(Math.random() * twos.length)].originalIndex;
-                        } else if (ones.length > 0) {
-                            // Si plus rien de tout ça, on joue un 1
-                            chosenOriginalIndex = ones[Math.floor(Math.random() * ones.length)].originalIndex;
-                        } else if (sevens.length > 0) {
-                            // Le 7 est la dernière carte qu'on veut jouer (c'est un joker précieux)
-                            chosenOriginalIndex = sevens[0].originalIndex;
-                        } else {
-                            // Fallback
-                            chosenOriginalIndex = playableCards[0].originalIndex;
-                        }
-                    }
-
-                    // 3. Gestion Tactique du Joker (7)
-                    const selectedCard = hand[chosenOriginalIndex];
-                    if (selectedCard.value === 7) {
-                        // Le bot compte ses familles
-                        const suitCount = { Oros: 0, Copas: 0, Espadas: 0, Bastos: 0 };
-                        hand.forEach(c => {
-                            if (c.value !== 7) suitCount[c.suit]++;
-                        });
-
-                        // Trouve la famille avec le plus de cartes
-                        let maxCount = -1;
-                        for (const suit of Object.keys(suitCount)) {
-                            if (suitCount[suit] > maxCount) {
-                                maxCount = suitCount[suit];
-                                newSuit = suit;
-                            }
-                        }
-                    }
-
-                    processPlayCard(roomId, turnIndex, chosenOriginalIndex, newSuit);
-                } else {
-                    // LE BOT NE PEUT PAS JOUER
-                    if (currentState.pendingAction) {
-                        // Le bot va se manger des pénalités -> Réaction humaine !
-                        const emojis = ['😡', '😱', '😭', '🤬'];
-                        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                        io.to(roomId).emit('player_reaction_broadcast', {
-                            playerIndex: turnIndex,
-                            reactionType: randomEmoji
-                        });
-
-                        // Le processDrawCard appliquera la pénalité via le GameEngine
-                        setTimeout(() => {
-                            processDrawCard(roomId, turnIndex);
-                        }, 800); // Petit délai supplémentaire pour apprécier sa rage
-                    } else {
-                        // Juste une pioche normale
-                        processDrawCard(roomId, turnIndex);
-                    }
-                }
-            }, timeoutDelay);
-        }
+        }, 1000);
     }
+    scheduleBots(roomId);
 }
 
-// === GESTION DU MATCHMAKING (WORKER) ===
+// Planifie les actions des bots ; une action périmée (l'état a changé entre-temps) est ignorée
+function scheduleBots(roomId) {
+    const room = rooms[roomId];
+    if (!room || !room.gameState || !room.isBotMatch) return;
+    const engine = getEngine(room.gameType);
+    const version = room.version;
+    const isBot = (i) => !!room.activePlayers[i]?.isBot;
+    const actions = engine.botActions(room.gameState, isBot) || [];
+    actions.forEach((a) => {
+        setTimeout(() => {
+            const r = rooms[roomId];
+            if (!r || r.version !== version) return;
+            if (a.reaction) {
+                io.to(roomId).emit('player_reaction_broadcast', { playerIndex: a.player, reactionType: a.reaction });
+                return;
+            }
+            applyAction(roomId, a.player, a.action);
+        }, a.delay);
+    });
+}
+
+function makeBots(roomId, count, startIndex = 0) {
+    return Array.from({ length: count }, (_, i) => ({
+        id: `bot_${roomId}_${startIndex + i}`,
+        name: BOT_NAMES[(startIndex + i) % BOT_NAMES.length],
+        isBot: true,
+    }));
+}
+
+// === MATCHMAKING ===
 setInterval(() => {
     const now = Date.now();
-
-    for (const sizeStr in matchmakingQueues) {
-        const targetSize = parseInt(sizeStr);
-        const queue = matchmakingQueues[sizeStr];
-
-        if (queue.length === 0) continue;
-
-        // Condition 1 : La file a atteint le nombre requis de vrais joueurs
+    for (const key in matchmakingQueues) {
+        const queue = matchmakingQueues[key];
+        if (!queue.length) continue;
+        const [gameType, sizeStr] = key.split(':');
+        const targetSize = parseInt(sizeStr, 10);
         if (queue.length >= targetSize) {
-            createMatchmakingRoom(targetSize, queue.splice(0, targetSize));
-            continue;
-        }
-
-        // Condition 2 : Des joueurs attendent depuis trop longtemps (remplissage avec des bots)
-        const oldestPlayer = queue[0];
-        if (now - oldestPlayer.joinedAt > MAX_QUEUE_WAIT_TIME) {
-            // Retirer tous les joueurs de cette file (qui voulaient cette taille)
-            // On peut même regrouper ceux qui attendent dans cette sous-file précise.
-            createMatchmakingRoom(targetSize, queue.splice(0, queue.length));
+            createMatchmakingRoom(gameType, targetSize, queue.splice(0, targetSize));
+        } else if (now - queue[0].joinedAt > MAX_QUEUE_WAIT_TIME) {
+            createMatchmakingRoom(gameType, targetSize, queue.splice(0, queue.length));
         }
     }
-}, 2000); // Check la file toutes les 2 secondes
+}, 2000);
 
-function createMatchmakingRoom(targetSize, realPlayers) {
+function createMatchmakingRoom(gameType, targetSize, realPlayers) {
     const roomId = generateRoomCode();
+    const activePlayers = realPlayers.map((p) => ({ id: p.socketId, name: p.playerName }));
+    realPlayers.forEach((p) => io.sockets.sockets.get(p.socketId)?.join(roomId));
+    const botCount = targetSize - activePlayers.length;
+    activePlayers.push(...makeBots(roomId, botCount));
 
-    // Le premier joueur de la file sera le host technique
-    const hostId = realPlayers[0].socketId;
-
-    const activePlayers = [];
-    realPlayers.forEach(p => {
-        activePlayers.push({ id: p.socketId, name: p.playerName });
-        // S'assurer qu'ils rejoignent bien le socket
-        const playerSocket = io.sockets.sockets.get(p.socketId);
-        if (playerSocket) playerSocket.join(roomId);
-    });
-
-    // Remplir avec des bots si besoin
-    const botNames = ["Bot Hassan", "Bot Fatima", "Bot Yassine", "Bot Karim"];
-    let botIndex = 0;
-    while (activePlayers.length < targetSize) {
-        activePlayers.push({
-            id: `bot_${roomId}_${botIndex}`,
-            name: botNames[botIndex % botNames.length],
-            isBot: true
-        });
-        botIndex++;
-    }
-
-    // Création de la room
     rooms[roomId] = {
         id: roomId,
-        hostId: hostId,
-        activePlayers: activePlayers,
+        gameType,
+        hostId: realPlayers[0].socketId,
+        activePlayers,
         spectators: [],
         gameState: null,
-        isBotMatch: botIndex > 0 // S'il y a au moins un bot, on active l'IA
+        isBotMatch: botCount > 0,
     };
+    console.log(`[MATCHMAKING] ${gameType} ${roomId} : ${realPlayers.length} réels, ${botCount} bots.`);
 
-    console.log(`[MATCHMAKING] Room ${roomId} créée pour ${targetSize} joueurs (${realPlayers.length} réels, ${botIndex} bots).`);
-
-    // Démarrage automatique puisque la room est pleine
-    rooms[roomId].gameState = initializeGame(targetSize);
-    rooms[roomId].gameState.players = rooms[roomId].activePlayers;
-    rooms[roomId].gameState.hostId = rooms[roomId].hostId; // Permet au client de savoir qui peut relancer
-
-    // Avertir les vrais joueurs que leur match est prêt
-    realPlayers.forEach(p => {
-        io.to(p.socketId).emit('match_found', {
-            roomId,
-            roomData: rooms[roomId],
-            gameState: rooms[roomId].gameState
-        });
+    const room = rooms[roomId];
+    room.gameState = getEngine(gameType).init(targetSize, null);
+    room.version = 1;
+    realPlayers.forEach((p) => {
+        const idx = activePlayers.findIndex((a) => a.id === p.socketId);
+        io.to(p.socketId).emit('match_found', { roomId, roomData: publicRoom(room), gameState: stateFor(room, idx) });
     });
-
-    // Dire à toute la room que la partie démarre
-    io.to(roomId).emit('game_started', rooms[roomId].gameState);
-    broadcastRoomUpdate(roomId, rooms[roomId]);
+    emitState(roomId, 'game_started');
+    broadcastRoomUpdate(roomId);
     resetTimer(roomId);
+}
+
+function playerIndexOf(room, socketId) {
+    return room.activePlayers.findIndex((p) => p.id === socketId);
 }
 
 io.on('connection', (socket) => {
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
 
-    // --- CRÉATION DE SALON ---
+    // --- SALON PRIVÉ ---
     socket.on('create_room', (data, callback) => {
-        const { playerName } = data || { playerName: "Hôte" };
+        const { playerName = 'Hôte', gameType } = data || {};
         const roomId = generateRoomCode();
-
         rooms[roomId] = {
             id: roomId,
+            gameType: normalizeType(gameType),
             hostId: socket.id,
             activePlayers: [{ id: socket.id, name: playerName }],
             spectators: [],
-            gameState: null
+            gameState: null,
         };
-
         socket.join(roomId);
-        console.log(`${playerName} (${socket.id}) a créé la room ${roomId}`);
-
-        if (callback) callback({ success: true, roomId, roomData: rooms[roomId] });
+        console.log(`${playerName} a créé la room ${roomId} (${rooms[roomId].gameType})`);
+        callback && callback({ success: true, roomId, roomData: publicRoom(rooms[roomId]) });
     });
 
-    // --- CREATION MATCH BOT ---
+    // --- PARTIE CONTRE LES BOTS ---
     socket.on('create_bot_room', (data, callback) => {
-        const { playerName, botCount } = data || { playerName: "Hôte", botCount: 4 };
+        const { playerName = 'Hôte', botCount = 4, gameType } = data || {};
+        const type = normalizeType(gameType);
+        const engine = getEngine(type);
+        const size = engine.sizes.includes(botCount) ? botCount : engine.sizes[engine.sizes.length - 1];
         const roomId = generateRoomCode();
-
-        const activePlayers = [{ id: socket.id, name: playerName }];
-        const botNames = ["Bot Hassan", "Bot Fatima", "Bot Yassine"];
-
-        for (let i = 1; i < botCount; i++) {
-            activePlayers.push({ id: `bot_${roomId}_${i}`, name: botNames[i - 1], isBot: true });
-        }
-
         rooms[roomId] = {
             id: roomId,
+            gameType: type,
             hostId: socket.id,
-            activePlayers: activePlayers,
+            activePlayers: [{ id: socket.id, name: playerName }, ...makeBots(roomId, size - 1, 1)],
             spectators: [],
             gameState: null,
-            isBotMatch: true // Tag to trigger AI on their turn
+            isBotMatch: true,
         };
-
         socket.join(roomId);
-        console.log(`${playerName} a créé la room BOT ${roomId} avec ${botCount} joueurs.`);
+        console.log(`${playerName} a créé la room BOT ${roomId} (${type}, ${size} joueurs).`);
 
-        const numPlayers = rooms[roomId].activePlayers.length;
-        rooms[roomId].gameState = initializeGame(numPlayers);
-        rooms[roomId].gameState.players = rooms[roomId].activePlayers; // Injected for client ID mapping
-        rooms[roomId].gameState.hostId = rooms[roomId].hostId; // Permet au client de savoir qui peut relancer
-
-        if (callback) callback({ success: true, roomId, gameState: rooms[roomId].gameState });
-
-        io.to(roomId).emit('game_started', rooms[roomId].gameState);
-        broadcastRoomUpdate(roomId, rooms[roomId]);
+        const room = rooms[roomId];
+        room.gameState = engine.init(size, null);
+        room.version = 1;
+        callback && callback({ success: true, roomId, gameState: stateFor(room, 0) });
+        emitState(roomId, 'game_started');
+        broadcastRoomUpdate(roomId);
         resetTimer(roomId);
     });
 
-    // --- REJOINDRE UN SALON ---
     socket.on('join_room', (data, callback) => {
-        const { roomId, playerName } = data;
-
-        if (!rooms[roomId]) {
-            if (callback) callback({ success: false, message: "Salon introuvable" });
+        const { roomId, playerName } = data || {};
+        const room = rooms[roomId];
+        if (!room) {
+            callback && callback({ success: false, message: 'Salon introuvable' });
             return;
         }
-
-        const room = rooms[roomId];
+        const engine = getEngine(room.gameType);
         const newPlayer = { id: socket.id, name: playerName || `Joueur ${socket.id.substring(0, 4)}` };
+        const inGame = room.gameState && !engine.isOver(room.gameState);
 
-        const gameInProgress = room.gameState && !room.gameState.mancheTerminee;
-
-        if (!gameInProgress && room.activePlayers.length < 4) {
+        if (!inGame && room.activePlayers.length < engine.maxPlayers) {
             room.activePlayers.push(newPlayer);
         } else if (room.spectators.length < 2) {
-            // Partie en cours (ou table pleine) : on attend la prochaine manche en spectateur
             room.spectators.push(newPlayer);
         } else {
-            if (callback) callback({ success: false, message: "Le salon est plein (6 joueurs max)." });
+            callback && callback({ success: false, message: 'Le salon est plein.' });
             return;
         }
-
         socket.join(roomId);
         console.log(`${newPlayer.name} a rejoint la room ${roomId}`);
-
-        broadcastRoomUpdate(roomId, room);
-
-        if (callback) {
-            // Also clean up timer interval for the callback data
-            const safeRoomData = { ...room };
-            delete safeRoomData.timerInterval;
-            callback({ success: true, roomData: safeRoomData });
-        }
+        broadcastRoomUpdate(roomId);
+        callback && callback({ success: true, roomData: publicRoom(room) });
     });
 
     // --- MATCHMAKING ---
     socket.on('find_match', (data, callback) => {
-        const { playerName, targetSize } = data || { playerName: "Joueur Anonyme", targetSize: 4 };
-        // Clean up from other queues just in case
-        for (const size in matchmakingQueues) {
-            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        const { playerName = 'Joueur Anonyme', targetSize = 4, gameType } = data || {};
+        const type = normalizeType(gameType);
+        if (!getEngine(type).sizes.includes(targetSize)) {
+            callback && callback({ success: false, message: `Taille ${targetSize} invalide pour ce jeu.` });
+            return;
         }
-
-        if (matchmakingQueues[targetSize]) {
-            matchmakingQueues[targetSize].push({
-                socketId: socket.id,
-                playerName: playerName,
-                joinedAt: Date.now()
-            });
-            console.log(`[MATCHMAKING] ${playerName} cherche une partie à ${targetSize}. En attente...`);
-            if (callback) callback({ success: true, message: `Recherche d'une partie à ${targetSize} joueurs...` });
-        } else {
-            if (callback) callback({ success: false, message: `Taille cible ${targetSize} invalide.` });
+        for (const key in matchmakingQueues) {
+            matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
+        const key = `${type}:${targetSize}`;
+        (matchmakingQueues[key] = matchmakingQueues[key] || []).push({ socketId: socket.id, playerName, joinedAt: Date.now() });
+        console.log(`[MATCHMAKING] ${playerName} cherche ${key}`);
+        callback && callback({ success: true });
     });
 
     socket.on('cancel_match', () => {
-        for (const size in matchmakingQueues) {
-            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        for (const key in matchmakingQueues) {
+            matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
-        console.log(`[MATCHMAKING] ${socket.id} a annulé sa recherche.`);
     });
 
-    // --- LOGIQUE DE JEU ---
-
-    // Démarrer la partie
+    // --- DÉROULEMENT ---
     socket.on('start_game', (data) => {
-        const { roomId } = data;
-        const room = rooms[roomId];
+        const room = rooms[data?.roomId];
         if (!room) return;
-
-        // Seul l'hôte (ou un dev test) peut démarrer, mais on sécurise au moins que la room existe
-        // Initialize state based on active players
-        const numPlayers = room.activePlayers.length;
-        if (numPlayers < 2) {
-            socket.emit('game_error', { message: "Il faut au moins 2 joueurs actifs pour démarrer." });
-            return;
-        }
-
-        room.gameState = initializeGame(numPlayers);
-        room.gameState.players = room.activePlayers; // Injected for client ID mapping
-        room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
-
-        io.to(roomId).emit('game_started', room.gameState);
-        broadcastRoomUpdate(roomId, room); // Met à jour le fait qu'une partie est en cours
-
-        // Démarrer le chronomètre
-        resetTimer(roomId);
-    });
-
-    // --- REJOUER LA MANCHE ---
-    socket.on('play_again', (data) => {
-        const { roomId } = data;
-        const room = rooms[roomId];
-        if (!room || !room.gameState) return;
-
-        // Seul l'hôte peut relancer la partie
         if (room.hostId !== socket.id) return;
-
-        const numPlayers = room.activePlayers.length;
-        if (numPlayers < 2) {
-            socket.emit('game_error', { message: "Il faut au moins 2 joueurs actifs pour rejouer." });
+        const engine = getEngine(room.gameType);
+        if (!engine.canStart(room.activePlayers.length)) {
+            const msg = room.gameType === 'ronda'
+                ? 'La Ronda se joue à 2 (1 contre 1) ou à 4 (2 contre 2).'
+                : 'Il faut au moins 2 joueurs actifs pour démarrer.';
+            socket.emit('game_error', { message: msg });
             return;
         }
-
-        // Récupérer les anciens scores pour ne pas les perdre
-        // (un joueur a pu arriver/partir entre deux manches : on aligne la taille)
-        const previousScores = Array.from({ length: numPlayers }, (_, i) => room.gameState.scores?.[i] ?? 0);
-
-        // Relancer une nouvelle partie avec les anciens scores
-        room.gameState = initializeGame(numPlayers, previousScores);
-        room.gameState.players = room.activePlayers;
-        room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
-
-        io.to(roomId).emit('game_started', room.gameState);
-        broadcastRoomUpdate(roomId, room);
-
-        resetTimer(roomId);
+        startGame(room.id, null);
     });
 
-    // Jouer une carte
+    socket.on('play_again', (data) => {
+        const room = rooms[data?.roomId];
+        if (!room || !room.gameState) return;
+        if (room.hostId !== socket.id) return;
+        const engine = getEngine(room.gameType);
+        if (!engine.canStart(room.activePlayers.length)) {
+            socket.emit('game_error', { message: "Pas assez de joueurs pour relancer." });
+            return;
+        }
+        startGame(room.id, room.gameState);
+    });
+
+    // Hezz2 (événements historiques)
     socket.on('play_card', (data) => {
-        const { roomId, cardIndex, newSuitFor7 } = data;
-        const room = rooms[roomId];
+        const room = rooms[data?.roomId];
         if (!room) return;
-
-        const playerIndex = room.activePlayers.findIndex(p => p.id === socket.id);
-        if (playerIndex === -1) return;
-
-        processPlayCard(roomId, playerIndex, cardIndex, newSuitFor7);
+        applyAction(room.id, playerIndexOf(room, socket.id), { type: 'play', cardIndex: data.cardIndex, newSuitFor7: data.newSuitFor7 });
     });
 
-    // Piocher une carte
     socket.on('draw_card', (data) => {
-        const { roomId } = data;
-        const room = rooms[roomId];
+        const room = rooms[data?.roomId];
         if (!room) return;
-
-        const playerIndex = room.activePlayers.findIndex(p => p.id === socket.id);
-        if (playerIndex === -1) return;
-
-        processDrawCard(roomId, playerIndex);
+        applyAction(room.id, playerIndexOf(room, socket.id), { type: 'draw' });
     });
 
-    // Chat
+    // Action générique (Ronda, et les prochains jeux)
+    socket.on('game_action', (data) => {
+        const room = rooms[data?.roomId];
+        if (!room || !data.action) return;
+        const idx = playerIndexOf(room, socket.id);
+        if (idx === -1) return;
+        if (!applyAction(room.id, idx, data.action)) {
+            socket.emit('action_rejected', { action: data.action });
+        }
+    });
+
+    // --- CHAT & RÉACTIONS ---
     socket.on('send_chat', (data) => {
-        const { roomId, message } = data;
-        const room = rooms[roomId];
+        const room = rooms[data?.roomId];
         if (!room) return;
-
-        const player = room.activePlayers.find(p => p.id === socket.id)
-            || room.spectators.find(p => p.id === socket.id);
-
-        if (player) {
-            io.to(roomId).emit('chat_message', {
-                id: Math.random().toString(36).substr(2, 9),
-                playerName: player.name,
-                message,
-                timestamp: Date.now()
-            });
-        }
+        const player = room.activePlayers.find((p) => p.id === socket.id) || room.spectators.find((p) => p.id === socket.id);
+        if (!player) return;
+        io.to(room.id).emit('chat_message', {
+            id: Math.random().toString(36).substr(2, 9),
+            playerName: player.name,
+            message: String(data.message || '').slice(0, 120),
+            timestamp: Date.now(),
+        });
     });
 
-    // Reactions (Emojis)
     socket.on('player_reaction', (data) => {
-        const { roomId, reactionType } = data;
-        const room = rooms[roomId];
+        const room = rooms[data?.roomId];
         if (!room) return;
-
-        const player = room.activePlayers.find(p => p.id === socket.id);
-        if (player) {
-            const playerIndex = room.activePlayers.findIndex(p => p.id === socket.id);
-            io.to(roomId).emit('player_reaction_broadcast', {
-                playerIndex,
-                reactionType
-            });
+        const playerIndex = playerIndexOf(room, socket.id);
+        if (playerIndex !== -1) {
+            io.to(room.id).emit('player_reaction_broadcast', { playerIndex, reactionType: data.reactionType });
         }
     });
 
-    // --- GESTION DE LA DÉCONNEXION ---
+    // --- DÉCONNEXION ---
     socket.on('disconnect', () => {
         console.log(`Utilisateur déconnecté: ${socket.id}`);
-
-        // Retirer le joueur des files de matchmaking
-        for (const size in matchmakingQueues) {
-            matchmakingQueues[size] = matchmakingQueues[size].filter(p => p.socketId !== socket.id);
+        for (const key in matchmakingQueues) {
+            matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
 
         for (const roomId in rooms) {
             const room = rooms[roomId];
-            const activeIdx = room.activePlayers.findIndex(p => p.id === socket.id);
-            const spectatorIdx = room.spectators.findIndex(p => p.id === socket.id);
+            const activeIdx = playerIndexOf(room, socket.id);
+            const spectatorIdx = room.spectators.findIndex((p) => p.id === socket.id);
             if (activeIdx === -1 && spectatorIdx === -1) continue;
 
             if (spectatorIdx !== -1) room.spectators.splice(spectatorIdx, 1);
-
-            const gameInProgress = room.gameState && !room.gameState.mancheTerminee;
+            const engine = getEngine(room.gameType);
+            const inGame = room.gameState && !engine.isOver(room.gameState);
 
             if (activeIdx !== -1) {
-                if (gameInProgress) {
-                    // Partie en cours : un bot reprend sa place pour ne pas décaler les indices
-                    // ni bloquer la table avec des tours de 15s dans le vide.
+                if (inGame) {
+                    // Un bot reprend la place : les indices ne bougent pas et la partie continue
                     const leaver = room.activePlayers[activeIdx];
                     room.activePlayers[activeIdx] = {
                         id: `bot_${roomId}_r${activeIdx}_${Date.now()}`,
@@ -614,38 +430,34 @@ io.on('connection', (socket) => {
                         replaced: true,
                     };
                     room.isBotMatch = true;
-                    room.gameState.players = room.activePlayers;
-                    room.gameState.hostId = room.hostId; // Permet au client de savoir qui peut relancer
-                    room.gameState.log.push(`🔌 ${leaver.name} a quitté, un bot prend sa place.`);
+                    room.gameState.log && room.gameState.log.push(`🔌 ${leaver.name} a quitté, un bot prend sa place.`);
                 } else {
                     room.activePlayers.splice(activeIdx, 1);
                 }
             }
 
-            const humans = [...room.activePlayers, ...room.spectators].filter(p => !p.isBot);
+            const humans = [...room.activePlayers, ...room.spectators].filter((p) => !p.isBot);
             if (humans.length === 0) {
-                console.log(`Room ${roomId} supprimée (plus aucun humain)`);
                 if (room.timerInterval) clearInterval(room.timerInterval);
                 delete rooms[roomId];
+                console.log(`Room ${roomId} supprimée (plus aucun humain)`);
                 continue;
             }
+            if (room.hostId === socket.id) room.hostId = humans[0].id;
 
-            if (room.hostId === socket.id) {
-                room.hostId = humans[0].id;
-                if (room.gameState) room.gameState.hostId = room.hostId;
-            }
-
-            broadcastRoomUpdate(roomId, room);
-            if (gameInProgress && activeIdx !== -1) {
-                io.to(roomId).emit('game_state_update', room.gameState);
-                // Si c'était son tour, le bot joue tout de suite
-                if (room.gameState.turn === activeIdx) resetTimer(roomId);
+            broadcastRoomUpdate(roomId);
+            if (inGame && activeIdx !== -1) {
+                room.version = (room.version || 0) + 1;
+                emitState(roomId);
+                scheduleBots(roomId);
             }
         }
     });
 });
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
     console.log(`🚀 Serveur Jeben Gere3 Multiplayer démarré sur le port ${PORT}`);
 });
+
+module.exports = { rooms };

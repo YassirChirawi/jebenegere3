@@ -1,20 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { View, Text, StyleSheet, TextInput, StatusBar, useWindowDimensions, Image, Pressable } from 'react-native';
+import { View, Text, StyleSheet, StatusBar, useWindowDimensions, Image } from 'react-native';
 import Animated, {
-    FadeIn,
-    FadeOut,
     ZoomIn,
-    LinearTransition,
-    SlideInDown,
     useSharedValue,
     useAnimatedStyle,
     withSequence,
     withTiming,
 } from 'react-native-reanimated';
-import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { recordGame, addXp } from '../utils/stats';
 
-import MasterCard, { HAND_CARD_W } from '../components/MasterCard';
+import MasterCard, { computeFan } from '../components/MasterCard';
 import PlayerAvatar from '../components/PlayerAvatar';
 import CircularTimer from '../components/CircularTimer';
 import OpponentSeat from '../components/OpponentSeat';
@@ -22,17 +17,16 @@ import EndRoundOverlay from '../components/EndRoundOverlay';
 import RulesModal from '../components/RulesModal';
 import { DiscardPile, DeckPile } from '../components/TableCenter';
 import { TurnBanner, ActionToast, SuitBadge, PenaltyBadge, SuitSelector, SUIT_INFO } from '../components/GameFx';
-import { IconButton, PressableScale, haptic, theme } from '../components/ui';
+import { haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
+import TableBackground from '../components/TableBackground';
+import { useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
-const TABLE_BG = require('../../assets/table.png');
 const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
 
-const QUICK_MESSAGES = ['L3eb a zmagri !', 'Zid Jouj !', 'Hezz !', 'Zrebti 3lina...', 'Wry9a wa7da 😉', 'Saaaaaaaafi 😡'];
-const REACTIONS = ['😂', '😡', '😱', '👏'];
 const VALUE_NAMES = { 1: 'un 1', 2: 'un 2', 7: 'un 7', 10: 'une Sota', 11: 'un Cavalier', 12: 'un Roi' };
 const suitSort = { Oros: 0, Copas: 1, Espadas: 2, Bastos: 3 };
 
@@ -53,34 +47,6 @@ const canPlayCardLocal = (card, state) => {
     return card.suit === top.suit || card.value === top.value;
 };
 
-// Fond : cadré sur le tapis de la table (on coupe la fontaine en haut de l'image)
-const TABLE_SRC = { w: 1211, h: 1536, feltTop: 400 };
-function TableBackground({ children, onSize }) {
-    const [size, setSize] = useState(null);
-    let img = null;
-    if (size) {
-        const visibleH = TABLE_SRC.h - TABLE_SRC.feltTop;
-        const scale = Math.max(size.h / visibleH, size.w / TABLE_SRC.w);
-        const w = TABLE_SRC.w * scale;
-        const h = TABLE_SRC.h * scale;
-        img = { width: w, height: h, left: (size.w - w) / 2, top: size.h - h };
-    }
-    return (
-        <View style={styles.container} onLayout={(e) => {
-            const next = { w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height };
-            setSize(next);
-            onSize && onSize(next);
-        }}>
-            {/* L'image déborde volontairement : on la clippe dans son propre calque pour que
-                le plateau ne devienne jamais "défilable" sur le web */}
-            <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
-                {img && <Image source={TABLE_BG} style={[{ position: 'absolute' }, img]} resizeMode="stretch" />}
-            </View>
-            {children}
-        </View>
-    );
-}
-
 export default function GameScreen({ route, navigation }) {
     const { roomId, playerName, initialGameState, isHost } = route.params || {};
     const { width: winW, height: winH } = useWindowDimensions();
@@ -95,10 +61,7 @@ export default function GameScreen({ route, navigation }) {
     const [pendingCardIndex, setPendingCardIndex] = useState(null);
     const [timeLeft, setTimeLeft] = useState(15);
     const [showRules, setShowRules] = useState(false);
-    const [showChatMenu, setShowChatMenu] = useState(false);
-    const [chatMessages, setChatMessages] = useState([]);
-    const [activeReactions, setActiveReactions] = useState({});
-    const [customMsg, setCustomMsg] = useState('');
+    const { chatMessages, activeReactions, showChat: showChatMenu, setShowChat: setShowChatMenu, sendChat: handleSendChat, sendReaction: handleSendReaction } = useRoomChat(roomId);
     const [isInitialDeal, setIsInitialDeal] = useState(true);
     const [isMuted, setIsMuted] = useState(audioService.muted);
     const [xpEarnedThisRound, setXpEarnedThisRound] = useState(0);
@@ -186,22 +149,6 @@ export default function GameScreen({ route, navigation }) {
                 startDeal(s);
             }),
             socketService.onTimerTick((d) => setTimeLeft(d.timeLeft)),
-            socketService.onChatMessage((data) => {
-                audioService.playSound('pop');
-                setChatMessages((prev) => [...prev.slice(-3), data]);
-                setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500);
-            }),
-            socketService.onPlayerReaction(({ playerIndex, reactionType }) => {
-                audioService.playSound('pop', { rate: 1.15 });
-                setActiveReactions((prev) => ({ ...prev, [playerIndex]: reactionType }));
-                setTimeout(() => {
-                    setActiveReactions((prev) => {
-                        const next = { ...prev };
-                        delete next[playerIndex];
-                        return next;
-                    });
-                }, 2500);
-            }),
             socketService.onGameError((err) => {
                 audioService.playSound('error');
                 showToast(`⚠️ ${err?.message || 'Action impossible'}`, theme.redLight);
@@ -220,33 +167,10 @@ export default function GameScreen({ route, navigation }) {
         };
     }, []);
 
-    // --- Statistiques / historique ---
-    const saveMatchHistory = async (result, state) => {
-        try {
-            const historyStr = await AsyncStorage.getItem('matchHistory');
-            let history = historyStr ? JSON.parse(historyStr) : [];
-            const me = getLocalIndex(state);
-            const opponents = state.players?.filter((_, idx) => idx !== me).map((p) => p.name).join(', ') || 'Inconnus';
-            history.unshift({
-                id: Date.now().toString() + Math.random().toString(36).substring(2, 7),
-                date: new Date().toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }),
-                result,
-                opponents,
-            });
-            await AsyncStorage.setItem('matchHistory', JSON.stringify(history.slice(0, 10)));
-        } catch (e) {
-            console.error('Failed to save history', e);
-        }
-    };
-
-    const incrementStat = async (key) => {
-        try {
-            const [gp, v] = await Promise.all([AsyncStorage.getItem('gamesPlayed'), AsyncStorage.getItem(key)]);
-            await AsyncStorage.setItem('gamesPlayed', String(parseInt(gp || '0', 10) + 1));
-            await AsyncStorage.setItem(key, String(parseInt(v || '0', 10) + 1));
-        } catch (e) {
-            console.error('Failed to update stats', e);
-        }
+    // --- Statistiques / historique (communs à tous les jeux) ---
+    const opponentsOf = (state) => {
+        const me = getLocalIndex(state);
+        return state.players?.filter((_, idx) => idx !== me).map((p) => p.name).join(', ') || 'Inconnus';
     };
 
     // --- Réaction aux changements d'état : sons, annonces, animations ---
@@ -315,7 +239,7 @@ export default function GameScreen({ route, navigation }) {
             if (i === me) {
                 later(() => audioService.playSound('victory'), 250);
                 audioService.stopTickTock();
-                incrementStat('wins').then(() => saveMatchHistory('Victoire 🎉', gameState));
+                recordGame({ game: 'hezz2', won: true, opponents: opponentsOf(gameState) });
             } else if (!gameState.mancheTerminee) {
                 later(() => audioService.playSound('player_out'), 250);
                 showToast(`${nameOf(i)} a fini ses cartes ! 🏁`, theme.mint);
@@ -334,15 +258,13 @@ export default function GameScreen({ route, navigation }) {
                 const place = me === loser ? gameState.hands.length : order.indexOf(me) + 1;
                 const xp = me === loser ? 10 : place === 1 ? 100 : place === 2 ? 50 : 20;
                 setXpEarnedThisRound(xp);
-                AsyncStorage.getItem('playerXP')
-                    .then((cur) => AsyncStorage.setItem('playerXP', String(parseInt(cur || '0', 10) + xp)))
-                    .catch(() => {});
+                addXp(xp);
             }
 
             if (player && loser === me) {
                 later(() => audioService.playSound('game_over'), 300);
                 later(() => audioService.playSound('laugh', { volume: 0.5 }), 1700);
-                incrementStat('losses').then(() => saveMatchHistory('Défaite 💀', gameState));
+                recordGame({ game: 'hezz2', won: false, opponents: opponentsOf(gameState) });
             } else {
                 later(() => audioService.playSound('laugh'), 500);
             }
@@ -433,36 +355,13 @@ export default function GameScreen({ route, navigation }) {
         socketService.drawCard(roomId);
     };
 
-    const handleSendChat = (message) => {
-        socketService.sendChat(roomId, message);
-        setShowChatMenu(false);
-    };
-
-    const handleSendReaction = (reaction) => {
-        socketService.sendReaction(roomId, reaction);
-        setShowChatMenu(false);
-    };
-
     // --- Main du joueur : tri par famille puis valeur, en gardant l'index serveur ---
     const myHand = !isSpectator ? gameState?.hands?.[localPlayerIndex] || [] : [];
     const handLayout = useMemo(() => {
         const sorted = myHand
             .map((card, idx) => ({ card, idx }))
             .sort((a, b) => (suitSort[a.card.suit] - suitSort[b.card.suit]) || (a.card.value - b.card.value));
-        const count = sorted.length;
-        // En paysage, on garde de la place à gauche (avatar) et à droite (réactions)
-        const avail = land ? Math.max(260, stageW - 300) : stageW - 28;
-        const step = count > 1 ? Math.min(HAND_CARD_W * 0.78, (avail - HAND_CARD_W) / (count - 1)) : 0;
-        const totalW = step * (count - 1) + HAND_CARD_W;
-        const startX = (stageW - totalW) / 2;
-        const angleStep = count > 1 ? Math.min(6, 40 / count) : 0;
-        const mid = (count - 1) / 2;
-        return sorted.map((entry, i) => {
-            const off = i - mid;
-            const angle = off * angleStep;
-            const arcY = (1 - Math.cos((angle * Math.PI) / 180)) * 420;
-            return { ...entry, x: startX + i * step, angle, arcY };
-        });
+        return computeFan(sorted, stageW, land);
     }, [myHand, stageW, land]);
 
     if (!gameState) {
@@ -509,34 +408,16 @@ export default function GameScreen({ route, navigation }) {
         <TableBackground onSize={setBoard}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
-            {/* Vignette pour faire ressortir le centre de la table */}
-            <Svg style={StyleSheet.absoluteFill} pointerEvents="none" width="100%" height="100%">
-                <Defs>
-                    <RadialGradient id="vignette" cx="50%" cy="55%" rx="75%" ry="65%">
-                        <Stop offset="0.45" stopColor="#000" stopOpacity="0" />
-                        <Stop offset="1" stopColor="#000" stopOpacity="0.75" />
-                    </RadialGradient>
-                </Defs>
-                <Rect x="0" y="0" width="100%" height="100%" fill="url(#vignette)" />
-            </Svg>
-
             <Animated.View style={[styles.board, shakeStyle]}>
-                {/* Barre du haut */}
-                <View style={[styles.topBar, land && styles.topBarLand]} pointerEvents="box-none">
-                    <View style={styles.topBtns}>
-                        <IconButton icon="🚪" onPress={handleQuit} label="Quitter" size={38} />
-                        <IconButton icon="💬" onPress={() => setShowChatMenu(true)} label="Chat" size={38} />
-                    </View>
-                    {roomId && !land ? (
-                        <View style={styles.roomPill}>
-                            <Text style={styles.roomPillText}>SALON {roomId}</Text>
-                        </View>
-                    ) : null}
-                    <View style={styles.topBtns}>
-                        <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={handleToggleMute} label="Son" size={38} />
-                        <IconButton icon="📜" onPress={() => setShowRules(true)} label="Règles" size={38} />
-                    </View>
-                </View>
+                <TopBar
+                    roomId={roomId}
+                    land={land}
+                    isMuted={isMuted}
+                    onQuit={handleQuit}
+                    onChat={() => setShowChatMenu(true)}
+                    onMute={handleToggleMute}
+                    onRules={() => setShowRules(true)}
+                />
 
                 {/* Adversaire en face */}
                 <View style={[styles.topArea, land && styles.topAreaLand]}>{renderSeat('top')}</View>
@@ -582,23 +463,7 @@ export default function GameScreen({ route, navigation }) {
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
-                {/* Messages de chat flottants */}
-                <View style={[styles.chatOverlay, land && { top: 56 }]} pointerEvents="none">
-                    {chatMessages.map((msg) => (
-                        <Animated.View
-                            key={msg.id}
-                            style={styles.chatBubble}
-                            entering={ZoomIn.springify().damping(12)}
-                            exiting={FadeOut}
-                            layout={LinearTransition.springify()}
-                        >
-                            <Text style={styles.chatText}>
-                                <Text style={styles.chatName}>{msg.playerName} : </Text>
-                                {msg.message}
-                            </Text>
-                        </Animated.View>
-                    ))}
-                </View>
+                <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 {/* Joueur local */}
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
@@ -612,24 +477,14 @@ export default function GameScreen({ route, navigation }) {
                                 <View style={styles.meInfo}>
                                     <View>
                                         <PlayerAvatar name={playerName || 'Vous'} size={38} active={isMyTurn} />
-                                        {activeReactions[localPlayerIndex] && (
-                                            <Animated.View entering={ZoomIn.springify().damping(9)} exiting={FadeOut} style={styles.meReaction}>
-                                                <Text style={{ fontSize: 26 }}>{activeReactions[localPlayerIndex]}</Text>
-                                            </Animated.View>
-                                        )}
+                                        <ReactionBubble emoji={activeReactions[localPlayerIndex]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
                                         <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>Vous · {myHand.length}</Text>
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
-                                <View style={[styles.reactionBar, land && styles.reactionBarLand]}>
-                                    {REACTIONS.map((emoji) => (
-                                        <PressableScale key={emoji} sound={null} scaleTo={0.8} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
-                                            <Text style={styles.reactionBtnText}>{emoji}</Text>
-                                        </PressableScale>
-                                    ))}
-                                </View>
+                                <ReactionBar land={land} onSend={handleSendReaction} />
                             </View>
 
                             <View style={[styles.hand, land && styles.handLand]}>
@@ -670,49 +525,7 @@ export default function GameScreen({ route, navigation }) {
                 />
             )}
 
-            {showChatMenu && (
-                <Animated.View entering={FadeIn.duration(150)} style={styles.sheetOverlay}>
-                    <Pressable style={StyleSheet.absoluteFill} onPress={() => setShowChatMenu(false)} />
-                    <Animated.View entering={SlideInDown.springify().damping(16)} style={styles.sheet}>
-                        <View style={styles.sheetHandle} />
-                        <Text style={styles.sheetTitle}>💬 Message rapide</Text>
-                        <View style={styles.customRow}>
-                            <TextInput
-                                style={styles.customInput}
-                                placeholder="Message personnalisé..."
-                                placeholderTextColor={theme.textDim}
-                                value={customMsg}
-                                onChangeText={setCustomMsg}
-                                maxLength={60}
-                                onSubmitEditing={() => {
-                                    if (customMsg.trim()) {
-                                        handleSendChat(customMsg.trim());
-                                        setCustomMsg('');
-                                    }
-                                }}
-                            />
-                            <PressableScale
-                                style={styles.sendBtn}
-                                onPress={() => {
-                                    if (customMsg.trim()) {
-                                        handleSendChat(customMsg.trim());
-                                        setCustomMsg('');
-                                    }
-                                }}
-                            >
-                                <Text style={styles.sendText}>➤</Text>
-                            </PressableScale>
-                        </View>
-                        <View style={styles.quickGrid}>
-                            {QUICK_MESSAGES.map((msg) => (
-                                <PressableScale key={msg} style={styles.quickBtn} onPress={() => handleSendChat(msg)}>
-                                    <Text style={styles.quickText}>{msg}</Text>
-                                </PressableScale>
-                            ))}
-                        </View>
-                    </Animated.View>
-                </Animated.View>
-            )}
+            <ChatSheet visible={showChatMenu} onClose={() => setShowChatMenu(false)} onSend={handleSendChat} />
 
             {showEnd && gameState.mancheTerminee && (
                 <EndRoundOverlay
@@ -740,19 +553,6 @@ const styles = StyleSheet.create({
         flex: 1,
         paddingTop: 10,
         paddingBottom: 6,
-    },
-    topBar: {
-        flexDirection: 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        paddingHorizontal: 12,
-        zIndex: 20,
-    },
-    topBarLand: {
-        position: 'absolute',
-        top: 8,
-        left: 0,
-        right: 0,
     },
     topAreaLand: {
         height: 66,
@@ -792,31 +592,8 @@ const styles = StyleSheet.create({
         bottom: 10,
         alignItems: 'flex-end',
     },
-    reactionBarLand: {
-        flexWrap: 'wrap',
-        width: 82,
-        justifyContent: 'center',
-    },
     handLand: {
         height: 128,
-    },
-    topBtns: {
-        flexDirection: 'row',
-        gap: 8,
-    },
-    roomPill: {
-        paddingHorizontal: 10,
-        paddingVertical: 4,
-        borderRadius: 10,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        borderWidth: 1,
-        borderColor: 'rgba(212,175,55,0.35)',
-    },
-    roomPillText: {
-        color: theme.goldLight,
-        fontSize: 10,
-        fontWeight: '900',
-        letterSpacing: 1.5,
     },
     topArea: {
         height: 118,
@@ -889,38 +666,6 @@ const styles = StyleSheet.create({
         fontSize: 15,
         fontWeight: '900',
     },
-    chatOverlay: {
-        position: 'absolute',
-        top: 130,
-        left: 16,
-        right: 16,
-        alignItems: 'center',
-        zIndex: 40,
-    },
-    chatBubble: {
-        backgroundColor: '#FFF8E7',
-        paddingHorizontal: 14,
-        paddingVertical: 7,
-        borderRadius: 16,
-        borderBottomLeftRadius: 4,
-        marginBottom: 6,
-        borderWidth: 1.5,
-        borderColor: theme.gold,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.35,
-        shadowRadius: 4,
-        elevation: 8,
-    },
-    chatText: {
-        fontSize: 14,
-        color: '#2A1419',
-        fontWeight: '700',
-    },
-    chatName: {
-        color: '#B91C1C',
-        fontWeight: '900',
-    },
     playerArea: {
         height: 190,
         justifyContent: 'flex-end',
@@ -959,32 +704,6 @@ const styles = StyleSheet.create({
         height: 28,
         resizeMode: 'contain',
     },
-    meReaction: {
-        position: 'absolute',
-        top: -36,
-        left: -4,
-        backgroundColor: '#fff',
-        borderRadius: 16,
-        paddingHorizontal: 4,
-        zIndex: 50,
-    },
-    reactionBar: {
-        flexDirection: 'row',
-        gap: 6,
-    },
-    reactionBtn: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
-        backgroundColor: 'rgba(10,4,6,0.6)',
-        borderWidth: 1,
-        borderColor: 'rgba(212,175,55,0.45)',
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    reactionBtnText: {
-        fontSize: 18,
-    },
     hand: {
         height: 140,
         width: '100%',
@@ -1015,84 +734,5 @@ const styles = StyleSheet.create({
         color: theme.goldLight,
         fontSize: 18,
         fontWeight: '900',
-    },
-    sheetOverlay: {
-        ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        justifyContent: 'flex-end',
-        zIndex: 9000,
-        elevation: 9000,
-    },
-    sheet: {
-        backgroundColor: theme.panelSolid,
-        borderTopLeftRadius: 22,
-        borderTopRightRadius: 22,
-        borderWidth: 2,
-        borderBottomWidth: 0,
-        borderColor: theme.gold,
-        padding: 18,
-        paddingBottom: 28,
-    },
-    sheetHandle: {
-        alignSelf: 'center',
-        width: 44,
-        height: 4,
-        borderRadius: 2,
-        backgroundColor: 'rgba(212,175,55,0.5)',
-        marginBottom: 12,
-    },
-    sheetTitle: {
-        color: theme.goldLight,
-        fontSize: 18,
-        fontWeight: '900',
-        marginBottom: 12,
-        textAlign: 'center',
-    },
-    customRow: {
-        flexDirection: 'row',
-        gap: 8,
-        marginBottom: 14,
-    },
-    customInput: {
-        flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
-        borderRadius: 12,
-        borderWidth: 1.5,
-        borderColor: 'rgba(212,175,55,0.5)',
-        paddingHorizontal: 12,
-        paddingVertical: 10,
-        color: theme.cream,
-        fontSize: 15,
-    },
-    sendBtn: {
-        width: 46,
-        borderRadius: 12,
-        backgroundColor: theme.gold,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    sendText: {
-        color: theme.bg,
-        fontSize: 18,
-        fontWeight: '900',
-    },
-    quickGrid: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 8,
-    },
-    quickBtn: {
-        width: '48.5%',
-        paddingVertical: 11,
-        borderRadius: 12,
-        backgroundColor: 'rgba(0,0,0,0.35)',
-        borderWidth: 1,
-        borderColor: 'rgba(212,175,55,0.45)',
-        alignItems: 'center',
-    },
-    quickText: {
-        color: theme.cream,
-        fontWeight: '800',
-        fontSize: 14,
     },
 });

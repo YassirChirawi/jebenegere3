@@ -263,6 +263,109 @@ const sounds = {
         return d;
     },
 
+    // --- Ronda / Kdoub / Sota ---
+
+    // Darba : impact sec + petit éclat (on vole la carte de l'adversaire)
+    darba() {
+        const d = buf(0.6);
+        const hit = buf(0.25);
+        for (let i = 0; i < hit.length; i++) {
+            const t = i / SR;
+            hit[i] = Math.sin(2 * Math.PI * (180 - 120 * t / 0.25) * t) * Math.exp(-t / 0.06) + noise() * Math.exp(-t / 0.012) * 0.6;
+        }
+        mixInto(d, lowpass(hit, 3000), 0, 1);
+        mixInto(d, bell(NOTE(79), 0.4, 0.15, 0.6), 0.04, 0.35);
+        mixInto(d, bell(NOTE(84), 0.4, 0.15, 0.6), 0.1, 0.35);
+        return d;
+    },
+
+    // Hbel : double impact plus lourd + accord tendu
+    hbel() {
+        const d = buf(1.0);
+        [0, 0.14].forEach((off, k) => {
+            const hit = buf(0.35);
+            for (let i = 0; i < hit.length; i++) {
+                const t = i / SR;
+                hit[i] = Math.sin(2 * Math.PI * (110 - 50 * t / 0.35) * t) * Math.exp(-t / 0.1) + noise() * Math.exp(-t / 0.02) * 0.5;
+            }
+            mixInto(d, lowpass(hit, 2200), off, k ? 1 : 0.8);
+        });
+        [62, 65, 68, 71].forEach((n, i) => mixInto(d, pluck(NOTE(n), 0.8, 0.996), 0.3 + i * 0.05, 0.4));
+        return d;
+    },
+
+    // B'achra : roulement + grande fanfare
+    bachra() {
+        const d = buf(2.0);
+        for (let k = 0; k < 10; k++) {
+            const hit = buf(0.12);
+            for (let i = 0; i < hit.length; i++) {
+                const t = i / SR;
+                hit[i] = noise() * Math.exp(-t / 0.025) + Math.sin(2 * Math.PI * 150 * t) * Math.exp(-t / 0.04);
+            }
+            mixInto(d, lowpass(hit, 2500), k * 0.045, 0.3 + k * 0.05);
+        }
+        [60, 64, 67, 72, 76].forEach((n, i) => mixInto(d, bell(NOTE(n + 12), 1.3, 0.5, 0.6), 0.5 + i * 0.07, 0.45));
+        mixInto(d, pluck(NOTE(36), 1.4, 0.998), 0.5, 0.7);
+        return d;
+    },
+
+    // Missa : balayage de toute la table
+    missa() {
+        const dur = 0.7;
+        const d = buf(dur + 0.4);
+        const sweep = buf(dur);
+        for (let i = 0; i < sweep.length; i++) {
+            const t = i / SR;
+            sweep[i] = noise() * Math.sin(Math.PI * t / dur) ** 2;
+        }
+        lowpass(sweep, (t) => 500 + 5000 * (t / dur));
+        mixInto(d, highpass(sweep, 300), 0, 0.7);
+        mixInto(d, bell(NOTE(88), 0.5, 0.2, 0.3), dur - 0.05, 0.5);
+        return d;
+    },
+
+    // Annonce Ronda / Tringa : petit riff de oud
+    announce() {
+        const d = buf(1.0);
+        [[62, 0], [65, 0.09], [69, 0.18], [74, 0.3]].forEach(([n, t]) => mixInto(d, pluck(NOTE(n), 0.7, 0.996), t, 0.8));
+        return lowpass(d, 5000);
+    },
+
+    // Avertissement : double bip grave
+    warning() {
+        const d = buf(0.55);
+        [0, 0.22].forEach((off) => {
+            const b = buf(0.18);
+            for (let i = 0; i < b.length; i++) {
+                const t = i / SR;
+                b[i] = (Math.sin(2 * Math.PI * 440 * t) + 0.5 * Math.sin(2 * Math.PI * 660 * t)) * Math.min(1, t / 0.005) * Math.exp(-t / 0.08);
+            }
+            mixInto(d, b, off, 1);
+        });
+        return lowpass(d, 2500);
+    },
+
+    // Révélation (accusation Kdoub, Sota finale) : montée de suspense puis impact
+    reveal() {
+        const d = buf(1.3);
+        const riser = buf(0.8);
+        let phase = 0;
+        for (let i = 0; i < riser.length; i++) {
+            const t = i / SR;
+            phase += (2 * Math.PI * (200 + 600 * (t / 0.8) ** 2)) / SR;
+            riser[i] = (Math.sin(phase) * 0.4 + noise() * 0.3) * (t / 0.8) ** 2;
+        }
+        mixInto(d, lowpass(riser, 3000), 0, 0.7);
+        const hit = buf(0.5);
+        for (let i = 0; i < hit.length; i++) {
+            const t = i / SR;
+            hit[i] = Math.sin(2 * Math.PI * 70 * t) * Math.exp(-t / 0.15) + noise() * Math.exp(-t / 0.03) * 0.5;
+        }
+        mixInto(d, lowpass(hit, 2000), 0.8, 1);
+        return d;
+    },
+
     // Action refusée
     error() {
         const d = buf(0.2);

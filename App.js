@@ -8,12 +8,20 @@ import { AppState, View, StyleSheet, Platform, useWindowDimensions } from 'react
 import HomeScreen from './src/screens/HomeScreen';
 import LobbyScreen from './src/screens/LobbyScreen';
 import GameScreen from './src/screens/GameScreen';
+import RondaScreen from './src/screens/RondaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
 
 const Stack = createNativeStackNavigator();
+
+// Un seul écran "Game" dans la navigation : on choisit le plateau selon le type de jeu
+function GameRouter(props) {
+  const type = props.route?.params?.initialGameState?.gameType || 'hezz2';
+  if (type === 'ronda') return <RondaScreen {...props} />;
+  return <GameScreen {...props} />;
+}
 
 const navTheme = {
   ...DarkTheme,
@@ -62,7 +70,7 @@ export default function App() {
             >
               <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3', headerShown: false }} />
               <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé', headerShown: false }} />
-              <Stack.Screen name="Game" component={GameScreen} options={{ title: 'Partie en cours', headerShown: false, gestureEnabled: false }} />
+              <Stack.Screen name="Game" component={GameRouter} options={{ title: 'Partie en cours', headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
             </Stack.Navigator>
           </NavigationContainer>

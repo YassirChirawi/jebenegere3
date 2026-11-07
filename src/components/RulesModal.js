@@ -2,7 +2,70 @@ import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import audioService from '../network/audioService';
 
-export default function RulesModal({ visible, onClose }) {
+// Règles de la Ronda (version V1 de l'app)
+function RondaRules() {
+    const Item = ({ icon, name, desc }) => (
+        <View style={styles.ruleItem}>
+            <Text style={styles.ruleIcon}>{icon}</Text>
+            <View style={styles.ruleTextContainer}>
+                <Text style={styles.ruleName}>{name}</Text>
+                <Text style={styles.ruleDesc}>{desc}</Text>
+            </View>
+        </View>
+    );
+    return (
+        <>
+            <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+            <Text style={styles.text}>
+                Ramasser un maximum de cartes et de points. Premier camp à <Text style={styles.highlight}>41 points</Text> gagne. En 1 contre 1 ou en 2 contre 2 (coéquipiers face à face, cartes et points en commun).
+            </Text>
+
+            <Text style={styles.sectionTitle}>🃏 Distribution</Text>
+            <Text style={styles.text}>
+                Table vide au départ. 3 cartes, puis 3, puis 4 par joueur (en 1 contre 1, ce cycle se fait deux fois). Chacun pose une carte à son tour, 15 secondes maximum.
+            </Text>
+
+            <Text style={styles.sectionTitle}>🍽️ Manger</Text>
+            <Text style={styles.text}>
+                Une carte de même valeur qu'une carte de la table la ramasse, avec la suite qui la prolonge (1, 2, 3… 7, 10, 11, 12).{'\n'}
+                Exemple : ton 3 prend le 3, puis le 4 et le 5 s'ils sont sur la table. Un 7 prend 7, 10, 11. Sinon, ta carte reste sur la table.
+            </Text>
+
+            <Text style={styles.sectionTitle}>💥 Coups spéciaux</Text>
+            <Item icon="👊" name="Darba (+1)" desc="Tu prends la carte que l'adversaire vient juste de poser." />
+            <Item icon="🔥" name="Hbel (+5)" desc="Tu rejoues la même valeur juste après une darba : tu reprends les 3 cartes." />
+            <Item icon="💣" name="B'achra (+10)" desc="Le 4e exemplaire joué à la suite (darba, hbel puis b'achra) : tu reprends les 4 cartes." />
+            <Item icon="🧹" name="Missa (+1)" desc="Tu vides toute la table d'un coup (sauf la toute dernière prise de la manche)." />
+
+            <Text style={styles.sectionTitle}>📣 Annonces</Text>
+            <Item icon="✌️" name="Ronda (+1)" desc="Une paire en main. Annonce-la avant de jouer ta première carte de la distribution." />
+            <Item icon="🤟" name="Tringa (+5)" desc="Trois cartes de même valeur en main." />
+            <Text style={styles.text}>
+                Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : tringa contre ronda = 6, tringa contre tringa = 10. Entre deux rondas, la plus haute gagne (12 en haut, 1 en bas).{'\n'}
+                Égalité de rondas : le camp qui mange en premier avec cette valeur laisse le point à l'autre.
+            </Text>
+
+            <Text style={styles.sectionTitle}>🕵️ Il est rondé !</Text>
+            <Text style={styles.text}>
+                Si un adversaire a joué sa première carte sans annoncer sa ronda, dénonce-le avant qu'il joue la suivante en choisissant la valeur. Une seule dénonciation par distribution.{'\n'}
+                Juste : ton camp prend les points (1 ou 5). Fausse : -1 point.{'\n'}
+                La première fois, c'est seulement un <Text style={styles.highlight}>avertissement</Text> (sans points), dans les deux cas.
+            </Text>
+
+            <Text style={styles.sectionTitle}>👑 Dernière carte du donneur</Text>
+            <Text style={styles.text}>
+                Le donneur doit manger avec sa toute dernière carte. Avec un 12 : +5 pour son camp (9a3a Rey). Avec un 1, ou s'il ne mange rien : +5 pour l'adversaire (9a3a AS).
+            </Text>
+
+            <Text style={styles.sectionTitle}>🏁 Fin de manche</Text>
+            <Text style={styles.text}>
+                Les cartes restées sur la table vont au dernier camp qui a mangé. Chaque carte au-delà de 20 vaut 1 point. Exemple : 26 cartes ramassées = +6 points.
+            </Text>
+        </>
+    );
+}
+
+export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
     return (
         <Modal
             animationType="fade"
@@ -12,9 +75,10 @@ export default function RulesModal({ visible, onClose }) {
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>📜 Règles : Jeben Gere3</Text>
+                    <Text style={styles.modalTitle}>📜 Règles : {gameType === 'ronda' ? 'Ronda' : 'Hezz2'}</Text>
 
                     <ScrollView style={styles.scrollView}>
+                        {gameType === 'ronda' ? <RondaRules /> : <>
                         <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
                         <Text style={styles.text}>
                             Être le premier joueur à se débarrasser de toutes ses cartes. Le dernier joueur avec des cartes est le "Khasser" (Perdant) et est remplacé par un spectateur !
@@ -55,6 +119,7 @@ export default function RulesModal({ visible, onClose }) {
                         <Text style={styles.text}>
                             Le 1er à finir marque autant de points qu'il y a d'adversaires, puis 1 de moins par place. Le Khasser ne marque rien. Les points s'additionnent d'une manche à l'autre.
                         </Text>
+                        </>}
                     </ScrollView>
 
                     <TouchableOpacity style={styles.closeButton} onPress={() => { audioService.playSound('click'); onClose(); }}>

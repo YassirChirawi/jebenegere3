@@ -1,24 +1,4 @@
-const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
-const VALUES = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
-
-function generateDeck() {
-    const deck = [];
-    for (const suit of SUITS) {
-        for (const value of VALUES) {
-            deck.push({ id: `${suit}-${value}`, suit, value });
-        }
-    }
-    return deck;
-}
-
-function shuffleDeck(deck) {
-    const shuffled = [...deck];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-    }
-    return shuffled;
-}
+const { SUITS, VALUES, generateDeck, shuffleDeck } = require('./engines/common');
 
 function initializeGame(numPlayers = 2, previousScores = null) {
     let deck = shuffleDeck(generateDeck());

@@ -27,6 +27,14 @@ const SFX = {
     coin:        { src: require('../../assets/sfx/coin.wav'),        volume: 0.6 },
     player_out:  { src: require('../../assets/sfx/player_out.wav'),  volume: 0.6 },
     error:       { src: require('../../assets/sfx/error.wav'),       volume: 0.5 },
+    // Ronda / Kdoub / Sota
+    darba:       { src: require('../../assets/sfx/darba.wav'),       volume: 0.85 },
+    hbel:        { src: require('../../assets/sfx/hbel.wav'),        volume: 0.9 },
+    bachra:      { src: require('../../assets/sfx/bachra.wav'),      volume: 0.9 },
+    missa:       { src: require('../../assets/sfx/missa.wav'),       volume: 0.75 },
+    announce:    { src: require('../../assets/sfx/announce.wav'),    volume: 0.75 },
+    warning:     { src: require('../../assets/sfx/warning.wav'),     volume: 0.6 },
+    reveal:      { src: require('../../assets/sfx/reveal.wav'),      volume: 0.8 },
     // Sons "culturels" existants
     plus_two:    { src: require('../../assets/plus_two.mp3'),        volume: 1.0 },
     skip:        { src: require('../../assets/alexis_gaming_cam-vinyl-stop-342938.mp3'), volume: 0.8 },

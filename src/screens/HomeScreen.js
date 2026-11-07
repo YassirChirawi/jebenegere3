@@ -23,6 +23,7 @@ import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { getRankInfo } from '../utils/stats';
+import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -89,6 +90,8 @@ export default function HomeScreen({ navigation }) {
     const [roomIdInput, setRoomIdInput] = useState('');
     const [showRules, setShowRules] = useState(false);
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
+    const [game, setGame] = useState('hezz2');
+    const selected = gameInfo(game);
     const [isMuted, setIsMuted] = useState(audioService.muted);
     const [musicOn, setMusicOn] = useState(audioService.musicOn);
     const [isConnected, setIsConnected] = useState(false);
@@ -124,6 +127,8 @@ export default function HomeScreen({ navigation }) {
             try {
                 const savedName = await AsyncStorage.getItem('playerName');
                 if (savedName) setName(savedName);
+                const savedGame = await AsyncStorage.getItem('selectedGame');
+                if (savedGame && GAMES[savedGame]?.available) setGame(savedGame);
                 const seen = await AsyncStorage.getItem('rulesSeen');
                 if (!seen) setShowRules(true);
             } catch (e) { /* ignore */ }
@@ -161,7 +166,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleCreateRoom = () => {
         if (!requireName()) return;
-        socketService.createRoom(name.trim(), (response) => {
+        socketService.createRoom(name.trim(), game, (response) => {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: response.roomId, playerName: name.trim(), isHost: true, initialRoom: response.roomData });
             } else {
@@ -189,7 +194,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleCreateBotRoom = (count) => {
         if (!requireName()) return;
-        socketService.createBotRoom(name.trim(), count, (response) => {
+        socketService.createBotRoom(name.trim(), count, game, (response) => {
             if (response?.success) {
                 navigation.navigate('Game', { roomId: response.roomId, playerName: name.trim(), initialGameState: response.gameState, isHost: true });
             } else {
@@ -226,7 +231,7 @@ export default function HomeScreen({ navigation }) {
             });
         });
 
-        socketService.findMatch(name.trim(), size, (res) => {
+        socketService.findMatch(name.trim(), size, game, (res) => {
             if (res && !res.success) {
                 stopSearchUi();
                 setIsSearching(false);
@@ -253,10 +258,10 @@ export default function HomeScreen({ navigation }) {
         <Animated.View entering={FadeInDown.springify().damping(15)} style={[styles.sizeMenu, { borderColor: color }]}>
             <Text style={styles.sizeTitle}>Nombre de joueurs</Text>
             <View style={styles.sizeRow}>
-                {[2, 3, 4].map((n) => (
+                {selected.sizes.map((n) => (
                     <PressableScale key={n} onPress={() => onPick(n)} style={[styles.sizeBtn, { backgroundColor: color }]}>
-                        <Text style={styles.sizeNum}>{n}</Text>
-                        <Text style={styles.sizeIcons}>{'👤'.repeat(n)}</Text>
+                        <Text style={styles.sizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>
+                        <Text style={styles.sizeIcons}>{game === 'ronda' ? selected.sizeLabel(n) : '👤'.repeat(n)}</Text>
                     </PressableScale>
                 ))}
             </View>
@@ -299,6 +304,16 @@ export default function HomeScreen({ navigation }) {
                     )}
 
                     <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.panel}>
+                        {/* Choix du jeu */}
+                        <GamePicker
+                            value={game}
+                            onChange={(g) => {
+                                setGame(g);
+                                setMenu(null);
+                                AsyncStorage.setItem('selectedGame', g).catch(() => {});
+                            }}
+                        />
+
                         {/* Pseudo + rang */}
                         <View style={styles.nameRow}>
                             <PlayerAvatar name={name || 'Joueur'} size={52} />
@@ -334,7 +349,7 @@ export default function HomeScreen({ navigation }) {
                             </Animated.View>
                         ) : (
                             <>
-                                <GameButton title="JOUER EN LIGNE" icon="🌍" variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected} style={{ marginTop: 16 }} />
+                                <GameButton title={`JOUER EN LIGNE · ${selected.label.toUpperCase()}`} icon="🌍" variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected} style={{ marginTop: 16 }} />
                                 {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" />}
 
                                 <GameButton title="CONTRE L'ORDINATEUR" icon="🤖" variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
@@ -366,8 +381,43 @@ export default function HomeScreen({ navigation }) {
                 </ScrollView>
             )}
 
-            <RulesModal visible={showRules} onClose={closeRules} />
+            <RulesModal visible={showRules} onClose={closeRules} gameType={game} />
         </ImageBackground>
+    );
+}
+
+// Sélecteur de jeu : 4 cartes (les jeux pas encore prêts sont marqués "Bientôt")
+function GamePicker({ value, onChange }) {
+    return (
+        <View style={styles.pickerGrid}>
+            {GAME_ORDER.map((key, i) => {
+                const g = GAMES[key];
+                const on = key === value;
+                return (
+                    <Animated.View key={key} entering={FadeInDown.delay(60 * i).springify().damping(15)} style={styles.pickerCell}>
+                        <PressableScale
+                            onPress={() => {
+                                if (!g.available) {
+                                    audioService.playSound('error');
+                                    dialog.alert(g.label, `${g.tagline}\n\nBientôt disponible !`);
+                                    return;
+                                }
+                                onChange(key);
+                            }}
+                            style={[styles.pickerCard, on && { borderColor: g.color, backgroundColor: 'rgba(212,175,55,0.14)' }, !g.available && styles.pickerOff]}
+                        >
+                            <CardFace card={g.card} width={30} height={44} />
+                            <View style={{ flex: 1, marginLeft: 8 }}>
+                                <Text style={[styles.pickerName, on && { color: theme.goldLight }]} numberOfLines={1}>{g.label}</Text>
+                                <Text style={styles.pickerPlayers} numberOfLines={1}>{g.available ? g.players : 'Bientôt'}</Text>
+                            </View>
+                            {on && <View style={[styles.pickerDot, { backgroundColor: g.color }]} />}
+                        </PressableScale>
+                    </Animated.View>
+                );
+            })}
+            <Text style={styles.pickerTagline}>{gameInfo(value).tagline}</Text>
+        </View>
     );
 }
 
@@ -638,6 +688,50 @@ const styles = StyleSheet.create({
         color: theme.goldLight,
         fontWeight: '800',
         fontSize: 14,
+    },
+    pickerGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        justifyContent: 'space-between',
+        rowGap: 8,
+        marginBottom: 14,
+    },
+    pickerCell: {
+        width: '48.5%',
+    },
+    pickerCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 7,
+        borderRadius: 12,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212,175,55,0.25)',
+        backgroundColor: 'rgba(0,0,0,0.3)',
+    },
+    pickerOff: {
+        opacity: 0.5,
+    },
+    pickerName: {
+        color: theme.cream,
+        fontWeight: '900',
+        fontSize: 14,
+    },
+    pickerPlayers: {
+        color: theme.textDim,
+        fontSize: 10,
+        fontWeight: '700',
+    },
+    pickerDot: {
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+    },
+    pickerTagline: {
+        width: '100%',
+        textAlign: 'center',
+        color: theme.textDim,
+        fontSize: 12,
+        fontStyle: 'italic',
     },
     loaderBox: {
         alignItems: 'center',

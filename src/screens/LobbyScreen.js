@@ -6,9 +6,9 @@ import audioService from '../network/audioService';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
+import { gameInfo } from '../games';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
-const MAX_PLAYERS = 4;
 
 function WaitingDots() {
     const t = useSharedValue(0);
@@ -77,14 +77,17 @@ export default function LobbyScreen({ route, navigation }) {
 
     const players = room?.activePlayers || [];
     const spectators = room?.spectators || [];
+    const game = gameInfo(room?.gameType || initialRoom?.gameType);
+    const MAX_PLAYERS = room?.maxPlayers || game.maxPlayers;
     const emptySeats = Math.max(0, MAX_PLAYERS - players.length);
+    const canStart = game.canStart(players.length);
 
     return (
         <ImageBackground source={BG} style={styles.container} resizeMode="cover">
             <View style={styles.dim} pointerEvents="none" />
             <View style={styles.header}>
                 <IconButton icon="⬅️" onPress={handleLeave} label="Retour" size={42} />
-                <Text style={styles.headerTitle}>Salon privé</Text>
+                <Text style={styles.headerTitle}>Salon privé · {game.label}</Text>
                 <View style={{ width: 42 }} />
             </View>
 
@@ -142,16 +145,16 @@ export default function LobbyScreen({ route, navigation }) {
             <View style={styles.footer}>
                 {amHost ? (
                     <GameButton
-                        title={players.length < 2 ? 'IL FAUT 2 JOUEURS MIN.' : 'DÉMARRER LA PARTIE'}
+                        title={canStart ? `DÉMARRER · ${game.label.toUpperCase()}` : game.startHint.toUpperCase()}
                         icon="🃏"
                         variant="gold"
                         onPress={handleStartGame}
-                        disabled={players.length < 2}
+                        disabled={!canStart}
                     />
                 ) : (
                     <View style={styles.waitingBox}>
                         <Text style={styles.waitingText}>
-                            {room?.gameState && !room.gameState.mancheTerminee
+                            {room?.inGame
                                 ? 'Partie en cours, tu joueras à la prochaine manche'
                                 : "En attente du lancement par l'hôte"}
                         </Text>
