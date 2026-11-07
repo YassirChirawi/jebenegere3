@@ -68,8 +68,49 @@ function botActions(s, isBot) {
     return [{ player: p, delay, action: { type: 'play', cardIndex: chosen, newSuitFor7 } }];
 }
 
+// Abandon en 1 contre 1 : le joueur parti est le Khasser, les autres sont classés devant lui
+function forfeit(s, leaver) {
+    const n = s.hands.length;
+    const order = [...s.finishedPlayers];
+    for (let i = 0; i < n; i++) if (i !== leaver && !order.includes(i)) order.push(i);
+    const scores = [...s.scores];
+    order.forEach((p, k) => { scores[p] += n - k - 1; });
+    return { ...s, mancheTerminee: true, loserIndex: leaver, finishedPlayers: order, pendingAction: null, scores, forfeit: { player: leaver } };
+}
+
+// Mode test : donne au joueur des 1, 2 et 7 pour vérifier les cartes spéciales contre les bots
+const SPECIALS = ['Oros-1', 'Oros-2', 'Oros-7', 'Copas-1', 'Copas-2', 'Copas-7'];
+function rigSpecials(state, p = 0) {
+    const s = JSON.parse(JSON.stringify(state));
+    const hand = s.hands[p];
+    SPECIALS.forEach((id) => {
+        if (hand.some((c) => c.id === id) || s.middlePile.some((c) => c.id === id)) return;
+        const swapIdx = hand.findIndex((c) => !SPECIALS.includes(c.id));
+        let where = s.deck;
+        let k = where.findIndex((c) => c.id === id);
+        if (k === -1) {
+            for (const h of s.hands) {
+                const j = h.findIndex((c) => c.id === id);
+                if (j !== -1) { where = h; k = j; break; }
+            }
+        }
+        if (k === -1) return;
+        if (swapIdx === -1 || hand.length >= SPECIALS.length) {
+            // main pleine de spéciales : on ajoute la carte (la main grossit un peu, c'est un mode test)
+            hand.push(where.splice(k, 1)[0]);
+        } else {
+            const tmp = hand[swapIdx];
+            hand[swapIdx] = where[k];
+            where[k] = tmp;
+        }
+    });
+    return s;
+}
+
 module.exports = {
     type: 'hezz2',
+    forfeit,
+    rigSpecials,
     label: 'Hezz2',
     sizes: [2, 3, 4],
     maxPlayers: 4,

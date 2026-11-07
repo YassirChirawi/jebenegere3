@@ -34,10 +34,13 @@ export function computeFan(entries, stageW, land) {
     const startX = (stageW - totalW) / 2;
     const angleStep = count > 1 ? Math.min(6, 40 / count) : 0;
     const mid = (count - 1) / 2;
+    const arc = (i) => (1 - Math.cos((((i - mid) * angleStep) * Math.PI) / 180)) * 420;
+    // Les cartes du bord restent sur la ligne de base et le centre se soulève :
+    // rien ne dépasse sous l'écran (main coupée en bas sur ordinateur sinon)
+    const maxArc = count > 0 ? arc(0) : 0;
     return entries.map((entry, i) => {
         const angle = (i - mid) * angleStep;
-        const arcY = (1 - Math.cos((angle * Math.PI) / 180)) * 420;
-        return { ...entry, x: startX + i * step, angle, arcY };
+        return { ...entry, x: startX + i * step, angle, arcY: arc(i) - maxArc };
     });
 }
 

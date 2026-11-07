@@ -231,8 +231,22 @@ function viewFor(s, idx) {
     return v;
 }
 
+// Abandon : le dernier humain restant gagne par forfait
+function forfeit(state, leaver, winner) {
+    const s = clone(state);
+    s.events = [];
+    s.forfeit = { player: leaver };
+    emit(s, { type: 'forfeit', player: leaver });
+    const w = winner ?? s.hands.findIndex((_, i) => i !== leaver);
+    finish(s, w);
+    // Le gagnant par forfait est en tête même s'il lui reste des cartes
+    s.ranking = [{ player: w, cards: s.hands[w].length }, ...s.ranking.filter((r) => r.player !== w)];
+    return s;
+}
+
 module.exports = {
     type: 'kdoub',
+    forfeit,
     label: 'Kdoub',
     sizes: [3, 4, 5, 6],
     maxPlayers: 6,

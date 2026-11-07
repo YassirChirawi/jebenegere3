@@ -26,7 +26,7 @@ import TableBackground from '../components/TableBackground';
 import { CardFace, CardBack } from '../components/Card';
 import { ActionToast } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
-import { useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -268,6 +268,11 @@ export default function KdoubScreen({ route, navigation }) {
                     if (e.loser === me) showToast(`Tu ramasses ${plural(e.taken, 'carte')} 😬`, '#F87171');
                 }, 2700);
                 break;
+            case 'forfeit':
+                audioService.playSound('warning');
+                haptic('warning');
+                showToast(`🔌 ${state.players?.[e.player]?.name || 'Un joueur'} est parti : victoire par forfait`, theme.mint);
+                break;
             case 'auto_pose':
                 showToast(`⏱️ Temps écoulé : ${nameOf(e.player)} pose une carte au hasard`, theme.textDim);
                 break;
@@ -306,7 +311,7 @@ export default function KdoubScreen({ route, navigation }) {
 
     const leave = () => {
         audioService.stopTickTock();
-        socketService.leaveRoom();
+        socketService.leaveRoom(roomId);
         navigation.popToTop();
     };
     const handleQuit = () => dialog.alert('Quitter la partie ?', 'Un bot prendra ta place.', [
@@ -525,7 +530,7 @@ export default function KdoubScreen({ route, navigation }) {
                 <RankingEndOverlay
                     emoji={state.winner === me ? '🏆' : '🃏'}
                     title={state.winner === me ? 'VICTOIRE !' : `${nameOf(state.winner).toUpperCase()} GAGNE`}
-                    subtitle={state.winner === me ? 'Tu as vidé ta main en premier' : 'Classement au nombre de cartes restantes'}
+                    subtitle={state.forfeit ? 'Adversaire parti : victoire par forfait' : state.winner === me ? 'Tu as vidé ta main en premier' : 'Classement au nombre de cartes restantes'}
                     rows={state.ranking.map((r, k) => ({
                         player: r.player,
                         name: state.players[r.player]?.name,
@@ -536,7 +541,7 @@ export default function KdoubScreen({ route, navigation }) {
                     lost={me >= 0 && state.winner !== me && state.ranking[state.ranking.length - 1]?.player === me}
                     xpEarned={xpEarned}
                     canReplay={canReplay}
-                    onReplay={() => socketService.playAgain(roomId)}
+                    onReplay={() => requestReplay(roomId)}
                     onQuit={state.players?.some((p) => p.isBot) ? leave : handleQuit}
                 />
             )}

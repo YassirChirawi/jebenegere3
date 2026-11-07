@@ -43,7 +43,9 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                     {iLost ? 'KHASSER !' : isPlayer ? 'BRAVO !' : 'MANCHE TERMINÉE'}
                 </Text>
                 <Text style={[styles.subtitle, compact && { marginBottom: 8 }]}>
-                    {iLost ? 'Tu es le dernier avec des cartes…' : `${loserName} est le Khasser !`}
+                    {gameState.forfeit
+                        ? `Adversaire parti : victoire par forfait !`
+                        : iLost ? 'Tu es le dernier avec des cartes…' : `${loserName} est le Khasser !`}
                 </Text>
 
                 <View style={styles.table}>

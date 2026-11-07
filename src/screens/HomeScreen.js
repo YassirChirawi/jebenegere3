@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, ImageBackground, ScrollView } from 'react-native';
+import { View, Text, TextInput, StyleSheet, ImageBackground, ScrollView, Platform } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -26,6 +26,9 @@ import { getRankInfo } from '../utils/stats';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
+
+// Mode test (web) : ajouter ?test=1 à l'adresse pour démarrer les parties Hezz2 contre l'IA avec des 1, 2 et 7
+const TEST_MODE = Platform.OS === 'web' && typeof window !== 'undefined' && /[?&]test=1\b/.test(window.location?.search || '');
 
 // Logo : trois figures en éventail qui respirent doucement
 function LogoCards() {
@@ -102,6 +105,9 @@ export default function HomeScreen({ navigation }) {
     const [isSearching, setIsSearching] = useState(false);
     const [searchingSize, setSearchingSize] = useState(null);
     const [searchSeconds, setSearchSeconds] = useState(0);
+    const [searchStatus, setSearchStatus] = useState(null); // null | 'found' | 'bots'
+    const [serverInfo, setServerInfo] = useState(socketService.serverInfo);
+    const [outdated, setOutdated] = useState(false);
     const matchUnsub = useRef(null);
     const searchTimer = useRef(null);
 
@@ -118,6 +124,10 @@ export default function HomeScreen({ navigation }) {
             setHasConnected(true);
         });
         const offDisconnect = socketService.onDisconnect(() => setIsConnected(false));
+        const offInfo = socketService.onServerInfo((info) => {
+            setServerInfo(info);
+            setOutdated(false);
+        });
         const offAudio = audioService.subscribe(({ muted, musicOn: m }) => {
             setIsMuted(muted);
             setMusicOn(m);
@@ -137,10 +147,18 @@ export default function HomeScreen({ navigation }) {
         return () => {
             offConnect();
             offDisconnect();
+            offInfo();
             offAudio();
             stopSearchUi();
         };
     }, []);
+
+    // Serveur connecté mais muet sur sa version : c'est une ancienne version (pas de matchmaking, etc.)
+    useEffect(() => {
+        if (!isConnected || serverInfo) return;
+        const t = setTimeout(() => { if (!socketService.serverInfo) setOutdated(true); }, 4000);
+        return () => clearTimeout(t);
+    }, [isConnected, serverInfo]);
 
     // Recharger l'XP à chaque retour sur l'accueil (après une partie)
     useEffect(() => {
@@ -196,11 +214,12 @@ export default function HomeScreen({ navigation }) {
         if (!requireName()) return;
         socketService.createBotRoom(name.trim(), count, game, (response) => {
             if (response?.success) {
+                setMenu(null);
                 navigation.navigate('Game', { roomId: response.roomId, playerName: name.trim(), initialGameState: response.gameState, isHost: true });
             } else {
-                dialog.alert('Erreur', "Impossible de créer la partie contre l'ordinateur.");
+                dialog.alert('Erreur', response?.message || "Impossible de créer la partie contre l'ordinateur.");
             }
-        });
+        }, TEST_MODE && game === 'hezz2' ? { debugHand: 'specials' } : {});
     };
 
     const stopSearchUi = () => {
@@ -221,21 +240,28 @@ export default function HomeScreen({ navigation }) {
         if (matchUnsub.current) matchUnsub.current();
         matchUnsub.current = socketService.onMatchFound((data) => {
             stopSearchUi();
-            setIsSearching(false);
+            const withBots = data.gameState?.players?.some((p) => p.isBot);
+            setSearchStatus(withBots ? 'bots' : 'found');
             audioService.playSound('your_turn');
-            navigation.navigate('Game', {
-                roomId: data.roomId,
-                playerName: name.trim(),
-                initialGameState: data.gameState,
-                isHost: data.roomData?.hostId === socketService.socket?.id,
-            });
+            // On laisse voir "Adversaire trouvé" / "Bots ajoutés" un instant avant d'ouvrir la table
+            setTimeout(() => {
+                setIsSearching(false);
+                setSearchStatus(null);
+                navigation.navigate('Game', {
+                    roomId: data.roomId,
+                    playerName: name.trim(),
+                    initialGameState: data.gameState,
+                    isHost: data.roomData?.hostId === socketService.socket?.id,
+                });
+            }, 1100);
         });
 
         socketService.findMatch(name.trim(), size, game, (res) => {
             if (res && !res.success) {
                 stopSearchUi();
                 setIsSearching(false);
-                dialog.alert('Matchmaking', res.message);
+                if (res.timeout) setOutdated(true);
+                dialog.alert('Matchmaking indisponible', res.message);
             }
         });
     };
@@ -245,6 +271,7 @@ export default function HomeScreen({ navigation }) {
         stopSearchUi();
         setIsSearching(false);
         setSearchingSize(null);
+        setSearchStatus(null);
     };
 
     const closeRules = () => {
@@ -256,7 +283,12 @@ export default function HomeScreen({ navigation }) {
 
     const SizePicker = ({ onPick, color }) => (
         <Animated.View entering={FadeInDown.springify().damping(15)} style={[styles.sizeMenu, { borderColor: color }]}>
-            <Text style={styles.sizeTitle}>Nombre de joueurs</Text>
+            <View style={styles.sizeHeader}>
+                <PressableScale onPress={() => setMenu(null)} style={styles.sizeBack} hitSlop={8}>
+                    <Text style={styles.sizeBackText}>← Retour</Text>
+                </PressableScale>
+                <Text style={styles.sizeTitle}>Choisis le nombre de joueurs</Text>
+            </View>
             <View style={styles.sizeRow}>
                 {selected.sizes.map((n) => (
                     <PressableScale key={n} onPress={() => onPick(n)} style={[styles.sizeBtn, { backgroundColor: color }]}>
@@ -297,6 +329,16 @@ export default function HomeScreen({ navigation }) {
                         </Animated.View>
                     </Animated.View>
 
+                    {outdated && isConnected && (
+                        <Animated.View entering={FadeIn} style={[styles.reconnect, styles.outdated]}>
+                            <Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles. Il faut le redéployer.</Text>
+                        </Animated.View>
+                    )}
+                    {TEST_MODE && (
+                        <View style={[styles.reconnect, { backgroundColor: 'rgba(124,58,237,0.7)' }]}>
+                            <Text style={styles.reconnectText}>🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7</Text>
+                        </View>
+                    )}
                     {!isConnected && (
                         <Animated.View entering={FadeIn} style={styles.reconnect}>
                             <Text style={styles.reconnectText}>⏳ Reconnexion au serveur…</Text>
@@ -342,20 +384,22 @@ export default function HomeScreen({ navigation }) {
                         {isSearching ? (
                             <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
                                 <SearchSpinner />
-                                <Text style={styles.searchTitle}>Recherche d'adversaires…</Text>
+                                <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
+                                    {searchStatus === 'found' ? 'Adversaire trouvé !' : searchStatus === 'bots' ? 'Bots ajoutés pour compléter la table' : "Recherche d'adversaires…"}
+                                </Text>
                                 <Text style={styles.searchSub}>Partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
                                 <Text style={styles.searchHint}>Des bots compléteront la table si l'attente est trop longue</Text>
                                 <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
                             </Animated.View>
                         ) : (
                             <>
-                                <GameButton title={`JOUER EN LIGNE · ${selected.label.toUpperCase()}`} icon="🌍" variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected} style={{ marginTop: 16 }} />
+                                <GameButton title={!isConnected ? '⏳ SERVEUR EN RÉVEIL…' : outdated ? 'EN LIGNE INDISPONIBLE' : `JOUER EN LIGNE · ${selected.label.toUpperCase()} ${menu === 'online' ? '▴' : '▾'}`} icon={isConnected ? '🌍' : undefined} variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected || outdated} style={{ marginTop: 16 }} />
                                 {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" />}
 
-                                <GameButton title="CONTRE L'ORDINATEUR" icon="🤖" variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
                                 {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
 
-                                <GameButton title="CRÉER UN SALON PRIVÉ" icon="🔒" variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
 
                                 <OrnamentDivider label="REJOINDRE UN AMI" />
 
@@ -369,7 +413,7 @@ export default function HomeScreen({ navigation }) {
                                         autoCapitalize="characters"
                                         maxLength={5}
                                     />
-                                    <GameButton small title="REJOINDRE" variant="outline" onPress={handleJoinRoom} disabled={!isConnected} />
+                                    <GameButton small title={isConnected ? 'REJOINDRE' : '⏳'} variant="outline" onPress={handleJoinRoom} disabled={!isConnected} />
                                 </View>
                             </>
                         )}
@@ -411,7 +455,7 @@ function GamePicker({ value, onChange }) {
                                 <Text style={[styles.pickerName, on && { color: theme.goldLight }]} numberOfLines={1}>{g.label}</Text>
                                 <Text style={styles.pickerPlayers} numberOfLines={1}>{g.available ? g.players : 'Bientôt'}</Text>
                             </View>
-                            {on && <View style={[styles.pickerDot, { backgroundColor: g.color }]} />}
+                            {on && <Text style={[styles.pickerCheck, { color: g.color }]}>✓</Text>}
                         </PressableScale>
                     </Animated.View>
                 );
@@ -518,6 +562,26 @@ const styles = StyleSheet.create({
         opacity: 0.9,
         textShadowColor: '#000',
         textShadowRadius: 4,
+    },
+    outdated: {
+        backgroundColor: 'rgba(185, 28, 28, 0.8)',
+        maxWidth: 420,
+    },
+    sizeHeader: {
+        width: '100%',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: 8,
+    },
+    sizeBack: {
+        position: 'absolute',
+        left: 0,
+    },
+    sizeBackText: {
+        color: theme.textDim,
+        fontWeight: '800',
+        fontSize: 12,
     },
     reconnect: {
         backgroundColor: 'rgba(0,0,0,0.6)',
@@ -721,10 +785,9 @@ const styles = StyleSheet.create({
         fontSize: 10,
         fontWeight: '700',
     },
-    pickerDot: {
-        width: 8,
-        height: 8,
-        borderRadius: 4,
+    pickerCheck: {
+        fontSize: 16,
+        fontWeight: '900',
     },
     pickerTagline: {
         width: '100%',

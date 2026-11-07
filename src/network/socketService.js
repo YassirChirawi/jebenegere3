@@ -14,6 +14,12 @@ class SocketService {
             return;
         }
         this.socket = io(SOCKET_URL);
+        this.serverInfo = null;
+        // Le serveur annonce sa version à chaque connexion (absent = serveur pas à jour)
+        this.socket.on('server_info', (info) => {
+            this.serverInfo = info;
+            (this.infoListeners || []).forEach((fn) => fn(info));
+        });
 
         this.socket.on('connect', () => {
             console.log('Connecté au serveur Socket.io avec ID:', this.socket.id);
@@ -30,13 +36,43 @@ class SocketService {
         }
     }
 
-    // Quitter une partie/salon : le serveur nous retire de la room à la déconnexion,
-    // puis on se reconnecte aussitôt pour que l'accueil reste utilisable.
-    leaveRoom() {
+    // Quitter une partie/salon sans couper la connexion (pas d'attente de reconnexion).
+    // Ancien serveur sans 'leave_room' : on se déconnecte puis on se reconnecte.
+    leaveRoom(roomId) {
         if (!this.socket) return;
         this.offAll();
+        if (roomId && this.supports('leave_room')) {
+            this.socket.emit('leave_room', { roomId });
+            return;
+        }
         this.socket.disconnect();
         setTimeout(() => this.socket && this.socket.connect(), 150);
+    }
+
+    supports(feature) {
+        return !!this.serverInfo?.features?.includes(feature);
+    }
+
+    supportsGame(game) {
+        return game === 'hezz2' || !!this.serverInfo?.games?.includes(game);
+    }
+
+    onServerInfo(callback) {
+        this.infoListeners = [...(this.infoListeners || []), callback];
+        if (this.serverInfo) callback(this.serverInfo);
+        return () => { this.infoListeners = (this.infoListeners || []).filter((f) => f !== callback); };
+    }
+
+    // emit avec accusé de réception et délai max : jamais d'attente silencieuse
+    _emitAck(event, data, callback, timeoutMs, timeoutMessage) {
+        if (!this.socket?.connected) {
+            callback && callback({ success: false, message: "Pas de connexion au serveur." });
+            return;
+        }
+        this.socket.timeout(timeoutMs).emit(event, data, (err, res) => {
+            if (err) callback && callback({ success: false, timeout: true, message: timeoutMessage });
+            else callback && callback(res || { success: true });
+        });
     }
 
     // -- ROOM ACTIONS --
@@ -44,8 +80,8 @@ class SocketService {
         this.socket.emit('create_room', { playerName, gameType }, callback);
     }
 
-    createBotRoom(playerName, botCount, gameType, callback) {
-        this.socket.emit('create_bot_room', { playerName, botCount, gameType }, callback);
+    createBotRoom(playerName, botCount, gameType, callback, options = {}) {
+        this._emitAck('create_bot_room', { playerName, botCount, gameType, ...options }, callback, 10000, 'Le serveur ne répond pas.');
     }
 
     joinRoom(roomId, playerName, callback) {
@@ -54,7 +90,8 @@ class SocketService {
 
     // -- MATCHMAKING ACTIONS --
     findMatch(playerName, targetSize, gameType, callback) {
-        this.socket.emit('find_match', { playerName, targetSize, gameType }, callback);
+        this._emitAck('find_match', { playerName, targetSize, gameType }, callback, 6000,
+            "Le serveur ne répond pas au matchmaking. Il n'est sans doute pas à jour (à redéployer).");
     }
 
     cancelMatch() {
@@ -66,8 +103,13 @@ class SocketService {
         this.socket.emit('start_game', { roomId });
     }
 
-    playAgain(roomId) {
-        this.socket.emit('play_again', { roomId });
+    playAgain(roomId, callback) {
+        if (!this.supports('play_again_ack')) {
+            // Ancien serveur : pas de réponse possible
+            this.socket.emit('play_again', { roomId });
+            return;
+        }
+        this._emitAck('play_again', { roomId }, callback, 6000, "Le serveur n'a pas répondu à Rejouer.");
     }
 
     playCard(roomId, cardIndex, newSuitFor7) {

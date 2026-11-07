@@ -43,7 +43,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                     {!compact && <Text style={styles.emoji}>{emoji}</Text>}
                     <Text style={[styles.title, compact && { fontSize: 22 }]}>{title}</Text>
-                    <Text style={styles.subtitle}>Premier camp à {target} points</Text>
+                    <Text style={styles.subtitle}>{state.forfeit ? 'Adversaire parti : victoire par forfait' : `Premier camp à ${target} points`}</Text>
 
                     <View style={styles.table}>
                         <View style={styles.headRow}>

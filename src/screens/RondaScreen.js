@@ -24,7 +24,7 @@ import RulesModal from '../components/RulesModal';
 import TableBackground from '../components/TableBackground';
 import { CardFace, CardBack } from '../components/Card';
 import { TurnBanner, ActionToast } from '../components/GameFx';
-import { useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -417,6 +417,14 @@ export default function RondaScreen({ route, navigation }) {
             case 'table_rest':
                 showToast(`🧺 Le reste de la table (${e.count}) va à ${teamWord(e.team)}`, theme.goldLight);
                 break;
+            case 'forfeit':
+                pushBanner({
+                    text: 'ADVERSAIRE PARTI',
+                    sub: e.team === myTeam ? 'Victoire par forfait !' : 'Partie terminée',
+                    color: '#0F766E', textColor: '#fff',
+                    onShow: () => { audioService.playSound('warning'); haptic('warning'); },
+                });
+                break;
             case 'manche_end':
                 audioService.stopTickTock();
                 onMancheEnd(s);
@@ -459,7 +467,7 @@ export default function RondaScreen({ route, navigation }) {
     // --- Actions ---
     const leave = () => {
         audioService.stopTickTock();
-        socketService.leaveRoom();
+        socketService.leaveRoom(roomId);
         navigation.popToTop();
     };
     const handleQuit = () => {
@@ -759,7 +767,7 @@ export default function RondaScreen({ route, navigation }) {
                     teamNames={teamNames}
                     xpEarned={xpEarned}
                     canReplay={canReplay}
-                    onReplay={() => socketService.playAgain(roomId)}
+                    onReplay={() => requestReplay(roomId)}
                     onQuit={state.players?.some((p) => p.isBot) ? leave : handleQuit}
                 />
             )}

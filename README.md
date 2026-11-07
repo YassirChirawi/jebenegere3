@@ -77,11 +77,23 @@ EXPO_PUBLIC_SOCKET_URL=http://192.168.1.10:3000 npx expo start -c
 
 Après un changement de `EXPO_PUBLIC_SOCKET_URL`, il faut relancer avec `-c` pour vider le cache de Metro.
 
+## Déploiement du serveur (Render)
+
+L'application vérifie la version du serveur à chaque connexion : le serveur envoie `server_info`, que l'on peut aussi consulter sur `GET /version`.
+- Si le serveur est trop ancien, l'accueil affiche **« Le serveur en ligne n'est pas à jour »** et désactive le jeu en ligne, au lieu de chercher dans le vide.
+- Après chaque changement dans `server/`, il faut **redéployer le service Render**, depuis la branche `main` et avec le dossier racine `server`. Pour vérifier le déploiement, `https://jebenegere3.onrender.com/version` doit répondre avec un JSON qui contient `"version"`.
+- Variable d'environnement facultative : `MATCHMAKING_WAIT_MS`, le délai avant de compléter la table avec des bots (10 000 ms par défaut).
+
+## Mode test (web)
+
+Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.
+
 ## Tests
 
 ```bash
 cd server
-npm test                   # tests unitaires des moteurs (sans interface)
+npm test                   # tests des moteurs, puis tests réseau de bout en bout (vrai serveur et vrais clients) :
+                           # matchmaking, bots, annulation, Rejouer, abandon et forfait, mode test
 ```
 
 ## Architecture

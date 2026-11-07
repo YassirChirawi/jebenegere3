@@ -5,6 +5,17 @@ import Animated, { FadeIn, FadeOut, ZoomIn, LinearTransition, SlideInDown } from
 import { IconButton, PressableScale, theme } from './ui';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
+import { dialog } from './Dialog';
+
+// Rejouer : le serveur répond toujours (succès ou raison du refus), jamais de clic sans effet
+export function requestReplay(roomId) {
+    socketService.playAgain(roomId, (res) => {
+        if (res && res.success === false) {
+            audioService.playSound('error');
+            dialog.alert('Impossible de rejouer', res.message || 'Réessaie dans un instant.');
+        }
+    });
+}
 
 export const QUICK_MESSAGES = ['L3eb a zmagri !', 'Zid Jouj !', 'Hezz !', 'Zrebti 3lina...', 'Wry9a wa7da 😉', 'Saaaaaaaafi 😡'];
 export const REACTIONS = ['😂', '😡', '😱', '👏'];

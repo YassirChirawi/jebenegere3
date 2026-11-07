@@ -448,8 +448,23 @@ function viewFor(s, idx) {
     return v;
 }
 
+// Abandon en 1 contre 1 : l'équipe restante gagne la partie
+function forfeit(state, leaver) {
+    const s = clone(state);
+    s.events = [];
+    s.mancheTerminee = true;
+    s.turn = null;
+    s.winnerTeam = 1 - teamOf(leaver);
+    s.forfeit = { player: leaver };
+    s.summary = { captured: [...s.captured], cardPoints: [0, 0], bonus: [...s.mancheBonus], scores: [...s.scores] };
+    emit(s, { type: 'forfeit', player: leaver, team: s.winnerTeam });
+    emit(s, { type: 'manche_end', winnerTeam: s.winnerTeam });
+    return s;
+}
+
 module.exports = {
     type: 'ronda',
+    forfeit,
     label: 'Ronda',
     sizes: [2, 4],
     maxPlayers: 4,

@@ -68,7 +68,7 @@ export default function LobbyScreen({ route, navigation }) {
                 text: 'Quitter',
                 style: 'destructive',
                 onPress: () => {
-                    socketService.leaveRoom();
+                    socketService.leaveRoom(roomId);
                     navigation.popToTop();
                 },
             },

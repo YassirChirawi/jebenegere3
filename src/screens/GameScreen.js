@@ -20,7 +20,7 @@ import { TurnBanner, ActionToast, SuitBadge, PenaltyBadge, SuitSelector, SUIT_IN
 import { haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import TableBackground from '../components/TableBackground';
-import { useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 
@@ -191,6 +191,12 @@ export default function GameScreen({ route, navigation }) {
             }
         });
 
+        // 0 bis) L'adversaire est parti : victoire par forfait
+        if (!prev.forfeit && gameState.forfeit) {
+            audioService.playSound('warning');
+            showToast(`🔌 ${prev.players?.[gameState.forfeit.player]?.name || 'Ton adversaire'} est parti : victoire par forfait`, theme.mint);
+        }
+
         // 1) Une carte a été jouée
         const prevTop = prev.middlePile[prev.middlePile.length - 1];
         const newTop = gameState.middlePile[gameState.middlePile.length - 1];
@@ -303,7 +309,7 @@ export default function GameScreen({ route, navigation }) {
     // --- Actions ---
     const leave = () => {
         audioService.stopTickTock();
-        socketService.leaveRoom();
+        socketService.leaveRoom(roomId);
         navigation.popToTop();
     };
 
@@ -533,7 +539,7 @@ export default function GameScreen({ route, navigation }) {
                     localPlayerIndex={localPlayerIndex}
                     xpEarned={xpEarnedThisRound}
                     canReplay={canReplay}
-                    onReplay={() => socketService.playAgain(roomId)}
+                    onReplay={() => requestReplay(roomId)}
                     onQuit={handleEndQuit}
                 />
             )}

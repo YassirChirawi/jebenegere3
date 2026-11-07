@@ -2,11 +2,15 @@ const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
-const { getEngine, normalizeType } = require('./engines');
+const { getEngine, normalizeType, engines } = require('./engines');
+
+// Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
+const SERVER_VERSION = 3;
 
 const app = express();
 app.use(cors());
 app.get('/', (_req, res) => res.send('Jeben Gere3 server OK'));
+app.get('/version', (_req, res) => res.json(serverInfo()));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -23,8 +27,12 @@ const rooms = {};
 
 // Files de matchmaking par jeu et par taille : clé "ronda:2", "hezz2:4"...
 const matchmakingQueues = {};
-const MAX_QUEUE_WAIT_TIME = 10000;
+const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
 const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
+
+function serverInfo() {
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit'] };
+}
 
 function generateRoomCode() {
     return Math.random().toString(36).substring(2, 7).toUpperCase();
@@ -73,6 +81,10 @@ function startGame(roomId, prevState = null) {
     const room = rooms[roomId];
     const engine = getEngine(room.gameType);
     room.gameState = engine.init(room.activePlayers.length, prevState);
+    if (room.debugHand === 'specials' && engine.rigSpecials) {
+        const me = room.activePlayers.findIndex((p) => !p.isBot);
+        if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me);
+    }
     room.version = (room.version || 0) + 1;
     emitState(roomId, 'game_started');
     broadcastRoomUpdate(roomId);
@@ -182,7 +194,7 @@ function makeBots(roomId, count, startIndex = 0) {
 }
 
 // === MATCHMAKING ===
-setInterval(() => {
+const matchmakingTimer = setInterval(() => {
     const now = Date.now();
     for (const key in matchmakingQueues) {
         const queue = matchmakingQueues[key];
@@ -231,8 +243,68 @@ function playerIndexOf(room, socketId) {
     return room.activePlayers.findIndex((p) => p.id === socketId);
 }
 
+/**
+ * Un joueur quitte une room (bouton Quitter ou déconnexion).
+ * - Partie en cours à 2 joueurs : l'autre gagne par forfait (fin propre, timer arrêté).
+ * - Partie en cours à 3+ joueurs : un bot reprend sa place, la partie continue.
+ * - Plus aucun humain : la room est supprimée.
+ */
+function removePlayer(roomId, socketId) {
+    const room = rooms[roomId];
+    if (!room) return;
+    const activeIdx = playerIndexOf(room, socketId);
+    const spectatorIdx = room.spectators.findIndex((p) => p.id === socketId);
+    if (activeIdx === -1 && spectatorIdx === -1) return;
+
+    if (spectatorIdx !== -1) room.spectators.splice(spectatorIdx, 1);
+    const engine = getEngine(room.gameType);
+    const inGame = room.gameState && !engine.isOver(room.gameState);
+    let forfeitState = null;
+
+    if (activeIdx !== -1) {
+        const leaver = room.activePlayers[activeIdx];
+        if (inGame) {
+            room.activePlayers[activeIdx] = {
+                id: `bot_${roomId}_r${activeIdx}_${Date.now()}`,
+                name: `${leaver.name} (parti)`,
+                isBot: true,
+                replaced: true,
+            };
+            room.isBotMatch = true;
+            room.gameState.log && room.gameState.log.push(`🔌 ${leaver.name} a quitté la partie.`);
+            const humansLeft = room.activePlayers.filter((p) => !p.isBot);
+            if (room.activePlayers.length === 2 && humansLeft.length === 1 && engine.forfeit) {
+                const winner = room.activePlayers.findIndex((p) => !p.isBot);
+                forfeitState = engine.forfeit(room.gameState, activeIdx, winner);
+            }
+        } else {
+            room.activePlayers.splice(activeIdx, 1);
+        }
+    }
+
+    const humans = [...room.activePlayers, ...room.spectators].filter((p) => !p.isBot);
+    if (humans.length === 0) {
+        if (room.timerInterval) clearInterval(room.timerInterval);
+        delete rooms[roomId];
+        console.log(`Room ${roomId} supprimée (plus aucun humain)`);
+        return;
+    }
+    if (room.hostId === socketId) room.hostId = humans[0].id;
+
+    broadcastRoomUpdate(roomId);
+    if (forfeitState) {
+        console.log(`[${roomId}] Victoire par forfait.`);
+        commitState(roomId, room.gameState, forfeitState);
+    } else if (inGame && activeIdx !== -1) {
+        room.version = (room.version || 0) + 1;
+        emitState(roomId);
+        scheduleBots(roomId);
+    }
+}
+
 io.on('connection', (socket) => {
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
+    socket.emit('server_info', serverInfo());
 
     // --- SALON PRIVÉ ---
     socket.on('create_room', (data, callback) => {
@@ -272,6 +344,11 @@ io.on('connection', (socket) => {
 
         const room = rooms[roomId];
         room.gameState = engine.init(size, null);
+        // Mode test (parties contre bots uniquement) : main forcée avec des 1, 2 et 7
+        if (data?.debugHand === 'specials' && engine.rigSpecials) {
+            room.debugHand = 'specials';
+            room.gameState = engine.rigSpecials(room.gameState, 0);
+        }
         room.version = 1;
         callback && callback({ success: true, roomId, gameState: stateFor(room, 0) });
         emitState(roomId, 'game_started');
@@ -344,16 +421,18 @@ io.on('connection', (socket) => {
         startGame(room.id, null);
     });
 
-    socket.on('play_again', (data) => {
+    socket.on('play_again', (data, callback) => {
+        const reply = (r) => callback && callback(r);
         const room = rooms[data?.roomId];
-        if (!room || !room.gameState) return;
-        if (room.hostId !== socket.id) return;
+        if (!room || !room.gameState) return reply({ success: false, message: "Cette partie n'existe plus." });
+        if (room.hostId !== socket.id) return reply({ success: false, message: "Seul l'hôte peut relancer la partie." });
         const engine = getEngine(room.gameType);
+        if (!engine.isOver(room.gameState)) return reply({ success: false, message: 'La partie est encore en cours.' });
         if (!engine.canStart(room.activePlayers.length)) {
-            socket.emit('game_error', { message: "Pas assez de joueurs pour relancer." });
-            return;
+            return reply({ success: false, message: 'Pas assez de joueurs pour relancer.' });
         }
         startGame(room.id, room.gameState);
+        reply({ success: true });
     });
 
     // Hezz2 (événements historiques)
@@ -404,61 +483,38 @@ io.on('connection', (socket) => {
     });
 
     // --- DÉCONNEXION ---
+    socket.on('leave_room', (data) => {
+        const roomId = data?.roomId;
+        if (!roomId) return;
+        removePlayer(roomId, socket.id);
+        socket.leave(roomId);
+    });
+
     socket.on('disconnect', () => {
         console.log(`Utilisateur déconnecté: ${socket.id}`);
         for (const key in matchmakingQueues) {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
-
-        for (const roomId in rooms) {
-            const room = rooms[roomId];
-            const activeIdx = playerIndexOf(room, socket.id);
-            const spectatorIdx = room.spectators.findIndex((p) => p.id === socket.id);
-            if (activeIdx === -1 && spectatorIdx === -1) continue;
-
-            if (spectatorIdx !== -1) room.spectators.splice(spectatorIdx, 1);
-            const engine = getEngine(room.gameType);
-            const inGame = room.gameState && !engine.isOver(room.gameState);
-
-            if (activeIdx !== -1) {
-                if (inGame) {
-                    // Un bot reprend la place : les indices ne bougent pas et la partie continue
-                    const leaver = room.activePlayers[activeIdx];
-                    room.activePlayers[activeIdx] = {
-                        id: `bot_${roomId}_r${activeIdx}_${Date.now()}`,
-                        name: `${leaver.name} (bot)`,
-                        isBot: true,
-                        replaced: true,
-                    };
-                    room.isBotMatch = true;
-                    room.gameState.log && room.gameState.log.push(`🔌 ${leaver.name} a quitté, un bot prend sa place.`);
-                } else {
-                    room.activePlayers.splice(activeIdx, 1);
-                }
-            }
-
-            const humans = [...room.activePlayers, ...room.spectators].filter((p) => !p.isBot);
-            if (humans.length === 0) {
-                if (room.timerInterval) clearInterval(room.timerInterval);
-                delete rooms[roomId];
-                console.log(`Room ${roomId} supprimée (plus aucun humain)`);
-                continue;
-            }
-            if (room.hostId === socket.id) room.hostId = humans[0].id;
-
-            broadcastRoomUpdate(roomId);
-            if (inGame && activeIdx !== -1) {
-                room.version = (room.version || 0) + 1;
-                emitState(roomId);
-                scheduleBots(roomId);
-            }
-        }
+        Object.keys(rooms).forEach((roomId) => removePlayer(roomId, socket.id));
     });
 });
 
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-    console.log(`🚀 Serveur Jeben Gere3 Multiplayer démarré sur le port ${PORT}`);
-});
+function start(port = process.env.PORT || 3000) {
+    return new Promise((resolve) => {
+        server.listen(port, () => {
+            console.log(`🚀 Serveur Jeben Gere3 Multiplayer démarré sur le port ${server.address().port}`);
+            resolve(server.address().port);
+        });
+    });
+}
 
-module.exports = { rooms };
+function stop() {
+    clearInterval(matchmakingTimer);
+    Object.values(rooms).forEach((r) => r.timerInterval && clearInterval(r.timerInterval));
+    io.close();
+    return new Promise((resolve) => server.close(() => resolve()));
+}
+
+if (require.main === module) start();
+
+module.exports = { rooms, start, stop, SERVER_VERSION };
