@@ -414,6 +414,7 @@ io.on('connection', (socket) => {
             const msg = {
                 ronda: 'La Ronda se joue à 2 (1 contre 1) ou à 4 (2 contre 2).',
                 kdoub: 'Le Kdoub se joue de 3 à 6 joueurs.',
+                sota: 'La Sota Ghamla se joue de 4 à 6 joueurs.',
             }[room.gameType] || 'Il faut au moins 2 joueurs actifs pour démarrer.';
             socket.emit('game_error', { message: msg });
             return;

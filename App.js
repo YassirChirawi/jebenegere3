@@ -10,6 +10,7 @@ import LobbyScreen from './src/screens/LobbyScreen';
 import GameScreen from './src/screens/GameScreen';
 import RondaScreen from './src/screens/RondaScreen';
 import KdoubScreen from './src/screens/KdoubScreen';
+import SotaScreen from './src/screens/SotaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
@@ -22,6 +23,7 @@ function GameRouter(props) {
   const type = props.route?.params?.initialGameState?.gameType || 'hezz2';
   if (type === 'ronda') return <RondaScreen {...props} />;
   if (type === 'kdoub') return <KdoubScreen {...props} />;
+  if (type === 'sota') return <SotaScreen {...props} />;
   return <GameScreen {...props} />;
 }
 

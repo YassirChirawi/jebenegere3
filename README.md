@@ -9,7 +9,7 @@ Le projet contient l'application Expo / React Native (Android, iOS et web) et un
 | **Hezz2** | 2 à 4 | ✅ jouable |
 | **Ronda** | 1 contre 1, 2 contre 2 | ✅ jouable (phase 1) |
 | **Kdoub** | 3 à 6 | ✅ jouable (phase 2) |
-| **Sota Ghamla** | 4 à 6 | 🔜 phase 3 |
+| **Sota Ghamla** | 4 à 6 | ✅ jouable (phase 3) |
 
 Les quatre jeux partagent le même compte local, la même XP et les mêmes rangs. Chaque jeu se joue de trois façons :
 
@@ -53,6 +53,13 @@ Jeu de bluff pour 3 à 6 joueurs. Les 40 cartes sont distribuées. Les annonces 
 - À ton tour, tu poses **1 à 4 cartes face cachée** en annonçant la valeur demandée. Tu peux mentir sur les cartes, jamais sur leur nombre.
 - Pendant **5 secondes**, chaque adversaire peut crier **KDOUB**. Si le poseur a menti, il ramasse le tas ; sinon, c'est l'accusateur qui le ramasse. Le joueur suivant celui qui ramasse reprend la partie.
 - Le premier qui vide sa main gagne. Les autres sont classés selon le nombre de cartes restantes.
+
+### Sota Ghamla
+Jeu de paires pour 4 à 6 joueurs, variante marocaine du Pouilleux. Le paquet compte **3 Sota** (le 10), soit 39 cartes, toutes distribuées.
+
+- Les paires (deux cartes de même valeur) sont éliminées automatiquement, dès la distribution puis après chaque pioche.
+- À son tour, on pioche une carte au hasard, face cachée, dans la main du joueur suivant. Le timer est de 30 s.
+- Main vide = sorti, donc gagné. Le dernier qui a encore une carte tient la Sota : c'est le **Ghamla**, le perdant.
 
 ## Lancer le projet
 
@@ -105,11 +112,12 @@ server/
   engines/hezz2.js       adaptateur du moteur Hezz2 (GameEngine.js) et de son IA
   engines/ronda.js       moteur Ronda (règles, annonces, dénonciation, bots, vue masquée)
   engines/kdoub.js       moteur Kdoub (poses cachées, fenêtre KDOUB, révélation, bots)
+  engines/sota.js        moteur Sota Ghamla (paires, pioche à l'aveugle, Sota finale, bots)
   engines/index.js       registre : room.gameType → moteur
   tests/                 tests node:test
 src/
   games.js               catalogue des jeux côté client
-  screens/               Home (sélecteur de jeu), Lobby, Game (Hezz2), Ronda, Kdoub, Profile
+  screens/               Home (sélecteur de jeu), Lobby, Game (Hezz2), Ronda, Kdoub, Sota, Profile
   components/            cartes, sièges, table, chat et réactions communs, bannières, fins de manche
   network/               socket et audio (sons synthétisés : scripts/generate-sfx.js)
 ```

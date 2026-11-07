@@ -99,6 +99,43 @@ function KdoubRules() {
     );
 }
 
+function SotaRules() {
+    return (
+        <>
+            <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+            <Text style={styles.text}>
+                Se débarrasser de toutes ses cartes en formant des paires, et surtout ne pas finir avec la <Text style={styles.highlight}>Sota</Text> (le 10). 4 à 6 joueurs, chacun pour soi.
+            </Text>
+
+            <Text style={styles.sectionTitle}>🃏 Le paquet</Text>
+            <Text style={styles.text}>
+                Le jeu espagnol avec seulement <Text style={styles.highlight}>3 Sota</Text> au lieu de 4 (39 cartes), toutes distribuées. Deux Sota font une paire, la troisième ne pourra jamais être appariée : c'est la carte perdante.
+            </Text>
+
+            <Text style={styles.sectionTitle}>✨ Les paires</Text>
+            <Text style={styles.text}>
+                Deux cartes de même valeur, quelle que soit la famille. Elles sont éliminées automatiquement, face visible, dès la distribution puis après chaque pioche.{'\n'}
+                3 cartes identiques : on en élimine 2 et on garde la troisième. 4 identiques : 2 paires.
+            </Text>
+
+            <Text style={styles.sectionTitle}>👆 À ton tour</Text>
+            <Text style={styles.text}>
+                Tu touches une carte au hasard, face cachée, dans la main du joueur suivant. Si elle fait une paire avec une de tes cartes, la paire part aussitôt. Tu as 30 secondes, sinon une carte est piochée au hasard pour toi.
+            </Text>
+
+            <Text style={styles.sectionTitle}>💡 Exemple</Text>
+            <Text style={styles.text}>
+                Tu as un 4 et un 11. Tu pioches un 4 chez ton voisin : la paire de 4 est éliminée, il te reste le 11. Si tu tombes sur la Sota, garde ton calme… et espère qu'on te la reprenne !
+            </Text>
+
+            <Text style={styles.sectionTitle}>🏁 Fin</Text>
+            <Text style={styles.text}>
+                Main vide = tu es sorti, tu as gagné. Le dernier joueur qui a encore une carte tient la Sota : c'est le <Text style={styles.highlight}>Ghamla</Text>, le perdant.
+            </Text>
+        </>
+    );
+}
+
 export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
     return (
         <Modal
@@ -109,10 +146,10 @@ export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>📜 Règles : {{ ronda: 'Ronda', kdoub: 'Kdoub' }[gameType] || 'Hezz2'}</Text>
+                    <Text style={styles.modalTitle}>📜 Règles : {{ ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota Ghamla' }[gameType] || 'Hezz2'}</Text>
 
                     <ScrollView style={styles.scrollView}>
-                        {gameType === 'ronda' ? <RondaRules /> : gameType === 'kdoub' ? <KdoubRules /> : <>
+                        {gameType === 'ronda' ? <RondaRules /> : gameType === 'kdoub' ? <KdoubRules /> : gameType === 'sota' ? <SotaRules /> : <>
                         <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
                         <Text style={styles.text}>
                             Être le premier joueur à se débarrasser de toutes ses cartes. Le dernier joueur avec des cartes est le "Khasser" (Perdant) et est remplacé par un spectateur !

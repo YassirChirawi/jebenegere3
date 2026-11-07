@@ -50,9 +50,11 @@ export const GAMES = {
         sizes: [4, 5, 6],
         sizeLabel: (n) => `${n} joueurs`,
         maxPlayers: 6,
+        canStart: (n) => n >= 4 && n <= 6,
+        startHint: 'Il faut 4 à 6 joueurs',
         card: { suit: 'Bastos', value: 10 },
         color: '#B8860B',
-        available: false,
+        available: true,
     },
 };
 
