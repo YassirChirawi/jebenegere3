@@ -182,8 +182,19 @@ export default function HomeScreen({ navigation }) {
         return true;
     };
 
+    // Un serveur ancien ignore le type de jeu et lance du Hezz2 : on bloque avant, avec un message clair
+    const requireGameSupport = () => {
+        if (socketService.supportsGame(game)) return true;
+        audioService.playSound('error');
+        dialog.alert(
+            'Serveur pas à jour',
+            `Le serveur en ligne ne connaît pas encore ${selected.label} : il lancerait une partie de Hezz2 à la place. Il faut redéployer le serveur (Render).`
+        );
+        return false;
+    };
+
     const handleCreateRoom = () => {
-        if (!requireName()) return;
+        if (!requireName() || !requireGameSupport()) return;
         socketService.createRoom(name.trim(), game, (response) => {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: response.roomId, playerName: name.trim(), isHost: true, initialRoom: response.roomData });
@@ -211,7 +222,7 @@ export default function HomeScreen({ navigation }) {
     };
 
     const handleCreateBotRoom = (count) => {
-        if (!requireName()) return;
+        if (!requireName() || !requireGameSupport()) return;
         socketService.createBotRoom(name.trim(), count, game, (response) => {
             if (response?.success) {
                 setMenu(null);
@@ -229,7 +240,7 @@ export default function HomeScreen({ navigation }) {
     };
 
     const handleSearchMatch = (size) => {
-        if (!requireName()) return;
+        if (!requireName() || !requireGameSupport()) return;
         setIsSearching(true);
         setSearchingSize(size);
         setSearchSeconds(0);
