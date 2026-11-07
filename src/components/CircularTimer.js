@@ -46,7 +46,7 @@ export default function CircularTimer({ timeLeft, maxTime = 15, size = 60 }) {
                         cx={center}
                         cy={center}
                         r={radius}
-                        stroke="#1C2E4A"
+                        stroke="rgba(0,0,0,0.45)"
                         strokeWidth={strokeWidth}
                         fill="transparent"
                     />
@@ -65,7 +65,7 @@ export default function CircularTimer({ timeLeft, maxTime = 15, size = 60 }) {
             </Svg>
             <View style={StyleSheet.absoluteFillObject}>
                 <View style={[styles.textContainer, { width: size, height: size }]}>
-                    <Text style={[styles.timerText, { color: strokeColor }]}>{Math.max(0, timeLeft)}</Text>
+                    <Text style={[styles.timerText, { color: strokeColor, fontSize: Math.round(size * 0.38) }]}>{Math.max(0, timeLeft)}</Text>
                 </View>
             </View>
         </View>
@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     },
     timerText: {
         fontSize: 18,
-        fontWeight: 'bold',
+        fontWeight: '900',
         textShadowColor: 'rgba(0,0,0,0.5)',
         textShadowOffset: { width: 1, height: 1 },
         textShadowRadius: 2,

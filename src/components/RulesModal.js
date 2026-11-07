@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
+import audioService from '../network/audioService';
 
 export default function RulesModal({ visible, onClose }) {
     return (
         <Modal
-            animationType="slide"
+            animationType="fade"
             transparent={true}
             visible={visible}
             onRequestClose={onClose}
@@ -30,7 +31,7 @@ export default function RulesModal({ visible, onClose }) {
                             <Text style={styles.ruleIcon}>1️⃣</Text>
                             <View style={styles.ruleTextContainer}>
                                 <Text style={styles.ruleName}>Carte 1</Text>
-                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour.</Text>
+                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 3 secondes pour renvoyer l'attaque.</Text>
                             </View>
                         </View>
 
@@ -49,9 +50,14 @@ export default function RulesModal({ visible, onClose }) {
                                 <Text style={styles.ruleDesc}>Permet de changer la famille (Couleur) en cours. Peut être jouée sur n'importe quelle carte !</Text>
                             </View>
                         </View>
+
+                        <Text style={styles.sectionTitle}>🏆 Points</Text>
+                        <Text style={styles.text}>
+                            Le 1er à finir marque autant de points qu'il y a d'adversaires, puis 1 de moins par place. Le Khasser ne marque rien. Les points s'additionnent d'une manche à l'autre.
+                        </Text>
                     </ScrollView>
 
-                    <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+                    <TouchableOpacity style={styles.closeButton} onPress={() => { audioService.playSound('click'); onClose(); }}>
                         <Text style={styles.closeButtonText}>J'AI COMPRIS</Text>
                     </TouchableOpacity>
                 </View>

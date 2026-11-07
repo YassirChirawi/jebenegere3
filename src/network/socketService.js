@@ -1,12 +1,18 @@
 import { io } from 'socket.io-client';
 
 // Replace with the computer's actual local IPv4 address so your phone can reach it on the Wi-Fi
-const SOCKET_URL = 'https://jebenegere3.onrender.com/'; // Production backend on render.com
+// Serveur de prod sur render.com ; surcharge possible avec EXPO_PUBLIC_SOCKET_URL (ex : http://192.168.1.10:3000)
+const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'https://jebenegere3.onrender.com/';
 
 class SocketService {
     socket;
 
     connect() {
+        // Une seule instance : si l'écran d'accueil est remonté, on réutilise le socket existant
+        if (this.socket) {
+            if (!this.socket.connected) this.socket.connect();
+            return;
+        }
         this.socket = io(SOCKET_URL);
 
         this.socket.on('connect', () => {
@@ -22,6 +28,15 @@ class SocketService {
         if (this.socket) {
             this.socket.disconnect();
         }
+    }
+
+    // Quitter une partie/salon : le serveur nous retire de la room à la déconnexion,
+    // puis on se reconnecte aussitôt pour que l'accueil reste utilisable.
+    leaveRoom() {
+        if (!this.socket) return;
+        this.offAll();
+        this.socket.disconnect();
+        setTimeout(() => this.socket && this.socket.connect(), 150);
     }
 
     // -- ROOM ACTIONS --
@@ -79,45 +94,32 @@ class SocketService {
             }
             this.socket.on('connect', callback);
         }
+        return () => this.socket && this.socket.off('connect', callback);
     }
 
     onDisconnect(callback) {
         if (this.socket) {
             this.socket.on('disconnect', callback);
         }
+        return () => this.socket && this.socket.off('disconnect', callback);
     }
 
-    onRoomUpdated(callback) {
-        this.socket.on('room_updated', callback);
+    // Chaque on* renvoie une fonction de désinscription qui ne retire QUE ce callback
+    // (évite qu'un écran qui se démonte coupe les écouteurs de l'écran suivant).
+    _listen(event, callback) {
+        if (!this.socket) return () => {};
+        this.socket.on(event, callback);
+        return () => this.socket && this.socket.off(event, callback);
     }
 
-    onMatchFound(callback) {
-        this.socket.on('match_found', callback);
-    }
-
-    onGameStarted(callback) {
-        this.socket.on('game_started', callback);
-    }
-
-    onGameStateUpdate(callback) {
-        this.socket.on('game_state_update', callback);
-    }
-
-    onChatMessage(callback) {
-        this.socket.on('chat_message', callback);
-    }
-
-    onGameError(callback) {
-        this.socket.on('game_error', callback);
-    }
-
-    onTimerTick(callback) {
-        this.socket.on('timer_tick', callback);
-    }
-
-    onPlayerReaction(callback) {
-        this.socket.on('player_reaction_broadcast', callback);
-    }
+    onRoomUpdated(callback) { return this._listen('room_updated', callback); }
+    onMatchFound(callback) { return this._listen('match_found', callback); }
+    onGameStarted(callback) { return this._listen('game_started', callback); }
+    onGameStateUpdate(callback) { return this._listen('game_state_update', callback); }
+    onChatMessage(callback) { return this._listen('chat_message', callback); }
+    onGameError(callback) { return this._listen('game_error', callback); }
+    onTimerTick(callback) { return this._listen('timer_tick', callback); }
+    onPlayerReaction(callback) { return this._listen('player_reaction_broadcast', callback); }
 
     offAll() {
         if (this.socket) {
@@ -128,6 +130,7 @@ class SocketService {
             this.socket.off('game_error');
             this.socket.off('timer_tick');
             this.socket.off('chat_message');
+            this.socket.off('player_reaction_broadcast');
         }
     }
 }

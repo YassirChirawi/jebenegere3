@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Image, Dimensions } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { StyleSheet, View } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -8,219 +8,241 @@ import Animated, {
     withRepeat,
     withSequence,
     withDelay,
-    runOnJS,
     interpolate,
+    Easing,
+    runOnJS,
+    cancelAnimation,
 } from 'react-native-reanimated';
-import { Platform } from 'react-native';
-import InteractiveHandSystem from './InteractiveHandSystem';
+import { GestureDetector, Gesture } from 'react-native-gesture-handler';
+import { CardFace, CardBack } from './Card';
+import audioService from '../network/audioService';
+import { haptic } from './ui';
 
-// Load Skia dynamically only on native platforms to prevent Web crashes (CanvasKit missing)
-let SkiaComponents = null;
-if (Platform.OS !== 'web') {
-    try {
-        SkiaComponents = require('@shopify/react-native-skia');
-    } catch (e) {
-        console.warn('Failed to load Skia:', e);
-    }
-}
+export const HAND_CARD_W = 72;
+export const HAND_CARD_H = 104;
+const PLAY_DRAG_THRESHOLD = -70;
 
-const { height } = Dimensions.get('window');
+/**
+ * Carte de la main du joueur.
+ * - Placement en éventail calculé par le parent (x, angle, lift)
+ * - Tap ou glisser vers le haut pour jouer
+ * - Animation de distribution (vol depuis la pioche + retournement)
+ */
+export default function MasterCard({
+    card,
+    index,
+    x,
+    angle,
+    arcY,
+    isPlayable,
+    isMyTurn,
+    onPlay,
+    isInitialDeal,
+}) {
+    // Position d'éventail animée (les cartes glissent quand la main change)
+    const posX = useSharedValue(x);
+    const rot = useSharedValue(angle);
+    const baseY = useSharedValue(arcY);
 
-const img1 = require('../../assets/Galleria_01.jpg');
-const img2 = require('../../assets/Galleria_02.jpg');
-const img3 = require('../../assets/Galleria_03.jpg');
-const img4 = require('../../assets/Galleria_04.jpg');
-const gameLogoBack = require('../../assets/icon.png'); // Dos de carte — logo du jeu
-const images = [img1, img2, img3, img4];
+    // Interaction
+    const dragX = useSharedValue(0);
+    const dragY = useSharedValue(0);
+    const lift = useSharedValue(0);
+    const flying = useSharedValue(0);
+    const shake = useSharedValue(0);
 
-const suitOrder = { Oros: 0, Bastos: 1, Espadas: 2, Copas: 3 };
-const valueOrder = { 1: 0, 2: 1, 3: 2, 4: 3, 5: 4, 6: 5, 7: 6, 10: 7, 11: 8, 12: 9 };
+    // Distribution
+    const dealProg = useSharedValue(0); // 0 = dans la pioche, 1 = en main
+    const flip = useSharedValue(180);
 
-const CARD_WIDTH = 75; // Un peu plus large pour le style
-const CARD_HEIGHT = 105;
-const DROP_THRESHOLD = -120; // Glisser vers le haut pour jouer
+    // Halo des cartes jouables
+    const glow = useSharedValue(0);
 
-export default function MasterCard({ card, isPlayable, onPlay, index, totalCards, isInitialDeal }) {
-    // Z-Index local pendant le drag
-    const zIndex = useSharedValue(index);
-
-    // Glow Animation
-    const glowRotation = useSharedValue(0);
-
-    // Deal Animation (Intro)
-    const flipRotation = useSharedValue(isInitialDeal ? 180 : 0);
-    const dealTranslateY = useSharedValue(isInitialDeal ? -height : 0);
-    const dealScale = useSharedValue(isInitialDeal ? 0.1 : 1);
-    const dealRotateZ = useSharedValue(isInitialDeal ? -180 : 0);
+    const resetTimer = useRef(null);
 
     useEffect(() => {
-        if (isInitialDeal) {
-            const delay = index * 150; // 150ms per card for more dramatic dealt staggering
+        posX.value = withSpring(x, { damping: 16, stiffness: 140 });
+        rot.value = withSpring(angle, { damping: 16, stiffness: 140 });
+        baseY.value = withSpring(arcY, { damping: 16, stiffness: 140 });
+    }, [x, angle, arcY]);
 
-            // Complex entrance: Spin, scale up, slide down, and flip simultaneously
-            dealScale.value = withDelay(delay, withSpring(1, { damping: 12, stiffness: 80 }));
-            dealRotateZ.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 60 }));
-            dealTranslateY.value = withDelay(delay, withSpring(0, { damping: 14, stiffness: 100 }));
-            flipRotation.value = withDelay(delay, withSpring(0, { damping: 15, stiffness: 100 }));
-        }
-    }, [isInitialDeal]);
+    // Animation d'entrée : distribution initiale (échelonnée) ou carte piochée
+    useEffect(() => {
+        const delay = isInitialDeal ? index * 95 + 150 : 60;
+        dealProg.value = withDelay(delay, withSpring(1, { damping: 15, stiffness: 110, mass: 0.8 }));
+        flip.value = withDelay(delay + 120, withTiming(0, { duration: 320, easing: Easing.out(Easing.cubic) }));
+        if (!isInitialDeal) audioService.playSound('card_draw');
+        return () => clearTimeout(resetTimer.current);
+    }, []);
 
     useEffect(() => {
         if (isPlayable) {
-            glowRotation.value = withRepeat(
-                withTiming(360, { duration: 3000 }),
+            lift.value = withSpring(1, { damping: 12 });
+            glow.value = withRepeat(
+                withSequence(
+                    withTiming(1, { duration: 750, easing: Easing.inOut(Easing.sin) }),
+                    withTiming(0.35, { duration: 750, easing: Easing.inOut(Easing.sin) })
+                ),
                 -1,
-                false
+                true
             );
         } else {
-            glowRotation.value = 0;
+            lift.value = withSpring(0, { damping: 14 });
+            cancelAnimation(glow);
+            glow.value = withTiming(0, { duration: 200 });
         }
     }, [isPlayable]);
 
-    // === ANIMATED STYLES ===
+    // --- Callbacks JS ---
+    const play = () => {
+        haptic(['1', '2', '7'].includes(String(card.value)) ? 'heavy' : 'medium');
+        onPlay && onPlay();
+        // Si le serveur n'a pas retiré la carte (coup refusé / sélecteur annulé), elle revient en main
+        clearTimeout(resetTimer.current);
+        resetTimer.current = setTimeout(() => {
+            flying.value = withSpring(0, { damping: 14 });
+            dragX.value = withSpring(0);
+            dragY.value = withSpring(0);
+        }, 1600);
+    };
+    const refuse = () => {
+        haptic('light');
+        audioService.playSound('error');
+    };
 
-    // Distribution en éventail (Stagger initial)
-    const centerIndex = (totalCards - 1) / 2;
-    const offset = index - centerIndex;
+    // --- Gestes ---
+    const tap = Gesture.Tap()
+        .maxDuration(400)
+        .onEnd((_e, success) => {
+            'worklet';
+            if (!success) return;
+            if (isPlayable) {
+                flying.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
+                runOnJS(play)();
+            } else if (isMyTurn) {
+                shake.value = withSequence(
+                    withTiming(-6, { duration: 45 }),
+                    withTiming(6, { duration: 45 }),
+                    withTiming(-4, { duration: 45 }),
+                    withTiming(0, { duration: 45 })
+                );
+                runOnJS(refuse)();
+            }
+        });
 
-    // Spacing plus écarté (Main plus espacée)
-    const fanAngle = offset * 10; // Passe de 8 à 10 degrés
-    const fanTranslateY = Math.abs(offset) * 5; // Courbure en Y plus accentuée (5 au lieu de 3)
+    const pan = Gesture.Pan()
+        .enabled(!!isPlayable)
+        .minDistance(8)
+        .onUpdate((e) => {
+            'worklet';
+            dragX.value = e.translationX;
+            dragY.value = Math.min(20, e.translationY);
+        })
+        .onEnd((e) => {
+            'worklet';
+            if (e.translationY < PLAY_DRAG_THRESHOLD || e.velocityY < -900) {
+                flying.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
+                runOnJS(play)();
+            } else {
+                dragX.value = withSpring(0, { damping: 14 });
+                dragY.value = withSpring(0, { damping: 14 });
+            }
+        });
 
-    const animatedStyle = useAnimatedStyle(() => {
-        const combinedRotateY = flipRotation.value;
-        const combinedRotateZ = fanAngle + dealRotateZ.value; // Combine fan angle with intro spin
+    const gesture = Gesture.Race(pan, tap);
+
+    // --- Styles animés ---
+    const containerStyle = useAnimatedStyle(() => {
+        const d = dealProg.value;
+        const f = flying.value;
+        const dragging = Math.abs(dragY.value) > 2 || Math.abs(dragX.value) > 2;
         return {
+            zIndex: f > 0 || dragging ? 500 : index,
+            opacity: interpolate(f, [0, 0.85, 1], [1, 1, 0]),
             transform: [
-                { translateY: -fanTranslateY + dealTranslateY.value },
-                { rotateZ: `${combinedRotateZ}deg` },
-                { scale: dealScale.value },
-                { perspective: 800 },
-                { rotateY: `${combinedRotateY}deg` }
-            ]
+                { translateX: posX.value + dragX.value * (1 - f) + shake.value + (1 - d) * 20 },
+                {
+                    translateY:
+                        baseY.value -
+                        lift.value * 14 +
+                        dragY.value * (1 - f) +
+                        (1 - d) * -320 +
+                        f * -260,
+                },
+                { rotateZ: `${rot.value * (1 - f) * (1 - Math.min(1, Math.abs(dragY.value) / 80)) + (1 - d) * -90}deg` },
+                { scale: interpolate(d, [0, 1], [0.45, 1]) * (1 + lift.value * 0.04 + f * 0.1) },
+            ],
         };
     });
 
-    const frontOpacityStyle = useAnimatedStyle(() => ({
-        opacity: Math.abs(flipRotation.value % 360) < 90 ? 1 : 0
+    const frontStyle = useAnimatedStyle(() => ({
+        opacity: flip.value < 90 ? 1 : 0,
+        transform: [{ perspective: 700 }, { rotateY: `${flip.value}deg` }],
     }));
-
-    const backOpacityStyle = useAnimatedStyle(() => ({
-        opacity: Math.abs(flipRotation.value % 360) >= 90 ? 1 : 0,
-        transform: [{ rotateY: '180deg' }]
+    const backStyle = useAnimatedStyle(() => ({
+        opacity: flip.value >= 90 ? 1 : 0,
+        transform: [{ perspective: 700 }, { rotateY: `${flip.value - 180}deg` }],
     }));
-
-    // === Cacul d'image Sprite ===
-    const sIdx = suitOrder[card.suit] !== undefined ? suitOrder[card.suit] : 0;
-    const vIdx = valueOrder[card.value] !== undefined ? valueOrder[card.value] : 0;
-    const absIdx = sIdx * 10 + vIdx;
-    const imgIndex = Math.floor(absIdx / 12);
-    const posInImg = absIdx % 12;
-    const col = posInImg % 4;
-    const row = Math.floor(posInImg / 4);
-    const numRows = imgIndex === 3 ? 1 : 3;
+    const glowStyle = useAnimatedStyle(() => ({
+        opacity: glow.value,
+    }));
 
     return (
-        <InteractiveHandSystem isPlayable={isPlayable} onCardPlayed={onPlay}>
-            <Animated.View style={[styles.container, animatedStyle]}>
-
-                {/* Skia Glow Effect if Playable (Native only) */}
-                {isPlayable && Platform.OS !== 'web' && SkiaComponents && (
-                    <SkiaComponents.Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
-                        <SkiaComponents.RoundedRect
-                            x={-5} y={-5}
-                            width={CARD_WIDTH + 10}
-                            height={CARD_HEIGHT + 10}
-                            r={12}
-                        >
-                            <SkiaComponents.SweepGradient
-                                c={SkiaComponents.vec((CARD_WIDTH + 10) / 2, (CARD_HEIGHT + 10) / 2)}
-                                colors={['#FFD700', '#FF8C00', '#FFD700']}
-                                transform={[{ rotate: (glowRotation?.value || 0) * (Math.PI / 180) }]}
-                            />
-                            <SkiaComponents.BlurMask blur={8} style="normal" />
-                        </SkiaComponents.RoundedRect>
-                    </SkiaComponents.Canvas>
-                )}
-
-                {/* Front Face of the Card */}
-                <Animated.View style={[styles.cardContainer, !isPlayable && styles.disabled, frontOpacityStyle, { position: 'absolute' }]}>
-                    <View style={styles.spriteContainer}>
-                        <Image
-                            source={images[imgIndex]}
-                            style={[
-                                styles.spriteImage,
-                                {
-                                    width: CARD_WIDTH * 4,
-                                    height: CARD_HEIGHT * numRows,
-                                    transform: [
-                                        { translateX: -col * CARD_WIDTH },
-                                        { translateY: -row * CARD_HEIGHT }
-                                    ]
-                                }
-                            ]}
-                            resizeMode="stretch"
-                        />
-                    </View>
-                </Animated.View>
-
-                {/* Back Face of the Card — Logo du jeu */}
-                <Animated.View style={[styles.cardContainer, backOpacityStyle, { position: 'absolute', backgroundColor: '#1C0F13', justifyContent: 'center', alignItems: 'center' }]}>
-                    <Image
-                        source={gameLogoBack}
-                        style={{ width: '85%', height: '85%' }}
-                        resizeMode="contain"
-                    />
-                    {/* Inner elegant border */}
-                    <View style={styles.innerBorder} />
-                </Animated.View>
-
+        <GestureDetector gesture={gesture}>
+            <Animated.View style={[styles.container, containerStyle]}>
+                <Animated.View style={[styles.glow, glowStyle]} pointerEvents="none" />
+                <View style={styles.shadow}>
+                    <Animated.View style={[styles.face, frontStyle]}>
+                        <CardFace card={card} width={HAND_CARD_W} height={HAND_CARD_H} dimmed={isMyTurn && !isPlayable} />
+                    </Animated.View>
+                    <Animated.View style={[styles.face, backStyle]}>
+                        <CardBack width={HAND_CARD_W} height={HAND_CARD_H} />
+                    </Animated.View>
+                </View>
             </Animated.View>
-        </InteractiveHandSystem>
+        </GestureDetector>
     );
 }
 
 const styles = StyleSheet.create({
     container: {
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-        marginHorizontal: 0, // Plus aucune marge négative, laisse les cartes "respirer" en éventail
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    cardContainer: {
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-        backgroundColor: '#fff',
-        borderRadius: 8,
-        borderWidth: 1,
-        borderColor: '#E2E8F0',
-        overflow: 'hidden',
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 6 },
-        shadowOpacity: 0.35,
-        shadowRadius: 5,
-        elevation: 6,
-    },
-    innerBorder: {
         position: 'absolute',
-        width: CARD_WIDTH - 8,
-        height: CARD_HEIGHT - 8,
-        borderRadius: 6,
-        borderWidth: 1.5,
-        borderColor: 'rgba(212, 175, 55, 0.6)', // Golden border touch over the back Image
+        left: 0,
+        bottom: 6,
+        width: HAND_CARD_W,
+        height: HAND_CARD_H,
     },
-    spriteContainer: {
-        width: CARD_WIDTH,
-        height: CARD_HEIGHT,
-        overflow: 'hidden',
+    shadow: {
+        width: HAND_CARD_W,
+        height: HAND_CARD_H,
+        borderRadius: 8,
+        backgroundColor: 'transparent',
+        shadowColor: '#000',
+        shadowOffset: { width: -2, height: 5 },
+        shadowOpacity: 0.45,
+        shadowRadius: 6,
+        elevation: 8,
     },
-    spriteImage: {
+    face: {
         position: 'absolute',
         top: 0,
         left: 0,
+        backfaceVisibility: 'hidden',
     },
-    disabled: {
-        opacity: 0.5,
+    glow: {
+        position: 'absolute',
+        top: -4,
+        left: -4,
+        right: -4,
+        bottom: -4,
+        borderRadius: 11,
+        borderWidth: 3,
+        borderColor: '#FFD966',
+        backgroundColor: 'rgba(255, 200, 60, 0.25)',
+        shadowColor: '#FFC83C',
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 1,
+        shadowRadius: 12,
+        elevation: 12,
     },
 });

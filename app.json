@@ -5,12 +5,12 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1C0F13"
     },
     "ios": {
       "supportsTablet": true
@@ -18,7 +18,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1C0F13"
       },
       "edgeToEdgeEnabled": true
     },
@@ -27,8 +27,8 @@
       "name": "Hezz 2 - Jeu de cartes",
       "shortName": "Hezz2",
       "description": "Le fameux jeu de cartes marocain Hezz2 !",
-      "themeColor": "#1e3a8a",
-      "backgroundColor": "#ffffff",
+      "themeColor": "#1C0F13",
+      "backgroundColor": "#1C0F13",
       "display": "standalone",
       "orientation": "portrait"
     }
