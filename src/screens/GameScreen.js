@@ -47,13 +47,15 @@ const canPlayCardLocal = (card, state) => {
     const top = state.middlePile[state.middlePile.length - 1];
     if (state.pendingAction && state.pendingAction.type === 'skip_response') return card.value === 1;
     if (state.drawPenalty > 0) return card.value === 2;
+    // Après un 7 : la famille demandée, ou un autre 7
     if (state.activeSuitOverride) return card.suit === state.activeSuitOverride || card.value === 7;
-    return card.suit === top.suit || card.value === top.value || card.value === 7;
+    // Règle normale (le 7 compris) : même famille ou même valeur
+    return card.suit === top.suit || card.value === top.value;
 };
 
 // Fond : cadré sur le tapis de la table (on coupe la fontaine en haut de l'image)
 const TABLE_SRC = { w: 1211, h: 1536, feltTop: 400 };
-function TableBackground({ children }) {
+function TableBackground({ children, onSize }) {
     const [size, setSize] = useState(null);
     let img = null;
     if (size) {
@@ -64,8 +66,16 @@ function TableBackground({ children }) {
         img = { width: w, height: h, left: (size.w - w) / 2, top: size.h - h };
     }
     return (
-        <View style={styles.container} onLayout={(e) => setSize({ w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height })}>
-            {img && <Image source={TABLE_BG} style={[{ position: 'absolute' }, img]} resizeMode="stretch" />}
+        <View style={styles.container} onLayout={(e) => {
+            const next = { w: e.nativeEvent.layout.width, h: e.nativeEvent.layout.height };
+            setSize(next);
+            onSize && onSize(next);
+        }}>
+            {/* L'image déborde volontairement : on la clippe dans son propre calque pour que
+                le plateau ne devienne jamais "défilable" sur le web */}
+            <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
+                {img && <Image source={TABLE_BG} style={[{ position: 'absolute' }, img]} resizeMode="stretch" />}
+            </View>
             {children}
         </View>
     );
@@ -73,8 +83,12 @@ function TableBackground({ children }) {
 
 export default function GameScreen({ route, navigation }) {
     const { roomId, playerName, initialGameState, isHost } = route.params || {};
-    const { width: winW } = useWindowDimensions();
-    const stageW = Math.min(winW, 500);
+    const { width: winW, height: winH } = useWindowDimensions();
+    const [board, setBoard] = useState(null);
+    const stageW = board?.w ?? Math.min(winW, 500);
+    const stageH = board?.h ?? winH;
+    // Paysage : la table est nettement plus large que haute
+    const land = stageW > stageH * 1.2;
 
     const [gameState, setGameState] = useState(initialGameState);
     const [showSuitSelector, setShowSuitSelector] = useState(false);
@@ -243,6 +257,15 @@ export default function GameScreen({ route, navigation }) {
 
         const me = getLocalIndex(gameState);
         const player = me !== -1;
+
+        // 0) Un joueur a quitté et un bot l'a remplacé
+        (gameState.players || []).forEach((p, i) => {
+            const before = prev.players?.[i];
+            if (before && p && before.id !== p.id && p.replaced) {
+                audioService.playSound('pop');
+                showToast(`🔌 ${before.name} a quitté, un bot le remplace`, theme.textDim);
+            }
+        });
 
         // 1) Une carte a été jouée
         const prevTop = prev.middlePile[prev.middlePile.length - 1];
@@ -427,7 +450,8 @@ export default function GameScreen({ route, navigation }) {
             .map((card, idx) => ({ card, idx }))
             .sort((a, b) => (suitSort[a.card.suit] - suitSort[b.card.suit]) || (a.card.value - b.card.value));
         const count = sorted.length;
-        const avail = stageW - 28;
+        // En paysage, on garde de la place à gauche (avatar) et à droite (réactions)
+        const avail = land ? Math.max(260, stageW - 300) : stageW - 28;
         const step = count > 1 ? Math.min(HAND_CARD_W * 0.78, (avail - HAND_CARD_W) / (count - 1)) : 0;
         const totalW = step * (count - 1) + HAND_CARD_W;
         const startX = (stageW - totalW) / 2;
@@ -439,7 +463,7 @@ export default function GameScreen({ route, navigation }) {
             const arcY = (1 - Math.cos((angle * Math.PI) / 180)) * 420;
             return { ...entry, x: startX + i * step, angle, arcY };
         });
-    }, [myHand, stageW]);
+    }, [myHand, stageW, land]);
 
     if (!gameState) {
         return (
@@ -469,6 +493,7 @@ export default function GameScreen({ route, navigation }) {
                 active={gameState.turn === i && !gameState.mancheTerminee}
                 reaction={activeReactions[i]}
                 position={pos}
+                compact={land && pos === 'top'}
                 finished={gameState.finishedPlayers?.includes(i)}
                 isInitialDeal={isInitialDeal}
             />
@@ -477,10 +502,11 @@ export default function GameScreen({ route, navigation }) {
 
     const turnName = gameState.turn === localPlayerIndex ? 'VOUS' : gameState.players?.[gameState.turn]?.name;
     const underAttack = gameState.pendingAction?.type === 'skip_response';
-    const canReplay = isHost || gameState.players?.[0]?.id === socketService.socket?.id;
+    const myId = socketService.socket?.id;
+    const canReplay = gameState.hostId ? gameState.hostId === myId : (isHost || gameState.players?.[0]?.id === myId);
 
     return (
-        <TableBackground>
+        <TableBackground onSize={setBoard}>
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
             {/* Vignette pour faire ressortir le centre de la table */}
@@ -496,12 +522,12 @@ export default function GameScreen({ route, navigation }) {
 
             <Animated.View style={[styles.board, shakeStyle]}>
                 {/* Barre du haut */}
-                <View style={styles.topBar}>
+                <View style={[styles.topBar, land && styles.topBarLand]} pointerEvents="box-none">
                     <View style={styles.topBtns}>
                         <IconButton icon="🚪" onPress={handleQuit} label="Quitter" size={38} />
                         <IconButton icon="💬" onPress={() => setShowChatMenu(true)} label="Chat" size={38} />
                     </View>
-                    {roomId ? (
+                    {roomId && !land ? (
                         <View style={styles.roomPill}>
                             <Text style={styles.roomPillText}>SALON {roomId}</Text>
                         </View>
@@ -513,23 +539,25 @@ export default function GameScreen({ route, navigation }) {
                 </View>
 
                 {/* Adversaire en face */}
-                <View style={styles.topArea}>{renderSeat('top')}</View>
+                <View style={[styles.topArea, land && styles.topAreaLand]}>{renderSeat('top')}</View>
 
                 {/* Zone centrale */}
                 <View style={styles.middleArea}>
                     <View style={styles.sideArea}>{renderSeat('left')}</View>
 
                     <View style={styles.center}>
-                        <View style={styles.toastSlot}>
+                        <View style={[styles.toastSlot, land && styles.toastSlotLand]} pointerEvents="none">
                             <ActionToast toast={toast} />
                         </View>
 
+                        <View style={land ? styles.centerLand : styles.centerCol}>
                         <View style={styles.pilesRow}>
                             <DeckPile count={gameState.deck.length} canDraw={canDraw} onDraw={handlePlayerDraw} />
                             <DiscardPile pile={gameState.middlePile} from={lastFrom} />
                         </View>
 
-                        <View style={styles.statusRow}>
+                        <View style={styles.centerCol}>
+                        <View style={[styles.statusRow, land && styles.statusRowLand]}>
                             {gameState.activeSuitOverride ? <SuitBadge suit={gameState.activeSuitOverride} /> : null}
                             {gameState.drawPenalty > 0 ? <PenaltyBadge amount={gameState.drawPenalty} /> : null}
                         </View>
@@ -547,13 +575,15 @@ export default function GameScreen({ route, navigation }) {
                                 </View>
                             </View>
                         )}
+                        </View>
+                        </View>
                     </View>
 
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
                 {/* Messages de chat flottants */}
-                <View style={styles.chatOverlay} pointerEvents="none">
+                <View style={[styles.chatOverlay, land && { top: 56 }]} pointerEvents="none">
                     {chatMessages.map((msg) => (
                         <Animated.View
                             key={msg.id}
@@ -571,14 +601,14 @@ export default function GameScreen({ route, navigation }) {
                 </View>
 
                 {/* Joueur local */}
-                <View style={styles.playerArea}>
+                <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {isSpectator ? (
                         <View style={styles.spectatorBox}>
                             <Text style={styles.spectatorText}>👀 Vous êtes spectateur</Text>
                         </View>
                     ) : (
                         <>
-                            <View style={styles.meRow}>
+                            <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
                                         <PlayerAvatar name={playerName || 'Vous'} size={38} active={isMyTurn} />
@@ -593,7 +623,7 @@ export default function GameScreen({ route, navigation }) {
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
-                                <View style={styles.reactionBar}>
+                                <View style={[styles.reactionBar, land && styles.reactionBarLand]}>
                                     {REACTIONS.map((emoji) => (
                                         <PressableScale key={emoji} sound={null} scaleTo={0.8} style={styles.reactionBtn} onPress={() => handleSendReaction(emoji)}>
                                             <Text style={styles.reactionBtnText}>{emoji}</Text>
@@ -602,7 +632,7 @@ export default function GameScreen({ route, navigation }) {
                                 </View>
                             </View>
 
-                            <View style={styles.hand}>
+                            <View style={[styles.hand, land && styles.handLand]}>
                                 {handLayout.map(({ card, idx, x, angle, arcY }, i) => (
                                     <MasterCard
                                         key={card.id}
@@ -704,6 +734,7 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: theme.bg,
+        overflow: 'hidden',
     },
     board: {
         flex: 1,
@@ -716,6 +747,58 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingHorizontal: 12,
         zIndex: 20,
+    },
+    topBarLand: {
+        position: 'absolute',
+        top: 8,
+        left: 0,
+        right: 0,
+    },
+    topAreaLand: {
+        height: 66,
+        marginTop: 2,
+    },
+    centerCol: {
+        alignItems: 'center',
+    },
+    centerLand: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 14,
+    },
+    toastSlotLand: {
+        position: 'absolute',
+        top: -6,
+        left: 0,
+        right: 0,
+        height: 30,
+        marginBottom: 0,
+        zIndex: 50,
+    },
+    statusRowLand: {
+        minHeight: 0,
+        marginTop: 0,
+        marginBottom: 6,
+        flexDirection: 'column',
+        gap: 6,
+    },
+    playerAreaLand: {
+        height: 128,
+    },
+    meRowLand: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        bottom: 10,
+        alignItems: 'flex-end',
+    },
+    reactionBarLand: {
+        flexWrap: 'wrap',
+        width: 82,
+        justifyContent: 'center',
+    },
+    handLand: {
+        height: 128,
     },
     topBtns: {
         flexDirection: 'row',

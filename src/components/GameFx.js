@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
-import { View, Text, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -16,8 +16,6 @@ import Animated, {
 import { CardFace } from './Card';
 import { PressableScale, theme } from './ui';
 
-const { width: SW } = Dimensions.get('window');
-const STAGE_W = Math.min(SW, 500);
 
 export const SUIT_INFO = {
     Oros: { label: 'Flouss', arabic: 'الفلوس', color: '#E6B422', emoji: '💰' },
@@ -30,6 +28,7 @@ export const SUIT_INFO = {
 /* Bannière qui traverse l'écran ("À TOI DE JOUER !")                  */
 /* ------------------------------------------------------------------ */
 export function TurnBanner({ banner }) {
+    const { width: STAGE_W } = useWindowDimensions();
     const x = useSharedValue(-STAGE_W);
     useEffect(() => {
         if (!banner) return;
@@ -77,7 +76,7 @@ export function ActionToast({ toast }) {
 /* ------------------------------------------------------------------ */
 const CONFETTI_COLORS = ['#C1272D', '#006233', '#D4AF37', '#F5D77A', '#FFFFFF', '#E05252'];
 
-function ConfettiPiece({ i }) {
+function ConfettiPiece({ i, STAGE_W, H }) {
     const cfg = useMemo(() => ({
         x: Math.random() * STAGE_W,
         drift: (Math.random() - 0.5) * 140,
@@ -96,7 +95,7 @@ function ConfettiPiece({ i }) {
         opacity: t.value > 0.85 ? (1 - t.value) / 0.15 : 1,
         transform: [
             { translateX: cfg.x + cfg.drift * t.value },
-            { translateY: -30 + t.value * 950 },
+            { translateY: -30 + t.value * (H + 60) },
             { rotateZ: `${cfg.spin * t.value}deg` },
             { rotateX: `${cfg.spin * 0.7 * t.value}deg` },
         ],
@@ -113,9 +112,10 @@ function ConfettiPiece({ i }) {
 }
 
 export function Confetti({ count = 60 }) {
+    const { width, height } = useWindowDimensions();
     return (
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            {Array.from({ length: count }).map((_, i) => <ConfettiPiece key={i} i={i} />)}
+        <View pointerEvents="none" style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]}>
+            {Array.from({ length: count }).map((_, i) => <ConfettiPiece key={i} i={i} STAGE_W={width} H={height} />)}
         </View>
     );
 }
@@ -168,27 +168,29 @@ export function PenaltyBadge({ amount }) {
 /* Sélecteur de famille pour le 7                                       */
 /* ------------------------------------------------------------------ */
 export function SuitSelector({ onSelect, onCancel }) {
+    const { width, height } = useWindowDimensions();
+    const land = width > height * 1.2;
     return (
         <Animated.View entering={FadeInDown.duration(200)} style={styles.overlay}>
-            <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.sheet}>
-                <Text style={styles.sheetTitle}>Quelle famille tu veux ?</Text>
-                <Text style={styles.sheetSub}>Le 7 change la couleur du jeu</Text>
+            <Animated.View entering={ZoomIn.springify().damping(13)} style={[styles.sheet, land && { maxWidth: 560, paddingVertical: 12 }]}>
+                <Text style={[styles.sheetTitle, land && { marginBottom: 10, fontSize: 18 }]}>Quelle famille tu veux ?</Text>
+                {!land && <Text style={styles.sheetSub}>Le 7 change la couleur du jeu</Text>}
                 <View style={styles.suitGrid}>
                     {Object.entries(SUIT_INFO).map(([suit, info], i) => (
-                        <Animated.View key={suit} entering={ZoomIn.delay(80 * i).springify()} style={styles.suitCell}>
+                        <Animated.View key={suit} entering={ZoomIn.delay(80 * i).springify()} style={[styles.suitCell, land && { width: '22%' }]}>
                             <PressableScale
                                 sound="click"
                                 onPress={() => onSelect(suit)}
                                 style={[styles.suitBtn, { borderColor: info.color }]}
                             >
-                                <CardFace card={{ suit, value: 1 }} width={58} height={84} />
+                                <CardFace card={{ suit, value: 1 }} width={land ? 46 : 58} height={land ? 66 : 84} />
                                 <Text style={[styles.suitName, { color: info.color }]}>{info.label}</Text>
                                 <Text style={styles.suitArabic}>{info.arabic}</Text>
                             </PressableScale>
                         </Animated.View>
                     ))}
                 </View>
-                <PressableScale onPress={onCancel} style={styles.cancelBtn}>
+                <PressableScale onPress={onCancel} style={[styles.cancelBtn, land && { marginTop: 6, paddingVertical: 4 }]}>
                     <Text style={styles.cancelText}>Annuler</Text>
                 </PressableScale>
             </Animated.View>
@@ -203,6 +205,8 @@ const styles = StyleSheet.create({
         left: 0,
         right: 0,
         alignItems: 'center',
+        overflow: 'hidden',
+        paddingVertical: 12,
         zIndex: 3000,
         elevation: 3000,
     },
@@ -327,6 +331,7 @@ const styles = StyleSheet.create({
         marginBottom: 14,
     },
     suitGrid: {
+        width: '100%',
         flexDirection: 'row',
         flexWrap: 'wrap',
         justifyContent: 'center',

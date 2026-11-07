@@ -283,11 +283,13 @@ export default function HomeScreen({ navigation }) {
                     </View>
 
                     {/* Logo */}
-                    <Animated.View entering={ZoomIn.springify().damping(12)} style={[styles.logo, titleStyle]}>
-                        <LogoCards />
-                        <Text style={styles.titleText}>JEBEN</Text>
-                        <Text style={styles.titleHighlight}>GERE3</Text>
-                        <Text style={styles.tagline}>جبن گرعة · Le jeu de cartes marocain</Text>
+                    <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.logo}>
+                        <Animated.View style={[{ alignItems: 'center' }, titleStyle]}>
+                            <LogoCards />
+                            <Text style={styles.titleText}>JEBEN</Text>
+                            <Text style={styles.titleHighlight}>GERE3</Text>
+                            <Text style={styles.tagline}>جبن گرعة · Le jeu de cartes marocain</Text>
+                        </Animated.View>
                     </Animated.View>
 
                     {!isConnected && (

@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ZoomIn, FadeInRight, FadeInUp } from 'react-native-reanimated';
 import PlayerAvatar from './PlayerAvatar';
 import { Confetti } from './GameFx';
@@ -30,16 +30,19 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
     }, [xpEarned]);
 
     const loserName = players[loser]?.name || 'Un joueur';
+    const { width, height } = useWindowDimensions();
+    const compact = height < 520; // téléphone en paysage
 
     return (
         <Animated.View entering={FadeIn.duration(300)} style={styles.overlay}>
             {isPlayer && !iLost && <Confetti />}
-            <Animated.View entering={ZoomIn.springify().damping(13).delay(150)} style={[styles.panel, iLost && styles.panelLost]}>
-                <Text style={styles.emoji}>{iLost ? '💀' : isPlayer ? '🎉' : '🏁'}</Text>
-                <Text style={[styles.title, iLost && { color: '#F87171' }]}>
+            <Animated.View entering={ZoomIn.springify().damping(13).delay(150)} style={[styles.panel, iLost && styles.panelLost, compact && styles.panelCompact]}>
+                <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
+                {!compact && <Text style={styles.emoji}>{iLost ? '💀' : isPlayer ? '🎉' : '🏁'}</Text>}
+                <Text style={[styles.title, iLost && { color: '#F87171' }, compact && { fontSize: 22 }]}>
                     {iLost ? 'KHASSER !' : isPlayer ? 'BRAVO !' : 'MANCHE TERMINÉE'}
                 </Text>
-                <Text style={styles.subtitle}>
+                <Text style={[styles.subtitle, compact && { marginBottom: 8 }]}>
                     {iLost ? 'Tu es le dernier avec des cartes…' : `${loserName} est le Khasser !`}
                 </Text>
 
@@ -52,7 +55,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                             <Animated.View
                                 key={pIdx}
                                 entering={FadeInRight.delay(350 + rank * 120).springify().damping(15)}
-                                style={[styles.row, isMe && styles.rowMe, isLoser && styles.rowLoser]}
+                                style={[styles.row, isMe && styles.rowMe, isLoser && styles.rowLoser, compact && { paddingVertical: 3 }]}
                             >
                                 <Text style={styles.medal}>{isLoser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
                                 <PlayerAvatar name={players[pIdx]?.name} size={30} />
@@ -69,16 +72,19 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                 </View>
 
                 {xpEarned > 0 && (
-                    <Animated.View entering={ZoomIn.delay(1100).springify().damping(8)} style={styles.xpPill}>
+                    <Animated.View entering={ZoomIn.delay(1100).springify().damping(8)} style={[styles.xpPill, compact && { marginTop: 8 }]}>
                         <Text style={styles.xpText}>+{xpEarned} XP</Text>
                     </Animated.View>
                 )}
 
-                <Animated.Text entering={FadeInUp.delay(900)} style={styles.legend}>
-                    Points : 1er = {total - 1} pts, puis -1 par place. Le Khasser ne marque rien.
-                </Animated.Text>
+                {!compact && (
+                    <Animated.Text entering={FadeInUp.delay(900)} style={styles.legend}>
+                        Points : 1er = {total - 1} pts, puis -1 par place. Le Khasser ne marque rien.
+                    </Animated.Text>
+                )}
 
-                <View style={styles.actions}>
+                </ScrollView>
+                <View style={[styles.actions, compact && { marginTop: 8 }]}>
                     {canReplay ? (
                         <GameButton small title="Rejouer" icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
                     ) : (
@@ -105,6 +111,7 @@ const styles = StyleSheet.create({
     },
     panel: {
         width: '100%',
+        maxHeight: '96%',
         maxWidth: 400,
         backgroundColor: theme.panelSolid,
         borderRadius: 22,
@@ -117,6 +124,10 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.4,
         shadowRadius: 24,
         elevation: 24,
+    },
+    panelCompact: {
+        maxWidth: 520,
+        paddingVertical: 10,
     },
     panelLost: {
         borderColor: '#B91C1C',

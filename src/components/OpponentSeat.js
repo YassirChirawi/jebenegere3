@@ -22,7 +22,7 @@ const MAX_VISIBLE = 10;
  * Siège d'un adversaire : avatar, nom, nombre de cartes, mini-main en éventail.
  * position : 'top' | 'left' | 'right'
  */
-export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot }) {
+export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact }) {
     const vertical = position !== 'top';
 
     // Petit "bump" du compteur quand le nombre de cartes change
@@ -39,7 +39,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
     const miniH = vertical ? 24 : 34;
 
     return (
-        <View style={[styles.seat, vertical && styles.seatVertical]}>
+        <View style={[styles.seat, vertical && styles.seatVertical, compact && styles.seatCompact]}>
             <View style={styles.avatarWrap}>
                 <PlayerAvatar name={player?.name} size={vertical ? 44 : 46} active={active} />
                 {active && <Image source={MINT} style={styles.mint} />}
@@ -59,6 +59,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
                 ) : null}
             </View>
 
+            <View style={compact ? styles.compactInfo : styles.infoCol}>
             <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive]}>
                 <Text style={[styles.name, vertical && styles.nameVertical, active && styles.nameActive]} numberOfLines={1}>
                     {isBot && !vertical ? '🤖 ' : ''}{player?.name || '...'}
@@ -96,6 +97,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
                     </Animated.View>
                 </View>
             )}
+            </View>
         </View>
     );
 }
@@ -103,6 +105,16 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
 const styles = StyleSheet.create({
     seat: {
         alignItems: 'center',
+    },
+    seatCompact: {
+        flexDirection: 'row',
+        gap: 12,
+    },
+    infoCol: {
+        alignItems: 'center',
+    },
+    compactInfo: {
+        alignItems: 'flex-start',
     },
     seatVertical: {
         width: 84,

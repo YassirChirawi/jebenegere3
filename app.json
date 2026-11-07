@@ -3,7 +3,7 @@
     "name": "hezz2-game",
     "slug": "hezz2-game",
     "version": "1.0.0",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
@@ -30,7 +30,7 @@
       "themeColor": "#1C0F13",
       "backgroundColor": "#1C0F13",
       "display": "standalone",
-      "orientation": "portrait"
+      "orientation": "any"
     }
   }
 }

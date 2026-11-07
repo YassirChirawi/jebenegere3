@@ -3,7 +3,7 @@ import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { AppState, View, StyleSheet, Platform } from 'react-native';
+import { AppState, View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
 
 import HomeScreen from './src/screens/HomeScreen';
 import LobbyScreen from './src/screens/LobbyScreen';
@@ -22,6 +22,9 @@ const navTheme = {
 
 export default function App() {
   const appState = useRef(AppState.currentState);
+  const { width, height } = useWindowDimensions();
+  // Web sur téléphone tenu en paysage : on utilise tout l'écran au lieu du cadre portrait
+  const webLandscapePhone = Platform.OS === 'web' && width > height && height < 600;
 
   useEffect(() => {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
@@ -42,7 +45,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <View style={styles.mobileContainer}>
+      <View style={[styles.mobileContainer, webLandscapePhone && styles.fullScreen]}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <NavigationContainer theme={navTheme}>
             <StatusBar style="light" />
@@ -71,6 +74,12 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
+  fullScreen: {
+    maxWidth: '100%',
+    maxHeight: '100%',
+    borderWidth: 0,
+    borderRadius: 0,
+  },
   appContainer: {
     flex: 1,
     backgroundColor: '#000',
