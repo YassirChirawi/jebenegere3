@@ -36,9 +36,11 @@ export const GAMES = {
         sizes: [3, 4, 5, 6],
         sizeLabel: (n) => `${n} joueurs`,
         maxPlayers: 6,
+        canStart: (n) => n >= 3 && n <= 6,
+        startHint: 'Il faut 3 à 6 joueurs',
         card: { suit: 'Espadas', value: 11 },
         color: '#7C3AED',
-        available: false,
+        available: true,
     },
     sota: {
         key: 'sota',

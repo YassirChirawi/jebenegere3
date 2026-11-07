@@ -2,6 +2,7 @@
 const engines = {
     hezz2: require('./hezz2'),
     ronda: require('./ronda'),
+    kdoub: require('./kdoub'),
 };
 
 const DEFAULT_GAME = 'hezz2';

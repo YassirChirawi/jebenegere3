@@ -8,7 +8,7 @@ Le projet contient l'application Expo / React Native (Android, iOS et web) et un
 |---|---|---|
 | **Hezz2** | 2 à 4 | ✅ jouable |
 | **Ronda** | 1 contre 1, 2 contre 2 | ✅ jouable (phase 1) |
-| **Kdoub** | 3 à 6 | 🔜 phase 2 |
+| **Kdoub** | 3 à 6 | ✅ jouable (phase 2) |
 | **Sota Ghamla** | 4 à 6 | 🔜 phase 3 |
 
 Les quatre jeux partagent le même compte local, la même XP et les mêmes rangs. Chaque jeu se joue de trois façons :
@@ -46,6 +46,13 @@ La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La
   - il mange avec un 12 : **+5** pour son camp (*9a3a Rey*) ;
   - il mange avec un 1, ou ne mange rien : **+5** pour l'adversaire (*9a3a AS*).
 - **Fin de manche** : le reste de la table va au dernier camp qui a mangé. Chaque carte au-delà de 20 vaut 1 point.
+
+### Kdoub
+Jeu de bluff pour 3 à 6 joueurs. Les 40 cartes sont distribuées. Les annonces suivent l'ordre imposé 1, 2… 7, 10, 11, 12, puis on recommence à 1.
+
+- À ton tour, tu poses **1 à 4 cartes face cachée** en annonçant la valeur demandée. Tu peux mentir sur les cartes, jamais sur leur nombre.
+- Pendant **5 secondes**, chaque adversaire peut crier **KDOUB**. Si le poseur a menti, il ramasse le tas ; sinon, c'est l'accusateur qui le ramasse. Le joueur suivant celui qui ramasse reprend la partie.
+- Le premier qui vide sa main gagne. Les autres sont classés selon le nombre de cartes restantes.
 
 ## Lancer le projet
 
@@ -85,11 +92,12 @@ server/
   engines/common.js      deck espagnol 40 cartes, mélange, ordre des valeurs
   engines/hezz2.js       adaptateur du moteur Hezz2 (GameEngine.js) et de son IA
   engines/ronda.js       moteur Ronda (règles, annonces, dénonciation, bots, vue masquée)
+  engines/kdoub.js       moteur Kdoub (poses cachées, fenêtre KDOUB, révélation, bots)
   engines/index.js       registre : room.gameType → moteur
   tests/                 tests node:test
 src/
   games.js               catalogue des jeux côté client
-  screens/               Home (sélecteur de jeu), Lobby, Game (Hezz2), Ronda, Profile
+  screens/               Home (sélecteur de jeu), Lobby, Game (Hezz2), Ronda, Kdoub, Profile
   components/            cartes, sièges, table, chat et réactions communs, bannières, fins de manche
   network/               socket et audio (sons synthétisés : scripts/generate-sfx.js)
 ```

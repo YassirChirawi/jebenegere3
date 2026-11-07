@@ -62,6 +62,8 @@ export default function MasterCard({
     selected = false,
     onSelect,
     glow,
+    // Mode coche (Kdoub) : chaque tap sélectionne / désélectionne, la pose se fait par un bouton
+    toggleMode = false,
 }) {
     const showGlow = glow ?? isPlayable;
     // Position d'éventail animée (les cartes glissent quand la main change)
@@ -154,7 +156,9 @@ export default function MasterCard({
         .onEnd((_e, success) => {
             'worklet';
             if (!success) return;
-            if (isPlayable && selectMode && !selected) {
+            if (isPlayable && toggleMode) {
+                runOnJS(select)();
+            } else if (isPlayable && selectMode && !selected) {
                 runOnJS(select)();
             } else if (isPlayable) {
                 flying.value = withTiming(1, { duration: 260, easing: Easing.out(Easing.cubic) });
@@ -171,7 +175,7 @@ export default function MasterCard({
         });
 
     const pan = Gesture.Pan()
-        .enabled(!!isPlayable)
+        .enabled(!!isPlayable && !toggleMode)
         .minDistance(8)
         .onUpdate((e) => {
             'worklet';

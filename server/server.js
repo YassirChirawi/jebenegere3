@@ -107,7 +107,7 @@ function commitState(roomId, prev, next) {
 
     emitState(roomId);
     // Le chrono ne repart que si le tour (ou la phase) change ; sinon on replanifie juste les bots
-    if (next.turn !== prev.turn || next.pendingAction !== prev.pendingAction || next.dealIndex !== prev.dealIndex) {
+    if (next.turn !== prev.turn || next.phase !== prev.phase || next.pendingAction !== prev.pendingAction || next.dealIndex !== prev.dealIndex) {
         resetTimer(roomId);
     } else {
         scheduleBots(roomId);
@@ -334,9 +334,10 @@ io.on('connection', (socket) => {
         if (room.hostId !== socket.id) return;
         const engine = getEngine(room.gameType);
         if (!engine.canStart(room.activePlayers.length)) {
-            const msg = room.gameType === 'ronda'
-                ? 'La Ronda se joue à 2 (1 contre 1) ou à 4 (2 contre 2).'
-                : 'Il faut au moins 2 joueurs actifs pour démarrer.';
+            const msg = {
+                ronda: 'La Ronda se joue à 2 (1 contre 1) ou à 4 (2 contre 2).',
+                kdoub: 'Le Kdoub se joue de 3 à 6 joueurs.',
+            }[room.gameType] || 'Il faut au moins 2 joueurs actifs pour démarrer.';
             socket.emit('game_error', { message: msg });
             return;
         }
@@ -371,7 +372,7 @@ io.on('connection', (socket) => {
     // Action générique (Ronda, et les prochains jeux)
     socket.on('game_action', (data) => {
         const room = rooms[data?.roomId];
-        if (!room || !data.action) return;
+        if (!room || !data.action || String(data.action.type).startsWith('_')) return; // actions internes réservées aux bots
         const idx = playerIndexOf(room, socket.id);
         if (idx === -1) return;
         if (!applyAction(room.id, idx, data.action)) {
