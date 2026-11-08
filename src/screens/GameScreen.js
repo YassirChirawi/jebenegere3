@@ -16,6 +16,7 @@ import OpponentSeat from '../components/OpponentSeat';
 import EndRoundOverlay from '../components/EndRoundOverlay';
 import RulesModal from '../components/RulesModal';
 import { DiscardPile, DeckPile } from '../components/TableCenter';
+import { FlyCards, GoldBurst } from '../components/Flights';
 import { TurnBanner, ActionToast, SuitBadge, PenaltyBadge, SuitSelector, SUIT_INFO } from '../components/GameFx';
 import { haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
@@ -47,6 +48,19 @@ const canPlayCardLocal = (card, state) => {
     return card.suit === top.suit || card.value === top.value;
 };
 
+// Pourquoi une carte ne peut pas être jouée (message affiché quand on la touche)
+const refuseReason = (card, state) => {
+    if (state.pendingAction?.type === 'skip_response') return "⛔ Seul un 1 peut contrer l'attaque";
+    if (state.drawPenalty > 0) return `🔥 Contre avec un 2, sinon pioche ${state.drawPenalty}`;
+    if (state.activeSuitOverride) {
+        const info = SUIT_INFO[state.activeSuitOverride];
+        return `Il faut du ${info ? `${info.emoji} ${info.label}` : state.activeSuitOverride} (ou un 7)`;
+    }
+    const top = state.middlePile[state.middlePile.length - 1];
+    const info = SUIT_INFO[top?.suit];
+    return `Il faut la même famille (${info ? `${info.emoji} ${info.label}` : top?.suit}) ou la même valeur (${top?.value})`;
+};
+
 export default function GameScreen({ route, navigation }) {
     const { roomId, playerName, initialGameState, isHost } = route.params || {};
     const { width: winW, height: winH } = useWindowDimensions();
@@ -68,7 +82,11 @@ export default function GameScreen({ route, navigation }) {
     const [showEnd, setShowEnd] = useState(false);
     const [banner, setBanner] = useState(null);
     const [toast, setToast] = useState(null);
+    const [moods, setMoods] = useState({});
+    const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [lastFrom, setLastFrom] = useState('none');
+    const [drawFly, setDrawFly] = useState(null);
+    const [burst, setBurst] = useState(null);
 
     const prevGameStateRef = useRef(initialGameState);
     const hasAllocatedXP = useRef(false);
@@ -173,6 +191,14 @@ export default function GameScreen({ route, navigation }) {
         return state.players?.filter((_, idx) => idx !== me).map((p) => p.name).join(', ') || 'Inconnus';
     };
 
+    // Musique : plus tendue quand quelqu'un approche de la sortie
+    useEffect(() => {
+        if (!gameState || gameState.mancheTerminee) { audioService.setMusicIntensity(0); return; }
+        const left = gameState.hands.filter((h, i) => !(gameState.finishedPlayers || []).includes(i)).map((h) => h.length);
+        const min = left.length ? Math.min(...left) : 4;
+        audioService.setMusicIntensity(min <= 1 ? 1 : min === 2 ? 0.6 : min === 3 ? 0.3 : 0);
+    }, [gameState]);
+
     // --- Réaction aux changements d'état : sons, annonces, animations ---
     useEffect(() => {
         const prev = prevGameStateRef.current;
@@ -195,6 +221,7 @@ export default function GameScreen({ route, navigation }) {
         if (!prev.forfeit && gameState.forfeit) {
             audioService.playSound('warning');
             showToast(`🔌 ${prev.players?.[gameState.forfeit.player]?.name || 'Ton adversaire'} est parti : victoire par forfait`, theme.mint);
+            if (gameState.forfeit.player !== me) { setBurst({ id: Date.now(), color: '#6EE7B7' }); haptic('double'); }
         }
 
         // 1) Une carte a été jouée
@@ -203,6 +230,7 @@ export default function GameScreen({ route, navigation }) {
         if (newTop && prevTop && newTop.id !== prevTop.id) {
             const by = prev.turn;
             setLastFrom(seatOf(by));
+            react(by, 'play');
             audioService.playSound('card_play');
             const who = nameOf(by);
             if (newTop.value === 2) {
@@ -225,6 +253,9 @@ export default function GameScreen({ route, navigation }) {
         gameState.hands.forEach((hand, i) => {
             const diff = hand.length - (prev.hands[i]?.length ?? hand.length);
             if (diff <= 0) return;
+            // La pioche vole vers le joueur qui pioche
+            setDrawFly({ id: `${Date.now()}-${i}`, count: diff, to: seatOf(i), scale: land ? 0.55 : 1 });
+            if (diff >= 2) react(i, 'lose');
             if (i === me) {
                 if (diff >= 2) {
                     audioService.playSound('penalty');
@@ -242,8 +273,11 @@ export default function GameScreen({ route, navigation }) {
         const prevFinished = prev.finishedPlayers || [];
         (gameState.finishedPlayers || []).forEach((i) => {
             if (prevFinished.includes(i)) return;
+            react(i, 'win');
             if (i === me) {
                 later(() => audioService.playSound('victory'), 250);
+                setBurst({ id: Date.now(), color: '#F5D77A' });
+                haptic('double');
                 audioService.stopTickTock();
                 recordGame({ game: 'hezz2', won: true, opponents: opponentsOf(gameState) });
             } else if (!gameState.mancheTerminee) {
@@ -256,6 +290,7 @@ export default function GameScreen({ route, navigation }) {
         if (!prev.mancheTerminee && gameState.mancheTerminee) {
             audioService.stopTickTock();
             const loser = gameState.loserIndex;
+            react(loser, 'khasser');
 
             if (player && !hasAllocatedXP.current) {
                 hasAllocatedXP.current = true;
@@ -404,6 +439,7 @@ export default function GameScreen({ route, navigation }) {
         if (i === null || i === undefined) return null;
         return (
             <OpponentSeat
+                mood={moods[i]}
                 player={gameState.players[i]}
                 isBot={gameState.players[i]?.isBot}
                 handSize={gameState.hands[i].length}
@@ -423,7 +459,7 @@ export default function GameScreen({ route, navigation }) {
     const canReplay = gameState.hostId ? gameState.hostId === myId : (isHost || gameState.players?.[0]?.id === myId);
 
     return (
-        <TableBackground onSize={setBoard}>
+        <TableBackground onSize={setBoard} game="hezz2">
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
 
             <Animated.View style={[styles.board, shakeStyle]}>
@@ -449,9 +485,13 @@ export default function GameScreen({ route, navigation }) {
                             <ActionToast toast={toast} />
                         </View>
 
+                        {burst && <GoldBurst key={burst.id} burst={burst} />}
                         <View style={land ? styles.centerLand : styles.centerCol}>
                         <View style={styles.pilesRow}>
-                            <DeckPile count={gameState.deck.length} canDraw={canDraw} onDraw={handlePlayerDraw} />
+                            <View>
+                                <DeckPile count={gameState.deck.length} canDraw={canDraw} onDraw={handlePlayerDraw} />
+                                {drawFly && <FlyCards key={drawFly.id} fly={drawFly} />}
+                            </View>
                             <DiscardPile pile={gameState.middlePile} from={lastFrom} />
                         </View>
 
@@ -463,7 +503,7 @@ export default function GameScreen({ route, navigation }) {
 
                         {!gameState.mancheTerminee && (
                             <View style={[styles.turnChip, isMyTurn && styles.turnChipMine, underAttack && styles.turnChipDanger]}>
-                                <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 3 : 15} size={40} />
+                                <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 5 : (gameState.afk?.[gameState.turn] || 0) >= 2 ? 8 : 15} size={40} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                                     <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>
                                         {underAttack ? 'ATTAQUE !' : 'TOUR DE'}
@@ -494,7 +534,7 @@ export default function GameScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Vous'} size={38} active={isMyTurn} />
+                                        <PlayerAvatar name={playerName || 'Vous'} size={38} active={isMyTurn} mood={moods[localPlayerIndex]} />
                                         <ReactionBubble emoji={activeReactions[localPlayerIndex]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
@@ -517,6 +557,7 @@ export default function GameScreen({ route, navigation }) {
                                         isMyTurn={isMyTurn}
                                         isPlayable={isMyTurn && canPlayCardLocal(card, gameState)}
                                         onPlay={() => handlePlayerPlayCard(idx)}
+                                        onRefuse={() => showToast(refuseReason(card, gameState), '#FCA5A5')}
                                         isInitialDeal={isInitialDeal}
                                     />
                                 ))}

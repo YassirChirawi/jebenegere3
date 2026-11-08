@@ -5,6 +5,7 @@ import PlayerAvatar from './PlayerAvatar';
 import { Confetti } from './GameFx';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
+import XpCounter from './XpCounter';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -22,12 +23,11 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
     // Ordre de sortie, puis le perdant en dernier
     const order = [...finished.filter((i) => i !== loser), ...(loser !== undefined && loser !== null ? [loser] : [])];
 
+    // Le classement apparaît ligne par ligne, avec un petit son à chaque ligne
     useEffect(() => {
-        if (xpEarned > 0) {
-            const t = setTimeout(() => audioService.playSound('coin'), 1200);
-            return () => clearTimeout(t);
-        }
-    }, [xpEarned]);
+        const ts = Array.from({ length: order.length }).map((_, i) => setTimeout(() => audioService.playSound('pop', { volume: 0.5, rate: 0.9 + i * 0.08 }), 450 + i * 380));
+        return () => ts.forEach(clearTimeout);
+    }, []);
 
     const loserName = players[loser]?.name || 'Un joueur';
     const { width, height } = useWindowDimensions();
@@ -56,7 +56,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                         return (
                             <Animated.View
                                 key={pIdx}
-                                entering={FadeInRight.delay(350 + rank * 120).springify().damping(15)}
+                                entering={FadeInRight.delay(450 + rank * 380).springify().damping(14)}
                                 style={[styles.row, isMe && styles.rowMe, isLoser && styles.rowLoser, compact && { paddingVertical: 3 }]}
                             >
                                 <Text style={styles.medal}>{isLoser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
@@ -73,11 +73,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                     })}
                 </View>
 
-                {xpEarned > 0 && (
-                    <Animated.View entering={ZoomIn.delay(1100).springify().damping(8)} style={[styles.xpPill, compact && { marginTop: 8 }]}>
-                        <Text style={styles.xpText}>+{xpEarned} XP</Text>
-                    </Animated.View>
-                )}
+                <XpCounter xp={xpEarned} delay={650 + order.length * 380} compact={compact} />
 
                 {!compact && (
                     <Animated.Text entering={FadeInUp.delay(900)} style={styles.legend}>

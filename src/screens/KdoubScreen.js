@@ -23,6 +23,7 @@ import OpponentSeat from '../components/OpponentSeat';
 import RankingEndOverlay from '../components/RankingEndOverlay';
 import RulesModal from '../components/RulesModal';
 import TableBackground from '../components/TableBackground';
+import { FlyCards, GoldBurst } from '../components/Flights';
 import { CardFace, CardBack } from '../components/Card';
 import { ActionToast } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
@@ -161,7 +162,11 @@ export default function KdoubScreen({ route, navigation }) {
     const [timeLeft, setTimeLeft] = useState(40);
     const [selected, setSelected] = useState([]);
     const [toast, setToast] = useState(null);
+    const [moods, setMoods] = useState({});
+    const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
+    const [pickup, setPickup] = useState(null);
+    const [burst, setBurst] = useState(null);
     const [reveal, setReveal] = useState(null);
     const [showEnd, setShowEnd] = useState(false);
     const [showRules, setShowRules] = useState(false);
@@ -238,6 +243,13 @@ export default function KdoubScreen({ route, navigation }) {
         if (!isMyTurn) setSelected([]);
     }, [state]);
 
+    // Musique : plus tendue quand quelqu'un n'a presque plus de cartes
+    useEffect(() => {
+        if (!state?.hands || state.phase === 'over') { audioService.setMusicIntensity(0); return; }
+        const min = Math.min(...state.hands.map((h) => h.length));
+        audioService.setMusicIntensity(min <= 2 ? 1 : min <= 4 ? 0.6 : min <= 7 ? 0.3 : 0);
+    }, [state]);
+
     const handleEvent = (e, s) => {
         switch (e.type) {
             case 'deal':
@@ -246,6 +258,7 @@ export default function KdoubScreen({ route, navigation }) {
                 break;
             case 'pose':
                 setFly({ id: e.id, count: e.count, from: seats[e.player] || 'top' });
+                react(e.player, 'play');
                 for (let k = 0; k < e.count; k++) later(() => audioService.playSound('card_play', { volume: 0.6, rate: 0.95 + k * 0.05 }), k * 90);
                 haptic('light');
                 if (e.last) {
@@ -254,17 +267,23 @@ export default function KdoubScreen({ route, navigation }) {
                 }
                 break;
             case 'kdoub':
-                audioService.playSound('reveal');
-                haptic('heavy');
+                audioService.playSound('kdoub');
+                haptic('long');
+                react(e.by, 'kdoub');
                 setReveal(e);
                 later(() => {
                     shake(e.truthful ? 6 : 14);
-                    haptic(e.truthful ? 'success' : 'heavy');
+                    haptic(e.truthful ? 'success' : 'error');
+                    audioService.playSound(e.truthful ? 'vrai' : 'menteur');
+                    setBurst({ id: e.id, color: e.truthful ? '#6EE7B7' : '#FCA5A5' });
+                    react(e.loser, 'lose');
                     audioService.playSound(e.truthful ? 'coin' : 'penalty');
                 }, 1100);
                 later(() => {
                     setReveal(null);
                     audioService.playSound('card_draw');
+                    // Le tas glisse vers celui qui ramasse
+                    setPickup({ id: e.id, count: Math.min(e.taken, 6), to: seats[e.loser] || 'top', scale: land ? 0.5 : 0.9, stagger: 60 });
                     if (e.loser === me) showToast(`Tu ramasses ${plural(e.taken, 'carte')} 😬`, '#F87171');
                 }, 2700);
                 break;
@@ -278,6 +297,7 @@ export default function KdoubScreen({ route, navigation }) {
                 break;
             case 'game_over':
                 audioService.stopTickTock();
+                react(s.winner, 'win');
                 onGameOver(s);
                 break;
             default:
@@ -358,6 +378,7 @@ export default function KdoubScreen({ route, navigation }) {
         if (Number.isNaN(i)) return null;
         return (
             <OpponentSeat
+                mood={moods[i]}
                 player={state.players[i]}
                 isBot={state.players[i]?.isBot}
                 handSize={state.hands[i].length}
@@ -410,7 +431,7 @@ export default function KdoubScreen({ route, navigation }) {
     );
 
     return (
-        <TableBackground onSize={setBoard} tint="rgba(40, 10, 60, 0.22)">
+        <TableBackground onSize={setBoard} game="kdoub">
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <Animated.View style={[styles.board, shakeStyle]}>
                 <TopBar
@@ -443,6 +464,8 @@ export default function KdoubScreen({ route, navigation }) {
                             <View style={styles.pileWrap}>
                                 <Pile count={state.pileCount || 0} bumpKey={state.pileCount} />
                                 {fly && <PoseFly key={fly.id} fly={fly} />}
+                                {pickup && <FlyCards key={`p${pickup.id}`} fly={pickup} />}
+                                {burst && <GoldBurst key={`b${burst.id}`} burst={burst} />}
                             </View>
                             {land && (
                                 <View style={{ alignItems: 'center' }}>
@@ -487,7 +510,7 @@ export default function KdoubScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} />
+                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>

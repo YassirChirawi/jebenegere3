@@ -4,6 +4,7 @@ import Animated, { FadeIn, ZoomIn, FadeInUp } from 'react-native-reanimated';
 import { Confetti } from './GameFx';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
+import XpCounter from './XpCounter';
 
 /**
  * Fin de manche Ronda : cartes ramassées, points cartes (au-delà de 20), bonus, total / 41.
@@ -18,12 +19,11 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
     const iWonGame = gameOver && winnerTeam === myTeam;
     const iWonManche = !spectator && mancheGain[myTeam] > mancheGain[1 - myTeam];
 
+    // Le classement apparaît ligne par ligne, avec un petit son à chaque ligne
     useEffect(() => {
-        if (xpEarned > 0) {
-            const t = setTimeout(() => audioService.playSound('coin'), 1200);
-            return () => clearTimeout(t);
-        }
-    }, [xpEarned]);
+        const ts = Array.from({ length: rows.length }).map((_, i) => setTimeout(() => audioService.playSound('pop', { volume: 0.5, rate: 0.9 + i * 0.08 }), 450 + i * 300));
+        return () => ts.forEach(clearTimeout);
+    }, []);
 
     const title = gameOver
         ? spectator ? `${teamNames[winnerTeam]} GAGNENT` : iWonGame ? 'VICTOIRE !' : 'DÉFAITE…'
@@ -53,12 +53,12 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                             ))}
                         </View>
                         {rows.map((r, i) => (
-                            <Animated.View key={r.label} entering={FadeInUp.delay(300 + i * 120)} style={styles.row}>
+                            <Animated.View key={r.label} entering={FadeInUp.delay(450 + i * 300)} style={styles.row}>
                                 <Text style={[styles.cell, styles.labelCell]}>{r.label}</Text>
                                 {r.values.map((v, t) => <Text key={t} style={styles.cell}>{v}</Text>)}
                             </Animated.View>
                         ))}
-                        <Animated.View entering={FadeInUp.delay(700)} style={[styles.row, styles.totalRow]}>
+                        <Animated.View entering={FadeInUp.delay(450 + rows.length * 300)} style={[styles.row, styles.totalRow]}>
                             <Text style={[styles.cell, styles.labelCell, { color: theme.goldLight }]}>TOTAL</Text>
                             {summary.scores.map((v, t) => (
                                 <Text key={t} style={[styles.cell, styles.totalCell, t === winnerTeam && { color: theme.mint }]}>
@@ -68,11 +68,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                         </Animated.View>
                     </View>
 
-                    {xpEarned > 0 && (
-                        <Animated.View entering={ZoomIn.delay(1100).springify().damping(8)} style={styles.xpPill}>
-                            <Text style={styles.xpText}>+{xpEarned} XP</Text>
-                        </Animated.View>
-                    )}
+                    <XpCounter xp={xpEarned} delay={800 + rows.length * 300} compact={compact} />
                 </ScrollView>
 
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>

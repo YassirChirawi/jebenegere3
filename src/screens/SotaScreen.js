@@ -22,6 +22,7 @@ import OpponentSeat from '../components/OpponentSeat';
 import RankingEndOverlay from '../components/RankingEndOverlay';
 import RulesModal from '../components/RulesModal';
 import TableBackground from '../components/TableBackground';
+import { FlyCards, GoldBurst } from '../components/Flights';
 import { CardFace, CardBack } from '../components/Card';
 import { ActionToast, TurnBanner } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
@@ -110,8 +111,12 @@ export default function SotaScreen({ route, navigation }) {
     const [state, setState] = useState(initialGameState);
     const [timeLeft, setTimeLeft] = useState(30);
     const [toast, setToast] = useState(null);
+    const [moods, setMoods] = useState({});
+    const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [banner, setBanner] = useState(null);
     const [pairFlash, setPairFlash] = useState(null);
+    const [pickFly, setPickFly] = useState(null);
+    const [burst, setBurst] = useState(null);
     const [reveal, setReveal] = useState(null);
     const [lastDrawn, setLastDrawn] = useState(null);
     const [showEnd, setShowEnd] = useState(false);
@@ -186,6 +191,12 @@ export default function SotaScreen({ route, navigation }) {
         prevTurn.current = state.turn;
     }, [state]);
 
+    // Musique : plus tendue à mesure que les joueurs sortent
+    useEffect(() => {
+        if (!state || state.phase === 'over') { audioService.setMusicIntensity(0); return; }
+        audioService.setMusicIntensity((state.outOrder?.length || 0) / Math.max(1, state.numPlayers - 2));
+    }, [state]);
+
     const handleEvent = (e, s) => {
         switch (e.type) {
             case 'deal':
@@ -200,6 +211,9 @@ export default function SotaScreen({ route, navigation }) {
                 break;
             case 'pick':
                 audioService.playSound('card_draw');
+                react(e.by, 'play');
+                // La carte part de la main visée (au centre) vers celui qui pioche
+                setPickFly({ id: e.id, count: 1, to: seats[e.by] || 'bottom', cards: e.card && (e.by === me) ? [e.card] : undefined, scale: land ? 0.5 : 0.85 });
                 if (e.by === me && e.card) {
                     haptic('light');
                     setLastDrawn({ id: e.id, card: e.card });
@@ -218,6 +232,7 @@ export default function SotaScreen({ route, navigation }) {
                 later(() => setPairFlash((p) => (p && p.id === e.id ? null : p)), 1900);
                 break;
             case 'out':
+                react(e.player, 'win');
                 if (e.player === me) {
                     audioService.playSound('victory');
                     haptic('success');
@@ -244,9 +259,11 @@ export default function SotaScreen({ route, navigation }) {
 
     const onGameOver = (e, s) => {
         const iLost = e.loser === me;
+        later(() => react(e.loser, 'khasser'), 1600);
         later(() => {
-            audioService.playSound('reveal');
-            haptic('heavy');
+            audioService.playSound('sota');
+            haptic('long');
+            setBurst({ id: Date.now(), color: '#D8B4FE', size: 320 });
             setReveal({
                 sota: e.sota,
                 text: iLost ? 'Tu as la Sota : tu es le Ghamla !' : `Sota chez ${nameOf(e.loser)} : c'est le Ghamla !`,
@@ -311,6 +328,7 @@ export default function SotaScreen({ route, navigation }) {
         const out = state.outOrder?.includes(i);
         return (
             <OpponentSeat
+                mood={moods[i]}
                 player={state.players[i]}
                 isBot={state.players[i]?.isBot}
                 handSize={state.hands[i].length}
@@ -334,7 +352,7 @@ export default function SotaScreen({ route, navigation }) {
     const myPairs = me >= 0 ? state.pairs[me].length : 0;
 
     return (
-        <TableBackground onSize={setBoard} tint="rgba(60, 40, 0, 0.18)">
+        <TableBackground onSize={setBoard} game="sota">
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <Animated.View style={[styles.board, shakeStyle]}>
                 <TopBar
@@ -389,6 +407,8 @@ export default function SotaScreen({ route, navigation }) {
                             </View>
                         )}
                         {pairFlash && <PairFlash key={pairFlash.id} flash={pairFlash} />}
+                        {pickFly && <FlyCards key={pickFly.id} fly={pickFly} w={46} h={66} />}
+                        {burst && <GoldBurst key={burst.id} burst={burst} />}
                     </View>
 
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
@@ -404,7 +424,7 @@ export default function SotaScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} />
+                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>

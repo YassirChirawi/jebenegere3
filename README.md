@@ -95,6 +95,47 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.
 
+Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichage de l'éventail sur un grand écran comme sur un téléphone.
+
+## Anti-blocage
+
+- **Hezz2** : au 1er tour manqué, la pioche est automatique et un avertissement s'affiche. À partir du 2ᵉ tour manqué d'affilée, un coup est joué automatiquement au bout de 8 s, comme le ferait un bot. Le compteur repart à zéro dès que le joueur rejoue.
+- **Ronda** : une carte au hasard est jouée à la fin du chrono.
+- **Kdoub** : une carte est posée au hasard à la fin du chrono, avec une limite de 40 s.
+- **Sota Ghamla** : une carte est piochée au hasard à la fin du chrono.
+- La fenêtre pour contrer un 1 en Hezz2 dure **5 s**.
+
+## Premium, phase 1 : visuel et animations
+
+- **Une table par jeu** :
+  - Hezz2 : café vert, bois et cuivre ;
+  - Ronda : bleu nuit ;
+  - Kdoub : rouge sombre ;
+  - Sota Ghamla : violet nuit.
+
+  Le tapis est recoloré en gardant ses motifs, et le coffret de cartes reste dans ses couleurs d'origine.
+- **Personnalisation** (Profil → 🎨 Style) :
+  - 5 dos de cartes : Classique, Couleurs du jeu et Doré dès le départ ; Zellige débloqué au rang fchkel, Nuit étoilée au rang chdid ;
+  - 3 tapis par jeu : celui par défaut, un 2ᵉ débloqué au rang Zmagri, un 3ᵉ au rang fchkel ;
+  - réglage des vibrations.
+- **Animations** :
+  - la pioche vole vers le joueur qui pioche ;
+  - en Kdoub, le tas glisse vers celui qui ramasse ;
+  - en Sota, la carte piochée vole vers le joueur ;
+  - un éclat doré accompagne Darba, Hbel, Boug, Missa, le Roi en dernière carte (9a3a rey), le verdict d'un KDOUB, la Sota finale, la sortie d'un joueur et la victoire par forfait.
+- **Avatars** :
+  - un petit saut quand le joueur joue ;
+  - 😤 quand il crie KDOUB ;
+  - 😭 quand il ramasse ;
+  - 🤡 pour le Khasser ou le Ghamla ;
+  - 😎 après un beau coup.
+- **Cartes non jouables** : elles sont grisées. Quand on en touche une, un message explique pourquoi, par exemple « Il faut la même famille ou la même valeur ».
+- **Fin de partie** : le classement apparaît ligne par ligne, puis les XP défilent et la barre de rang se remplit.
+- **Son** :
+  - la musique accélère légèrement (jusqu'à +7 %) et monte un peu quand la partie se tend ;
+  - 4 nouveaux sons synthétisés : KDOUB, MENTEUR, VRAI et Sota finale.
+- **Vibrations** : courte pour une pose, longue pour un KDOUB ou la Sota, double pour une victoire. Elles sont coupées par le bouton muet ou par le réglage dans le Profil.
+
 ## Tests
 
 ```bash

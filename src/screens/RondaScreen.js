@@ -30,6 +30,7 @@ import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
+import { GoldBurst } from '../components/Flights';
 
 const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -185,7 +186,11 @@ export default function RondaScreen({ route, navigation }) {
     const [selectedId, setSelectedId] = useState(null);
     const [banner, setBanner] = useState(null);
     const [toast, setToast] = useState(null);
+    const [moods, setMoods] = useState({});
+    const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
+    const [burst, setBurst] = useState(null);
+    const goldBurst = (color, size) => setBurst({ id: Date.now() + Math.random(), color, size });
     const [showEnd, setShowEnd] = useState(false);
     const [showRules, setShowRules] = useState(false);
     const [denounceOpen, setDenounceOpen] = useState(false);
@@ -313,6 +318,12 @@ export default function RondaScreen({ route, navigation }) {
         if (!isMyTurn) setSelectedId(null);
     }, [state]);
 
+    // Musique : plus tendue quand une équipe approche des 41 points
+    useEffect(() => {
+        if (!state?.scores || state.mancheTerminee) { audioService.setMusicIntensity(0); return; }
+        audioService.setMusicIntensity((Math.max(...state.scores) - 20) / 21);
+    }, [state?.scores?.[0], state?.scores?.[1], state?.mancheTerminee]);
+
     const handleEvent = (e, s) => {
         const who = e.player !== undefined ? nameOf(e.player) : '';
         const mine = e.team !== undefined && e.team === myTeam;
@@ -323,37 +334,43 @@ export default function RondaScreen({ route, navigation }) {
                 break;
             case 'place':
                 audioService.playSound('card_play');
+                react(e.player, 'play');
                 break;
             case 'capture':
                 audioService.playSound('card_play');
+                react(e.player, 'play');
                 later(() => audioService.playSound('card_draw'), 220);
                 haptic(e.player === me ? 'medium' : 'light');
                 setFly({ id: e.id, cards: [...e.taken, e.card], mine: e.team === myTeam });
                 break;
             case 'darba':
+                react(e.player, 'proud');
                 pushBanner({
                     text: 'DARBA !', sub: `${who} prend la carte posée · +${e.points} ${teamWord(e.team)}`, color: '#EA580C', textColor: '#fff',
-                    onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); },
+                    onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); goldBurst('#FDBA74', 200); },
                 });
                 break;
             case 'hbel':
+                react(e.player, 'proud');
                 pushBanner({
                     text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2600,
-                    onShow: () => { audioService.playSound('hbel'); haptic('heavy'); later(() => haptic('heavy'), 160); shake(14); },
+                    onShow: () => { audioService.playSound('hbel'); haptic('double'); shake(14); goldBurst('#C4B5FD', 240); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
                 break;
             case 'bachra':
+                react(e.player, 'proud');
                 pushBanner({
                     text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
-                    onShow: () => { audioService.playSound('bachra'); haptic('success'); later(() => haptic('heavy'), 200); shake(18); },
+                    onShow: () => { audioService.playSound('bachra'); haptic('long'); shake(18); goldBurst('#FFE08A', 300); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
                 break;
             case 'missa':
+                react(e.player, 'proud');
                 pushBanner({
                     text: 'MISSA !', sub: `${who} vide la table · +${e.points} ${teamWord(e.team)}`, color: '#0F766E', textColor: '#fff',
-                    onShow: () => { audioService.playSound('missa'); haptic('success'); },
+                    onShow: () => { audioService.playSound('missa'); haptic('success'); goldBurst('#5EEAD4', 260); },
                 });
                 break;
             case 'announce':
@@ -405,7 +422,7 @@ export default function RondaScreen({ route, navigation }) {
                 });
                 break;
             case 'rey':
-                pushBanner({ text: '9A3A REY !', sub: `${who} mange avec un Roi · +5 ${teamWord(e.team)}`, color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); } });
+                pushBanner({ text: '9A3A REY !', sub: `${who} mange avec un Roi · +5 ${teamWord(e.team)}`, color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); goldBurst('#F5D77A', 240); } });
                 break;
             case 'as':
                 pushBanner({
@@ -539,6 +556,7 @@ export default function RondaScreen({ route, navigation }) {
         const partner = myTeam !== null && teamOf(i) === myTeam;
         return (
             <OpponentSeat
+                mood={moods[i]}
                 player={state.players[i]}
                 isBot={state.players[i]?.isBot}
                 handSize={state.hands[i].length}
@@ -566,7 +584,7 @@ export default function RondaScreen({ route, navigation }) {
     );
 
     return (
-        <TableBackground onSize={setBoard} tint="rgba(6, 40, 30, 0.18)">
+        <TableBackground onSize={setBoard} game="ronda">
             <StatusBar translucent backgroundColor="transparent" barStyle="light-content" />
             <Animated.View style={[styles.board, shakeStyle]}>
                 <TopBar
@@ -610,6 +628,7 @@ export default function RondaScreen({ route, navigation }) {
                                 </View>
                             )}
                             {fly && <CaptureFly key={fly.id} fly={fly} />}
+                            {burst && <GoldBurst key={burst.id} burst={burst} />}
                         </View>
 
                         {preview.kind && (
@@ -685,7 +704,7 @@ export default function RondaScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} />
+                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>

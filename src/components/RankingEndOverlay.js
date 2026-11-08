@@ -5,6 +5,7 @@ import PlayerAvatar from './PlayerAvatar';
 import { Confetti } from './GameFx';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
+import XpCounter from './XpCounter';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -17,12 +18,11 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
     const { height } = useWindowDimensions();
     const compact = height < 520;
 
+    // Le classement apparaît ligne par ligne, avec un petit son à chaque ligne
     useEffect(() => {
-        if (xpEarned > 0) {
-            const t = setTimeout(() => audioService.playSound('coin'), 1200);
-            return () => clearTimeout(t);
-        }
-    }, [xpEarned]);
+        const ts = Array.from({ length: rows.length }).map((_, i) => setTimeout(() => audioService.playSound('pop', { volume: 0.5, rate: 0.9 + i * 0.08 }), 450 + i * 380));
+        return () => ts.forEach(clearTimeout);
+    }, []);
 
     return (
         <Animated.View entering={FadeIn.duration(300)} style={styles.overlay}>
@@ -37,7 +37,7 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                         {rows.map((r, rank) => (
                             <Animated.View
                                 key={r.player}
-                                entering={FadeInRight.delay(350 + rank * 110).springify().damping(15)}
+                                entering={FadeInRight.delay(450 + rank * 380).springify().damping(14)}
                                 style={[styles.row, r.isMe && styles.rowMe, r.loser && styles.rowLoser, compact && { paddingVertical: 3 }]}
                             >
                                 <Text style={styles.medal}>{r.loser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
@@ -49,11 +49,7 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                             </Animated.View>
                         ))}
                     </View>
-                    {xpEarned > 0 && (
-                        <Animated.View entering={ZoomIn.delay(1100).springify().damping(8)} style={styles.xpPill}>
-                            <Text style={styles.xpText}>+{xpEarned} XP</Text>
-                        </Animated.View>
-                    )}
+                    <XpCounter xp={xpEarned} delay={650 + rows.length * 380} compact={compact} />
                 </ScrollView>
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>
                     {canReplay ? (
