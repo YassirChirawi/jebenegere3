@@ -15,12 +15,14 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
+import { loadCosmetics, setCurrentGame } from './src/utils/cosmetics';
 
 const Stack = createNativeStackNavigator();
 
 // Un seul écran "Game" dans la navigation : on choisit le plateau selon le type de jeu
 function GameRouter(props) {
   const type = props.route?.params?.initialGameState?.gameType || 'hezz2';
+  useEffect(() => { setCurrentGame(type); }, [type]); // dos de carte "couleurs du jeu"
   if (type === 'ronda') return <RondaScreen {...props} />;
   if (type === 'kdoub') return <KdoubScreen {...props} />;
   if (type === 'sota') return <SotaScreen {...props} />;
@@ -41,6 +43,7 @@ export default function App() {
   useEffect(() => {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
     audioService.ready.then(() => audioService.startMusic('menu'));
+    loadCosmetics();
 
     const subscription = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {

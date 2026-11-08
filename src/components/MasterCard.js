@@ -70,6 +70,8 @@ export default function MasterCard({
     glow,
     // Mode coche (Kdoub) : chaque tap sélectionne / désélectionne, la pose se fait par un bouton
     toggleMode = false,
+    // Carte non jouable touchée : le parent explique pourquoi
+    onRefuse,
 }) {
     const showGlow = glow ?? isPlayable;
     // Position d'éventail animée (les cartes glissent quand la main change)
@@ -154,6 +156,7 @@ export default function MasterCard({
     const refuse = () => {
         haptic('light');
         audioService.playSound('error');
+        onRefuse && onRefuse();
     };
 
     // --- Gestes ---

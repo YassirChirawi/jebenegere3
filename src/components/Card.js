@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
+import { useCosmetics, backPalette } from '../utils/cosmetics';
 
 const images = [
     require('../../assets/Galleria_01.jpg'),
@@ -54,14 +55,16 @@ export function CardFace({ card, width = CARD_WIDTH, height = CARD_HEIGHT, style
 }
 
 // Dos de carte : bordeaux, double filet doré, losanges et médaillon central
-export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style }) {
+export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style, palette }) {
+    const cos = useCosmetics();
+    const pal = palette || backPalette(cos);
     const radius = Math.max(3, width * 0.1);
     const tiny = width < 40;
     const inset = tiny ? 2 : Math.max(3, width * 0.06);
     const medal = Math.min(width, height) * 0.42;
     return (
-        <View style={[styles.back, { width, height, borderRadius: radius }, style]}>
-            <View style={[styles.backFrame, { top: inset, left: inset, right: inset, bottom: inset, borderRadius: radius * 0.6 }]}>
+        <View style={[styles.back, { width, height, borderRadius: radius, backgroundColor: pal.bg, borderColor: pal.border }, style]}>
+            <View style={[styles.backFrame, { top: inset, left: inset, right: inset, bottom: inset, borderRadius: radius * 0.6, backgroundColor: pal.frame, borderColor: pal.line }]}>
                 {!tiny && (
                     <View style={styles.lattice} pointerEvents="none">
                         {Array.from({ length: 12 }).map((_, i) => (
@@ -70,6 +73,7 @@ export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style }) {
                                 style={[
                                     styles.latticeDiamond,
                                     {
+                                        borderColor: pal.lattice,
                                         width: width * 0.16,
                                         height: width * 0.16,
                                         left: `${(i % 3) * 38 + 6}%`,
@@ -80,9 +84,9 @@ export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style }) {
                         ))}
                     </View>
                 )}
-                <View style={[styles.medal, { width: medal, height: medal, borderRadius: medal / 2 }]}>
-                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5 }]} />
-                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, transform: [{ rotate: '45deg' }] }]} />
+                <View style={[styles.medal, { width: medal, height: medal, borderRadius: medal / 2, backgroundColor: pal.medal, borderColor: pal.medalBorder }]}>
+                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star }]} />
+                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star, transform: [{ rotate: '45deg' }] }]} />
                 </View>
             </View>
         </View>

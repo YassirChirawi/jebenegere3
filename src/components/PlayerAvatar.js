@@ -1,18 +1,24 @@
-import React, { useEffect } from 'react';
-import { View, StyleSheet, Image } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, StyleSheet, Image, Text } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withRepeat,
     withSequence,
     withTiming,
+    withSpring,
+    ZoomIn,
+    ZoomOut,
 } from 'react-native-reanimated';
+
+// Réactions d'avatar : petit saut quand on joue, émotions sur les moments forts
+const MOOD_EMOJI = { lose: '😭', kdoub: '😤', khasser: '🤡', win: '😎', proud: '😎', shock: '😱' };
 
 const COLORS = [
     '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366f1', '#14b8a6'
 ];
 
-export default function PlayerAvatar({ name, size = 40, active = false }) {
+export default function PlayerAvatar({ name, size = 40, active = false, mood }) {
     const colorIndex = name?.length > 0 ? name.charCodeAt(0) % COLORS.length : 0;
     const bgColor = COLORS[colorIndex];
     const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(name || 'Player')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
@@ -45,6 +51,34 @@ export default function PlayerAvatar({ name, size = 40, active = false }) {
         }
     }, [active]);
 
+    // Réaction : saut, secousse ou gonflement selon l'événement, avec un emoji qui apparaît
+    const hop = useSharedValue(0);
+    const wob = useSharedValue(0);
+    const puff = useSharedValue(1);
+    const [badge, setBadge] = useState(null);
+    useEffect(() => {
+        if (!mood) return undefined;
+        const t = mood.type;
+        if (t === 'play' || t === 'win' || t === 'proud') {
+            hop.value = withSequence(withTiming(-8, { duration: 110 }), withSpring(0, { damping: 6 }));
+        }
+        if (t === 'lose' || t === 'khasser' || t === 'shock') {
+            wob.value = withSequence(withTiming(-8, { duration: 60 }), withTiming(8, { duration: 60 }), withTiming(-6, { duration: 60 }), withTiming(6, { duration: 60 }), withTiming(0, { duration: 60 }));
+        }
+        if (t === 'kdoub') {
+            puff.value = withSequence(withTiming(1.3, { duration: 140 }), withSpring(1, { damping: 5 }));
+        }
+        if (MOOD_EMOJI[t]) {
+            setBadge({ id: mood.id, e: MOOD_EMOJI[t] });
+            const h = setTimeout(() => setBadge((b) => (b && b.id === mood.id ? null : b)), t === 'khasser' ? 3500 : 1700);
+            return () => clearTimeout(h);
+        }
+        return undefined;
+    }, [mood?.id]);
+    const moodStyle = useAnimatedStyle(() => ({
+        transform: [{ translateY: hop.value }, { rotateZ: `${wob.value}deg` }, { scale: puff.value }],
+    }));
+
     const ringStyle = useAnimatedStyle(() => ({
         position: 'absolute',
         width: size,
@@ -57,6 +91,7 @@ export default function PlayerAvatar({ name, size = 40, active = false }) {
     }));
 
     return (
+        <Animated.View style={moodStyle}>
         <View style={[
             styles.container,
             { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
@@ -70,6 +105,12 @@ export default function PlayerAvatar({ name, size = 40, active = false }) {
             {/* Animated golden pulse ring */}
             <Animated.View style={ringStyle} />
         </View>
+        {badge && (
+            <Animated.View key={badge.id} entering={ZoomIn.springify().damping(8)} exiting={ZoomOut.duration(150)} style={[styles.badge, { right: -size * 0.18, top: -size * 0.18 }]} pointerEvents="none">
+                <Text style={{ fontSize: Math.max(14, size * 0.42) }}>{badge.e}</Text>
+            </Animated.View>
+        )}
+        </Animated.View>
     );
 }
 
@@ -85,6 +126,10 @@ const styles = StyleSheet.create({
         shadowRadius: 5,
         elevation: 6,
         overflow: 'visible',
+    },
+    badge: {
+        position: 'absolute',
+        zIndex: 10,
     },
     activeAvatar: {
         borderColor: '#FFD700',

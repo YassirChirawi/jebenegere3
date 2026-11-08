@@ -22,7 +22,7 @@ const MAX_VISIBLE = 10;
  * Siège d'un adversaire : avatar, nom, nombre de cartes, mini-main en éventail.
  * position : 'top' | 'left' | 'right'
  */
-export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact, badge, badgeColor }) {
+export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact, badge, badgeColor, mood }) {
     const vertical = position !== 'top';
 
     // Petit "bump" du compteur quand le nombre de cartes change
@@ -41,7 +41,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
     return (
         <View style={[styles.seat, vertical && styles.seatVertical, compact && styles.seatCompact]}>
             <View style={styles.avatarWrap}>
-                <PlayerAvatar name={player?.name} size={vertical ? 44 : 46} active={active} />
+                <PlayerAvatar name={player?.name} size={vertical ? 44 : 46} active={active} mood={mood} />
                 {active && <Image source={MINT} style={styles.mint} />}
                 {finished && (
                     <Animated.View entering={ZoomIn.springify()} style={styles.finishedBadge}>

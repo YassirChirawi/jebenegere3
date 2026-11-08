@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { getRankInfo, getGameStats } from '../utils/stats';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
+import CustomizeSheet from '../components/CustomizeSheet';
 
 export default function ProfileScreen({ navigation }) {
     const [stats, setStats] = useState({
@@ -16,6 +17,7 @@ export default function ProfileScreen({ navigation }) {
     const [history, setHistory] = useState([]);
     const [rankInfo, setRankInfo] = useState(null);
     const [perGame, setPerGame] = useState({});
+    const [customize, setCustomize] = useState(false);
 
     useEffect(() => {
         loadStats();
@@ -69,7 +71,9 @@ export default function ProfileScreen({ navigation }) {
                     <Text style={styles.backBtnText}>⬅️ Retour</Text>
                 </TouchableOpacity>
                 <Text style={styles.title}>Mon Profil</Text>
-                <View style={{ width: 60 }} />
+                <TouchableOpacity style={styles.backBtn} onPress={() => setCustomize(true)}>
+                    <Text style={styles.backBtnText}>🎨 Style</Text>
+                </TouchableOpacity>
             </View>
 
             {/* Profile Info & XP */}
@@ -149,6 +153,7 @@ export default function ProfileScreen({ navigation }) {
                     )}
                 </ScrollView>
             </View>
+            <CustomizeSheet visible={customize} onClose={() => setCustomize(false)} />
         </ImageBackground>
     );
 }
