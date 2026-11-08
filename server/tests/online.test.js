@@ -1,6 +1,7 @@
 // Tests réseau de bout en bout : vrai serveur Socket.io + vrais clients.
 // Couvre les bugs remontés au test du 7 nov 2026 : matchmaking, Rejouer, abandon en cours de partie.
 process.env.MATCHMAKING_WAIT_MS = '1500'; // au lieu de 10 s, pour des tests rapides
+process.env.STORE = 'memory';
 
 const test = require('node:test');
 const assert = require('node:assert/strict');

@@ -3,14 +3,57 @@ const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { getEngine, normalizeType, engines } = require('./engines');
+const { createStore } = require('./progress/store');
+const { createProgress } = require('./progress/progress');
+const { tallyEvents, gameResults } = require('./progress/results');
 
 // Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
 const SERVER_VERSION = 3;
 
 const app = express();
 app.use(cors());
+app.use(express.json({ limit: '20kb' }));
 app.get('/', (_req, res) => res.send('Jeben Gere3 server OK'));
 app.get('/version', (_req, res) => res.json(serverInfo()));
+
+// === COMPTES ET PROGRESSION (phase 2) ===
+const store = createStore();
+const progress = createProgress(store);
+console.log(`[progress] stockage : ${store.kind}`);
+
+const bearer = (req) => (req.headers.authorization || '').replace(/^Bearer\s+/i, '') || null;
+const api = (fn) => async (req, res) => {
+    try { await fn(req, res); } catch (e) { console.error('[api]', e); res.status(500).json({ error: 'Erreur serveur' }); }
+};
+async function requireUser(req, res) {
+    const user = await progress.userFromToken(bearer(req));
+    if (!user) res.status(401).json({ error: 'Session expirée, reconnecte-toi.' });
+    return user;
+}
+app.post('/api/register', api(async (req, res) => {
+    const r = await progress.register(req.body || {});
+    res.status(r.error ? 400 : 200).json(r);
+}));
+app.post('/api/login', api(async (req, res) => {
+    const r = await progress.login({ ...(req.body || {}), ip: req.ip });
+    res.status(r.error ? 401 : 200).json(r);
+}));
+app.post('/api/logout', api(async (req, res) => {
+    await progress.logout(bearer(req));
+    res.json({ success: true });
+}));
+app.get('/api/me', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (user) res.json({ profile: await progress.profile(user) });
+}));
+app.post('/api/me', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (user) res.json({ profile: await progress.updateMe(user, req.body || {}) });
+}));
+app.get('/api/leaderboard', api(async (req, res) => {
+    const user = await progress.userFromToken(bearer(req));
+    res.json(await progress.leaderboard(String(req.query.game || 'all'), user));
+}));
 
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -31,7 +74,15 @@ const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
 const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts'] };
+}
+
+// Joueur d'une room : le pseudo du compte remplace le nom saisi quand le joueur est connecté
+function playerOf(socket, name) {
+    const u = socket.data.user;
+    return u
+        ? { id: socket.id, name: u.name, userId: u.userId, avatar: u.avatar, title: u.title }
+        : { id: socket.id, name: name || `Joueur ${socket.id.substring(0, 4)}` };
 }
 
 function generateRoomCode() {
@@ -81,6 +132,8 @@ function startGame(roomId, prevState = null) {
     const room = rooms[roomId];
     const engine = getEngine(room.gameType);
     room.gameState = engine.init(room.activePlayers.length, prevState);
+    if (!(room.gameType === 'ronda' && prevState && prevState.winnerTeam === null)) room.tally = {};
+    room.afkCount = {};
     if (room.debugHand && engine.rigSpecials) {
         const me = room.activePlayers.findIndex((p) => !p.isBot);
         if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me, room.debugHand);
@@ -108,6 +161,9 @@ function commitState(roomId, prev, next) {
     const engine = getEngine(room.gameType);
     room.gameState = next;
     room.version = (room.version || 0) + 1;
+    tallyEvents(room, next.events);
+
+    if (engine.isOver(next) && !engine.isOver(prev)) awardProgress(room, next);
 
     if (engine.isOver(next)) {
         if (room.timerInterval) clearInterval(room.timerInterval);
@@ -124,6 +180,16 @@ function commitState(roomId, prev, next) {
     } else {
         scheduleBots(roomId);
     }
+}
+
+// XP, stats, défis et titres des joueurs connectés (avant la rotation du Khasser)
+function awardProgress(room, state) {
+    gameResults(room, state).forEach(({ index, userId, entry }) => {
+        const socketId = room.activePlayers[index].id;
+        progress.award(userId, entry)
+            .then((r) => { if (r) io.to(socketId).emit('progress', { ...r, game: entry.game }); })
+            .catch((e) => console.error('[progress] award', e));
+    });
 }
 
 // Hezz2 : le Khasser laisse sa place à un spectateur
@@ -155,6 +221,11 @@ function resetTimer(roomId) {
             if (room.timeLeft <= 0) {
                 clearInterval(room.timerInterval);
                 const prev = room.gameState;
+                const late = prev.turn;
+                if (!prev.pendingAction && prev.phase !== 'window' && late !== null && late !== undefined && !room.activePlayers[late]?.isBot) {
+                    room.afkCount = room.afkCount || {};
+                    room.afkCount[late] = (room.afkCount[late] || 0) + 1;
+                }
                 const next = engine.onTimeout(prev);
                 if (next !== prev) commitState(roomId, prev, next);
                 else resetTimer(roomId);
@@ -211,7 +282,7 @@ const matchmakingTimer = setInterval(() => {
 
 function createMatchmakingRoom(gameType, targetSize, realPlayers) {
     const roomId = generateRoomCode();
-    const activePlayers = realPlayers.map((p) => ({ id: p.socketId, name: p.playerName }));
+    const activePlayers = realPlayers.map((p) => p.player || { id: p.socketId, name: p.playerName });
     realPlayers.forEach((p) => io.sockets.sockets.get(p.socketId)?.join(roomId));
     const botCount = targetSize - activePlayers.length;
     activePlayers.push(...makeBots(roomId, botCount));
@@ -229,6 +300,8 @@ function createMatchmakingRoom(gameType, targetSize, realPlayers) {
 
     const room = rooms[roomId];
     room.gameState = getEngine(gameType).init(targetSize, null);
+    room.tally = {};
+    room.afkCount = {};
     room.version = 1;
     realPlayers.forEach((p) => {
         const idx = activePlayers.findIndex((a) => a.id === p.socketId);
@@ -263,6 +336,10 @@ function removePlayer(roomId, socketId) {
 
     if (activeIdx !== -1) {
         const leaver = room.activePlayers[activeIdx];
+        if (inGame && leaver.userId) {
+            progress.recordAbandon(leaver.userId, room.gameType, room.activePlayers.filter((p) => p !== leaver).map((p) => p.name).join(', '))
+                .catch((e) => console.error('[progress] abandon', e));
+        }
         if (inGame) {
             room.activePlayers[activeIdx] = {
                 id: `bot_${roomId}_r${activeIdx}_${Date.now()}`,
@@ -306,6 +383,17 @@ io.on('connection', (socket) => {
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
     socket.emit('server_info', serverInfo());
 
+    // Compte : le client envoie son jeton (ou null pour se déconnecter)
+    socket.on('auth', async (data, callback) => {
+        try {
+            const user = data?.token ? await progress.userFromToken(data.token) : null;
+            socket.data.user = user ? progress.publicInfo(user) : null;
+            callback && callback({ success: !!user || !data?.token, user: socket.data.user });
+        } catch (e) {
+            callback && callback({ success: false });
+        }
+    });
+
     // --- SALON PRIVÉ ---
     socket.on('create_room', (data, callback) => {
         const { playerName = 'Hôte', gameType } = data || {};
@@ -314,7 +402,7 @@ io.on('connection', (socket) => {
             id: roomId,
             gameType: normalizeType(gameType),
             hostId: socket.id,
-            activePlayers: [{ id: socket.id, name: playerName }],
+            activePlayers: [playerOf(socket, playerName)],
             spectators: [],
             gameState: null,
         };
@@ -334,7 +422,7 @@ io.on('connection', (socket) => {
             id: roomId,
             gameType: type,
             hostId: socket.id,
-            activePlayers: [{ id: socket.id, name: playerName }, ...makeBots(roomId, size - 1, 1)],
+            activePlayers: [playerOf(socket, playerName), ...makeBots(roomId, size - 1, 1)],
             spectators: [],
             gameState: null,
             isBotMatch: true,
@@ -344,6 +432,8 @@ io.on('connection', (socket) => {
 
         const room = rooms[roomId];
         room.gameState = engine.init(size, null);
+        room.tally = {};
+        room.afkCount = {};
         // Mode test (parties contre bots uniquement) : main forcée avec des 1, 2 et 7, ou grosse main de 20 cartes
         if (['specials', 'big'].includes(data?.debugHand) && engine.rigSpecials) {
             room.debugHand = data.debugHand;
@@ -364,7 +454,7 @@ io.on('connection', (socket) => {
             return;
         }
         const engine = getEngine(room.gameType);
-        const newPlayer = { id: socket.id, name: playerName || `Joueur ${socket.id.substring(0, 4)}` };
+        const newPlayer = playerOf(socket, playerName);
         const inGame = room.gameState && !engine.isOver(room.gameState);
 
         if (!inGame && room.activePlayers.length < engine.maxPlayers) {
@@ -393,7 +483,7 @@ io.on('connection', (socket) => {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
         const key = `${type}:${targetSize}`;
-        (matchmakingQueues[key] = matchmakingQueues[key] || []).push({ socketId: socket.id, playerName, joinedAt: Date.now() });
+        (matchmakingQueues[key] = matchmakingQueues[key] || []).push({ socketId: socket.id, playerName, player: playerOf(socket, playerName), joinedAt: Date.now() });
         console.log(`[MATCHMAKING] ${playerName} cherche ${key}`);
         callback && callback({ success: true });
     });
@@ -511,6 +601,7 @@ function start(port = process.env.PORT || 3000) {
 
 function stop() {
     clearInterval(matchmakingTimer);
+    store.flushNow && store.flushNow();
     Object.values(rooms).forEach((r) => r.timerInterval && clearInterval(r.timerInterval));
     io.close();
     return new Promise((resolve) => server.close(() => resolve()));
@@ -518,4 +609,4 @@ function stop() {
 
 if (require.main === module) start();
 
-module.exports = { rooms, start, stop, SERVER_VERSION };
+module.exports = { rooms, start, stop, SERVER_VERSION, progress, store, _commitState: (roomId, prev, next) => commitState(roomId, prev, next) };
