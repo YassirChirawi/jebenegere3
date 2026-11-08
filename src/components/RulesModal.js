@@ -166,7 +166,7 @@ export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
                             <Text style={styles.ruleIcon}>1️⃣</Text>
                             <View style={styles.ruleTextContainer}>
                                 <Text style={styles.ruleName}>Carte 1</Text>
-                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 3 secondes : l'attaque rebondit alors sur le joueur d'après.</Text>
+                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 5 secondes : l'attaque rebondit alors sur le joueur d'après.</Text>
                             </View>
                         </View>
 

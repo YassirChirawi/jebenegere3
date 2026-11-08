@@ -128,7 +128,7 @@ export default function GameScreen({ route, navigation }) {
         if (me >= 0 && state.turn === me && !state.mancheTerminee) {
             later(() => {
                 audioService.playSound('your_turn');
-                showBanner({ text: 'À TOI DE JOUER !', color: theme.gold });
+                showBanner({ text: 'À TOI DE JOUER !', color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
             }, 1500);
         }
     };
@@ -280,6 +280,12 @@ export default function GameScreen({ route, navigation }) {
             }, 1100);
         }
 
+        // Anti-blocage : un joueur absent a joué automatiquement
+        if (gameState.autoPlay && gameState.autoPlay.n !== prev.autoPlay?.n) {
+            const who = gameState.autoPlay.player === me ? 'Tu ne joues pas' : `${gameState.players?.[gameState.autoPlay.player]?.name || 'Un joueur'} ne joue pas`;
+            showToast(`⏱️ ${who} : coup joué automatiquement`, '#F59E0B');
+        }
+
         // 5) C'est à moi de jouer
         if (player && !gameState.mancheTerminee && gameState.turn === me && (prev.turn !== me || (!prev.pendingAction && gameState.pendingAction))) {
             const delay = isInitialDeal ? 1300 : 250;
@@ -287,13 +293,13 @@ export default function GameScreen({ route, navigation }) {
                 haptic('medium');
                 if (gameState.pendingAction?.type === 'skip_response') {
                     audioService.playSound('penalty');
-                    showBanner({ text: 'DÉFENDS-TOI !', sub: 'Joue un 1 vite, sinon tu sautes ton tour', color: '#B91C1C', textColor: '#fff' });
+                    showBanner({ text: 'DÉFENDS-TOI !', sub: 'Joue un 1 vite, sinon tu sautes ton tour', color: '#B91C1C', textColor: '#fff', top: land ? '1%' : '64%', hold: 1000 });
                 } else if (gameState.drawPenalty > 0) {
                     audioService.playSound('your_turn');
-                    showBanner({ text: `+${gameState.drawPenalty} POUR TOI !`, sub: 'Contre avec un 2 ou pioche', color: '#EA580C', textColor: '#fff' });
+                    showBanner({ text: `+${gameState.drawPenalty} POUR TOI !`, sub: 'Contre avec un 2 ou pioche', color: '#EA580C', textColor: '#fff', top: land ? '1%' : '64%', hold: 900 });
                 } else {
                     audioService.playSound('your_turn');
-                    showBanner({ text: 'À TOI DE JOUER !', color: theme.gold });
+                    showBanner({ text: 'À TOI DE JOUER !', color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
                 }
             }, delay);
         }

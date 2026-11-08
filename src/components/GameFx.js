@@ -43,7 +43,7 @@ export function TurnBanner({ banner }) {
     if (!banner) return null;
 
     return (
-        <View pointerEvents="none" style={styles.bannerWrap}>
+        <View pointerEvents="none" style={[styles.bannerWrap, banner.top ? { top: banner.top } : null]}>
             <Animated.View style={[styles.banner, { backgroundColor: banner.color || theme.gold }, style]}>
                 <View style={styles.bannerStripe} />
                 <Text style={[styles.bannerText, { color: banner.textColor || theme.bg }]}>{banner.text}</Text>

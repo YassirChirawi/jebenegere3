@@ -10,21 +10,44 @@ function init(numPlayers, prev = null) {
     return s;
 }
 
-function apply(state, p, action) {
+function rawApply(state, p, action) {
     if (!action) return state;
     if (action.type === 'play') return playCard(state, p, action.cardIndex, action.newSuitFor7);
     if (action.type === 'draw') return drawCards(state, p);
     return state;
 }
 
+// Une vraie action du joueur remet son compteur d'inactivité à zéro
+function apply(state, p, action) {
+    const next = rawApply(state, p, action);
+    if (next !== state && state.afk?.[p]) next.afk = { ...state.afk, [p]: 0 };
+    return next;
+}
+
+// Anti-blocage : après 2 tours sans jouer, le joueur absent joue automatiquement (comme un bot)
+// au lieu de piocher indéfiniment ; la partie avance et se termine.
+const AFK_AUTOPLAY_AFTER = 2;
+const DEFENSE_SECONDS = 5;
+
 function timerFor(s) {
     if (s.mancheTerminee) return null;
-    return s.pendingAction ? 3 : 15;
+    if (s.pendingAction) return DEFENSE_SECONDS;
+    return (s.afk?.[s.turn] || 0) >= AFK_AUTOPLAY_AFTER ? 8 : 15;
 }
 
 function onTimeout(s) {
     if (s.pendingAction) return applyPendingAction(s);
-    return drawCards(s, s.turn);
+    const p = s.turn;
+    const missed = (s.afk?.[p] || 0) + 1;
+    let next = null;
+    if (missed >= AFK_AUTOPLAY_AFTER) {
+        const [auto] = botActions(s, () => true).filter((a) => a.action);
+        if (auto) next = rawApply(s, p, auto.action);
+        if (next === s) next = null;
+        if (next) next.autoPlay = { player: p, n: (s.autoPlay?.n || 0) + 1 };
+    }
+    if (!next) next = drawCards(s, p);
+    return { ...next, afk: { ...(s.afk || {}), [p]: missed } };
 }
 
 // IA historique : normale > 2 > 1 > 7, défense prioritaire, 7 vers la famille la plus fournie

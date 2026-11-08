@@ -28,12 +28,15 @@ const PLAY_DRAG_THRESHOLD = -70;
  */
 export function computeFan(entries, stageW, land) {
     const count = entries.length;
-    const avail = land ? Math.max(260, stageW - 300) : stageW - 28;
+    const mid = (count - 1) / 2;
+    // Grosse main : éventail plus plat (moins de débord des cartes inclinées du bout)
+    const angleStep = count > 1 ? Math.min(6, (count > 10 ? 26 : 40) / count) : 0;
+    // Une carte inclinée dépasse sur le côté : on réserve cette marge pour que les cartes du bout restent entières
+    const overhang = (HAND_CARD_H / 2) * Math.sin((angleStep * mid * Math.PI) / 180) + 6;
+    const avail = (land ? Math.max(260, stageW - 300) : stageW - 28) - 2 * overhang;
     const step = count > 1 ? Math.min(HAND_CARD_W * 0.78, (avail - HAND_CARD_W) / (count - 1)) : 0;
     const totalW = step * (count - 1) + HAND_CARD_W;
     const startX = (stageW - totalW) / 2;
-    const angleStep = count > 1 ? Math.min(6, 40 / count) : 0;
-    const mid = (count - 1) / 2;
     const arc = (i) => (1 - Math.cos((((i - mid) * angleStep) * Math.PI) / 180)) * 420;
     // Les cartes du bord restent sur la ligne de base et le centre se soulève :
     // rien ne dépasse sous l'écran (main coupée en bas sur ordinateur sinon)
