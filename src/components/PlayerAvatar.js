@@ -18,10 +18,12 @@ const COLORS = [
     '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366f1', '#14b8a6'
 ];
 
-export default function PlayerAvatar({ name, size = 40, active = false, mood }) {
+export default function PlayerAvatar({ name, size = 40, active = false, mood, variant = 0 }) {
     const colorIndex = name?.length > 0 ? name.charCodeAt(0) % COLORS.length : 0;
     const bgColor = COLORS[colorIndex];
-    const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(name || 'Player')}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
+    // variant : avatar choisi dans le profil (0 = avatar d'origine, tiré du pseudo)
+    const seed = variant ? `${name || 'Player'}-${variant}` : (name || 'Player');
+    const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
 
     // Pulse ring animation
     const pulseScale = useSharedValue(1);

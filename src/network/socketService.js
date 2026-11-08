@@ -2,7 +2,7 @@ import { io } from 'socket.io-client';
 
 // Replace with the computer's actual local IPv4 address so your phone can reach it on the Wi-Fi
 // Serveur de prod sur render.com ; surcharge possible avec EXPO_PUBLIC_SOCKET_URL (ex : http://192.168.1.10:3000)
-const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'https://jebenegere3.onrender.com/';
+export const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'https://jebenegere3.onrender.com/';
 
 class SocketService {
     socket;
@@ -23,7 +23,10 @@ class SocketService {
 
         this.socket.on('connect', () => {
             console.log('Connecté au serveur Socket.io avec ID:', this.socket.id);
+            this._sendAuth(); // compte joueur : ré-authentification à chaque (re)connexion
         });
+        // Progression envoyée par le serveur en fin de partie (XP, défis, titres)
+        this.socket.on('progress', (p) => (this.progressListeners || []).forEach((fn) => fn(p)));
 
         this.socket.on('disconnect', () => {
             console.log('Déconnecté du serveur.');
@@ -47,6 +50,32 @@ class SocketService {
         }
         this.socket.disconnect();
         setTimeout(() => this.socket && this.socket.connect(), 150);
+    }
+
+    // --- Compte joueur ---
+    setAuthToken(token) {
+        this.authToken = token || null;
+        this._sendAuth();
+    }
+
+    _sendAuth() {
+        if (!this.socket?.connected || (this.serverInfo && !this.supports('accounts'))) {
+            this.authReady = Promise.resolve();
+            return;
+        }
+        this.authReady = new Promise((resolve) => {
+            this.socket.timeout(4000).emit('auth', { token: this.authToken }, () => resolve());
+        });
+    }
+
+    // Les actions qui créent un joueur attendent que le compte soit reconnu par le serveur
+    _afterAuth(fn) {
+        (this.authReady || Promise.resolve()).then(fn);
+    }
+
+    onProgress(callback) {
+        this.progressListeners = [...(this.progressListeners || []), callback];
+        return () => { this.progressListeners = (this.progressListeners || []).filter((f) => f !== callback); };
     }
 
     supports(feature) {
@@ -77,21 +106,21 @@ class SocketService {
 
     // -- ROOM ACTIONS --
     createRoom(playerName, gameType, callback) {
-        this.socket.emit('create_room', { playerName, gameType }, callback);
+        this._afterAuth(() => this.socket.emit('create_room', { playerName, gameType }, callback));
     }
 
     createBotRoom(playerName, botCount, gameType, callback, options = {}) {
-        this._emitAck('create_bot_room', { playerName, botCount, gameType, ...options }, callback, 10000, 'Le serveur ne répond pas.');
+        this._afterAuth(() => this._emitAck('create_bot_room', { playerName, botCount, gameType, ...options }, callback, 10000, 'Le serveur ne répond pas.'));
     }
 
     joinRoom(roomId, playerName, callback) {
-        this.socket.emit('join_room', { roomId, playerName }, callback);
+        this._afterAuth(() => this.socket.emit('join_room', { roomId, playerName }, callback));
     }
 
     // -- MATCHMAKING ACTIONS --
     findMatch(playerName, targetSize, gameType, callback) {
-        this._emitAck('find_match', { playerName, targetSize, gameType }, callback, 6000,
-            "Le serveur ne répond pas au matchmaking. Il n'est sans doute pas à jour (à redéployer).");
+        this._afterAuth(() => this._emitAck('find_match', { playerName, targetSize, gameType }, callback, 6000,
+            "Le serveur ne répond pas au matchmaking. Il n'est sans doute pas à jour (à redéployer)."));
     }
 
     cancelMatch() {

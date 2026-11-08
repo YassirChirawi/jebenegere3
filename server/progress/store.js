@@ -56,11 +56,11 @@ function fileStore(file) {
     };
 }
 
-function pgStore(url) {
-    // Chargé seulement si une base est configurée
+function pgStore(url, PoolImpl) {
+    // Chargé seulement si une base est configurée (PoolImpl : pour les tests)
     // eslint-disable-next-line global-require
-    const { Pool } = require('pg');
-    const pool = new Pool({ connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: 5 });
+    const Pool = PoolImpl || require('pg').Pool;
+    const pool = new Pool(PoolImpl ? {} : { connectionString: url, ssl: /localhost|127\.0\.0\.1/.test(url) ? false : { rejectUnauthorized: false }, max: 5 });
     const ready = pool.query(`
         CREATE TABLE IF NOT EXISTS players (
             id TEXT PRIMARY KEY,
@@ -104,4 +104,4 @@ function createStore() {
     return fileStore(process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'players.json'));
 }
 
-module.exports = { createStore, memoryStore, fileStore };
+module.exports = { createStore, memoryStore, fileStore, pgStore };

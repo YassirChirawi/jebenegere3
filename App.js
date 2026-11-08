@@ -12,6 +12,9 @@ import RondaScreen from './src/screens/RondaScreen';
 import KdoubScreen from './src/screens/KdoubScreen';
 import SotaScreen from './src/screens/SotaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
+import LeaderboardScreen from './src/screens/LeaderboardScreen';
+import ProgressToaster from './src/components/ProgressToaster';
+import accountService from './src/network/accountService';
 import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
@@ -43,7 +46,7 @@ export default function App() {
   useEffect(() => {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
     audioService.ready.then(() => audioService.startMusic('menu'));
-    loadCosmetics();
+    loadCosmetics().then(() => accountService.init());
 
     const subscription = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {
@@ -79,9 +82,11 @@ export default function App() {
               <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé', headerShown: false }} />
               <Stack.Screen name="Game" component={GameRouter} options={{ title: 'Partie en cours', headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
+              <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Classement', headerShown: false }} />
             </Stack.Navigator>
           </NavigationContainer>
           <DialogHost />
+          <ProgressToaster />
         </GestureHandlerRootView>
       </View>
     </View>

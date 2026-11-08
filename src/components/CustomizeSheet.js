@@ -6,7 +6,7 @@ import { theme, haptic } from './ui';
 import audioService from '../network/audioService';
 import { GAMES, GAME_ORDER } from '../games';
 import {
-    BACKS, FELTS, UNLOCK, isUnlocked, useCosmetics, refreshXp,
+    BACKS, FELTS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
     setBack, setFelt, setVibration, backPalette,
 } from '../utils/cosmetics';
 
@@ -35,7 +35,7 @@ export default function CustomizeSheet({ visible, onClose }) {
                         <Text style={styles.title}>🎨 Personnaliser</Text>
                         <Pressable onPress={onClose} hitSlop={10}><Text style={styles.close}>✕</Text></Pressable>
                     </View>
-                    <Text style={styles.xp}>{cos.xp} XP · les rangs débloquent de nouveaux dos et tapis</Text>
+                    <Text style={styles.xp}>{cos.xp} XP · les rangs, les défis du jour et les saisons débloquent de nouveaux dos et tapis</Text>
 
                     <View style={styles.tabs}>
                         {[['backs', 'Dos de cartes'], ['felts', 'Tapis'], ['settings', 'Réglages']].map(([k, label]) => (
@@ -49,11 +49,11 @@ export default function CustomizeSheet({ visible, onClose }) {
                         {tab === 'backs' && (
                             <View style={styles.grid}>
                                 {Object.entries(BACKS).map(([id, b]) => {
-                                    const open = isUnlocked(b.unlock, cos.xp);
+                                    const open = itemUnlocked(b, `back:${id}`, cos);
                                     const on = cos.back === id;
                                     return (
                                         <Pressable key={id} onPress={() => choose(setBack(id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>
-                                            <CardBack width={54} height={78} palette={backPalette({ ...cos, back: id }, cos.game)} />
+                                            <CardBack width={54} height={78} palette={b.perGame ? backPalette({ ...cos, back: 'game' }, cos.game) : b} />
                                             <Text style={styles.itemLabel}>{b.label}</Text>
                                             <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : `🔒 ${UNLOCK[b.unlock].label}`}</Text>
                                         </Pressable>
@@ -73,7 +73,7 @@ export default function CustomizeSheet({ visible, onClose }) {
                                 </View>
                                 <View style={styles.grid}>
                                     {(FELTS[feltGame] || []).map((f, i) => {
-                                        const open = isUnlocked(f.unlock, cos.xp);
+                                        const open = itemUnlocked(f, `felt:${feltGame}:${f.id}`, cos);
                                         const on = (cos.felts[feltGame] || 'default') === f.id;
                                         return (
                                             <Pressable key={f.id} onPress={() => choose(setFelt(feltGame, f.id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>

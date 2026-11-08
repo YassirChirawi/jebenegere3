@@ -13,6 +13,10 @@ export const UNLOCK = {
     zmagri: { xp: 201, label: 'Rang Zmagri 🥉' },
     fchkel: { xp: 501, label: 'Rang fchkel 🥈' },
     chdid: { xp: 1001, label: 'Rang chdid 🥇' },
+    // Récompenses de défis, de saison et de tournoi (liste "unlocks" du compte)
+    challenge: { xp: Infinity, label: 'Défi du jour 🎯' },
+    season: { xp: Infinity, label: 'Top 10 de la saison 🏆' },
+    tournament: { xp: Infinity, label: 'Gagner un tournoi 🏅' },
 };
 
 // Palettes de dos : fond, cadre, filets, médaillon, étoile
@@ -22,6 +26,11 @@ export const BACKS = {
     gold: { label: 'Doré', unlock: 'free', bg: '#A67C1A', frame: '#C9A23A', border: '#FFF1B8', line: 'rgba(90, 50, 5, 0.6)', lattice: 'rgba(90, 50, 5, 0.25)', medal: '#5B3A0A', medalBorder: '#FFE08A', star: '#FFE08A' },
     zellige: { label: 'Zellige', unlock: 'fchkel', bg: '#0E4D5C', frame: '#11606F', border: '#F5D77A', line: 'rgba(255, 255, 255, 0.55)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#0A3540', medalBorder: '#6EE7B7', star: '#F5D77A' },
     nuit: { label: 'Nuit étoilée', unlock: 'chdid', bg: '#0F0A2A', frame: '#1A1340', border: '#E3BF5A', line: 'rgba(227, 191, 90, 0.7)', lattice: 'rgba(196, 181, 253, 0.3)', medal: '#2E1065', medalBorder: '#C4B5FD', star: '#FDE68A' },
+    menthe: { label: 'Thé à la menthe', unlock: 'challenge', bg: '#0F5E3A', frame: '#13704A', border: '#E5E7EB', line: 'rgba(209, 250, 229, 0.7)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#C0C0C0', medalBorder: '#F9FAFB', star: '#0F5E3A' },
+    cuivre: { label: 'Cuivre martelé', unlock: 'challenge', bg: '#7C3A12', frame: '#94481A', border: '#FCD9B6', line: 'rgba(252, 217, 182, 0.65)', lattice: 'rgba(252, 217, 182, 0.3)', medal: '#4A2008', medalBorder: '#F59E0B', star: '#FCD9B6' },
+    rose: { label: 'Rose de Kelaa', unlock: 'challenge', bg: '#9D174D', frame: '#B01E5A', border: '#FBCFE8', line: 'rgba(251, 207, 232, 0.7)', lattice: 'rgba(251, 207, 232, 0.3)', medal: '#5B0B2C', medalBorder: '#F9A8D4', star: '#FDE68A' },
+    saison: { label: 'Saison (top 10)', unlock: 'season', bg: '#1E1B4B', frame: '#2E2A6B', border: '#FDE68A', line: 'rgba(253, 230, 138, 0.85)', lattice: 'rgba(253, 230, 138, 0.35)', medal: '#B45309', medalBorder: '#FDE68A', star: '#FFFBEB' },
+    tournoi: { label: 'Champion de tournoi', unlock: 'tournament', bg: '#111111', frame: '#1C1C1C', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.3)', medal: '#D4AF37', medalBorder: '#FFF7D6', star: '#111111' },
 };
 
 // Dos "couleurs du jeu"
@@ -38,27 +47,37 @@ export const FELTS = {
         { id: 'default', label: 'Vert café', unlock: 'free', color: '#0E5A2E', strength: 0.62 },
         { id: 'cuivre', label: 'Cuivre', unlock: 'zmagri', color: '#8A4513', strength: 0.6 },
         { id: 'majorelle', label: 'Bleu Majorelle', unlock: 'fchkel', color: '#1D3FD8', strength: 0.55 },
+        { id: 'tadelakt', label: 'Tadelakt', unlock: 'challenge', color: '#A0522D', strength: 0.5 },
     ],
     ronda: [
         { id: 'default', label: 'Bleu nuit', unlock: 'free', color: '#0B2259', strength: 0.5 },
         { id: 'menthe', label: 'Vert menthe', unlock: 'zmagri', color: '#047857', strength: 0.6 },
         { id: 'sable', label: 'Sable du désert', unlock: 'fchkel', color: '#8B6A2B', strength: 0.6 },
+        { id: 'safran', label: 'Safran', unlock: 'challenge', color: '#C2410C', strength: 0.55 },
     ],
     kdoub: [
         { id: 'default', label: 'Rouge sombre', unlock: 'free', color: '#6B0F18', strength: 0.66 },
         { id: 'epice', label: 'Épices', unlock: 'zmagri', color: '#9A3412', strength: 0.62 },
         { id: 'encre', label: 'Encre noire', unlock: 'fchkel', color: '#1F1A24', strength: 0.7 },
+        { id: 'braise', label: 'Braise', unlock: 'challenge', color: '#B91C1C', strength: 0.6 },
     ],
     sota: [
         { id: 'default', label: 'Violet nuit', unlock: 'free', color: '#3B0A6B', strength: 0.64 },
         { id: 'prune', label: 'Prune', unlock: 'zmagri', color: '#6B1D4F', strength: 0.62 },
         { id: 'indigo', label: 'Indigo', unlock: 'fchkel', color: '#1E1B5B', strength: 0.64 },
+        { id: 'lavande', label: 'Lavande', unlock: 'challenge', color: '#7C3AED', strength: 0.55 },
     ],
 };
 
 export const isUnlocked = (unlock, xp) => (xp || 0) >= (UNLOCK[unlock]?.xp ?? 0);
 
-let state = { back: 'classic', felts: {}, xp: 0, game: 'hezz2', vibration: true, loaded: false };
+// Un élément est disponible si le rang est atteint, ou s'il figure dans les récompenses du compte
+// key : 'back:menthe' ou 'felt:hezz2:tadelakt'
+export const itemUnlocked = (item, key, s = state) => (
+    ['challenge', 'season', 'tournament'].includes(item.unlock) ? (s.unlocks || []).includes(key) : isUnlocked(item.unlock, s.xp)
+);
+
+let state = { back: 'classic', felts: {}, xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
 const save = () => AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, vibration: state.vibration })).catch(() => {});
@@ -78,13 +97,19 @@ export async function loadCosmetics() {
 
 export async function refreshXp() {
     try {
-        state = { ...state, xp: parseInt((await AsyncStorage.getItem('playerXP')) || '0', 10) };
+        state = { ...state, xp: Math.max(state.xp || 0, parseInt((await AsyncStorage.getItem('playerXP')) || '0', 10)) };
         emit();
     } catch (e) { /* ignore */ }
 }
 
+// Profil serveur : récompenses débloquées et XP
+export function setUnlocks(unlocks, xp) {
+    state = { ...state, unlocks: unlocks || [], ...(xp !== null && xp !== undefined ? { xp } : {}) };
+    emit();
+}
+
 export function setBack(id) {
-    if (!BACKS[id] || !isUnlocked(BACKS[id].unlock, state.xp)) return false;
+    if (!BACKS[id] || !itemUnlocked(BACKS[id], `back:${id}`)) return false;
     state = { ...state, back: id };
     save();
     emit();
@@ -93,7 +118,7 @@ export function setBack(id) {
 
 export function setFelt(game, id) {
     const f = (FELTS[game] || []).find((x) => x.id === id);
-    if (!f || !isUnlocked(f.unlock, state.xp)) return false;
+    if (!f || !itemUnlocked(f, `felt:${game}:${id}`)) return false;
     state = { ...state, felts: { ...state.felts, [game]: id } };
     save();
     emit();
@@ -116,7 +141,7 @@ export function setCurrentGame(game) {
 
 export function backPalette(s = state, game = s.game) {
     let id = s.back;
-    if (!BACKS[id] || !isUnlocked(BACKS[id].unlock, s.xp)) id = 'classic';
+    if (!BACKS[id] || !itemUnlocked(BACKS[id], `back:${id}`, s)) id = 'classic';
     if (BACKS[id].perGame) return GAME_BACKS[game] || GAME_BACKS.hezz2;
     return BACKS[id];
 }
@@ -124,7 +149,7 @@ export function backPalette(s = state, game = s.game) {
 export function feltFor(game, s = state) {
     const list = FELTS[game] || FELTS.hezz2;
     const chosen = list.find((f) => f.id === s.felts?.[game]);
-    return chosen && isUnlocked(chosen.unlock, s.xp) ? chosen : list[0];
+    return chosen && itemUnlocked(chosen, `felt:${game}:${chosen.id}`, s) ? chosen : list[0];
 }
 
 export function useCosmetics() {

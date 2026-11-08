@@ -41,7 +41,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
     return (
         <View style={[styles.seat, vertical && styles.seatVertical, compact && styles.seatCompact]}>
             <View style={styles.avatarWrap}>
-                <PlayerAvatar name={player?.name} size={vertical ? 44 : 46} active={active} mood={mood} />
+                <PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={vertical ? 44 : 46} active={active} mood={mood} />
                 {active && <Image source={MINT} style={styles.mint} />}
                 {finished && (
                     <Animated.View entering={ZoomIn.springify()} style={styles.finishedBadge}>

@@ -90,6 +90,9 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
 - Si le serveur est trop ancien, l'accueil affiche **« Le serveur en ligne n'est pas à jour »** et désactive le jeu en ligne, au lieu de chercher dans le vide.
 - Après chaque changement dans `server/`, il faut **redéployer le service Render**, depuis la branche `main` et avec le dossier racine `server`. Pour vérifier le déploiement, `https://jebenegere3.onrender.com/version` doit répondre avec un JSON qui contient `"version"`.
 - Variable d'environnement facultative : `MATCHMAKING_WAIT_MS`, le délai avant de compléter la table avec des bots (10 000 ms par défaut).
+- **Comptes joueurs (phase 2)** : il faut définir la variable `DATABASE_URL`, qui pointe vers une base PostgreSQL, par exemple une base gratuite Neon, Supabase ou Render Postgres. La table `players` est créée toute seule au démarrage.
+  - Sans `DATABASE_URL`, les comptes sont enregistrés dans `server/data/players.json`. **Sur Render, ce fichier est effacé à chaque redéploiement ou redémarrage** : cette solution ne convient donc qu'en local.
+  - Au démarrage, le journal de Render indique le stockage utilisé : `[progress] stockage : postgres`.
 
 ## Mode test (web)
 
@@ -104,6 +107,24 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
 - **Kdoub** : une carte est posée au hasard à la fin du chrono, avec une limite de 40 s.
 - **Sota Ghamla** : une carte est piochée au hasard à la fin du chrono.
 - La fenêtre pour contrer un 1 en Hezz2 dure **5 s**.
+
+## Premium, phase 2 : progression et récompenses
+
+- **Compte** : un pseudo de 3 à 16 caractères et un mot de passe d'au moins 6 caractères, sans email.
+  - Le mot de passe est haché avec scrypt, et les essais sont limités.
+  - L'XP de l'appareil est reprise à l'inscription, jusqu'à 3 000 XP.
+  - Sans compte, le jeu fonctionne comme avant, avec une progression locale.
+- **Le serveur calcule la progression** à partir des parties qu'il arbitre, avec les mêmes règles d'XP qu'avant. Il tient à jour :
+  - les statistiques par jeu : parties jouées, victoires, défaites, taux de victoire, meilleure série ;
+  - les coups spéciaux : Darba, Hbel, Boug, Missa, KDOUB criés, menteurs démasqués, Sota évitée, 1ʳᵉ place en Hezz2 ;
+  - l'historique des 30 dernières parties : jeu, résultat, XP, date et adversaires.
+- **Abandons et absences** : un abandon en cours de partie compte comme une défaite, sans XP. Une partie jouée en automatique, avec plus de 3 tours manqués, ne rapporte pas d'XP.
+- **Défis du jour** : 3 défis par jour, renouvelés à minuit, heure du Maroc. Chacun rapporte des XP et débloque un dos ou un tapis exclusif.
+- **Titres** : 7 titres. On choisit dans le Profil celui qui s'affiche, et il apparaît aussi dans les salons.
+- **Rangs** : les 5 rangs existants sont conservés. L'Boss va désormais jusqu'à 5 000 XP, puis viennent Mo3allem, Sultan dyal l'karta et L'Ostora.
+- **Saison de 4 semaines** : un classement général et un classement par jeu, avec le pseudo seulement. En fin de saison, le top 10 reçoit un dos exclusif et un badge.
+- **Avatars** : on peut choisir parmi 8 avatars.
+- Les définitions des rangs, défis, titres et récompenses sont regroupées dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
 
 ## Premium, phase 1 : visuel et animations
 

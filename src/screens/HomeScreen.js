@@ -23,6 +23,7 @@ import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { getRankInfo } from '../utils/stats';
+import accountService, { useAccount } from '../network/accountService';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
@@ -103,6 +104,11 @@ export default function HomeScreen({ navigation }) {
     const [wakeSeconds, setWakeSeconds] = useState(0);
     const [hasConnected, setHasConnected] = useState(false);
     const [rankInfo, setRankInfo] = useState(null);
+    const account = useAccount();
+    const profile = account.profile;
+    // Connecté : le pseudo est celui du compte
+    useEffect(() => { if (profile?.name) setName(profile.name); }, [profile?.name]);
+    useEffect(() => { if (profile) setRankInfo(getRankInfo(profile.xp)); }, [profile?.xp]);
 
     // Matchmaking
     const [isSearching, setIsSearching] = useState(false);
@@ -179,7 +185,7 @@ export default function HomeScreen({ navigation }) {
             } catch (e) { /* ignore */ }
         };
         loadXp();
-        return navigation.addListener('focus', loadXp);
+        return navigation.addListener('focus', () => { loadXp(); accountService.refresh(); });
     }, [navigation]);
 
     const requireName = () => {
@@ -333,7 +339,10 @@ export default function HomeScreen({ navigation }) {
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     {/* En-tête */}
                     <View style={styles.header}>
-                        <IconButton icon="👤" onPress={() => navigation.navigate('Profile')} label="Profil" size={44} />
+                        <View style={styles.headerRight}>
+                            <IconButton icon="👤" onPress={() => navigation.navigate('Profile')} label="Profil" size={44} />
+                            <IconButton icon="🏆" onPress={() => navigation.navigate('Leaderboard')} label="Classement" size={44} />
+                        </View>
                         <View style={styles.headerRight}>
                             <IconButton icon={musicOn ? '🎵' : '🎶'} onPress={() => audioService.toggleMusic()} label="Musique" size={44} style={!musicOn && styles.iconOff} />
                             <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={() => audioService.toggleMute()} label="Son" size={44} />
@@ -381,16 +390,17 @@ export default function HomeScreen({ navigation }) {
 
                         {/* Pseudo + rang */}
                         <View style={styles.nameRow}>
-                            <PlayerAvatar name={name || 'Joueur'} size={52} />
+                            <PlayerAvatar name={name || 'Joueur'} variant={profile?.avatar || 0} size={52} />
                             <View style={{ flex: 1, marginLeft: 12 }}>
-                                <Text style={styles.label}>TON PSEUDO</Text>
+                                <Text style={styles.label}>{profile ? 'CONNECTÉ · TON COMPTE' : 'TON PSEUDO'}</Text>
                                 <TextInput
-                                    style={styles.input}
+                                    style={[styles.input, profile && { opacity: 0.8 }]}
                                     placeholder="Ex : Yassir…"
                                     placeholderTextColor={theme.textDim}
                                     value={name}
                                     onChangeText={setName}
-                                    maxLength={15}
+                                    editable={!profile}
+                                    maxLength={16}
                                 />
                             </View>
                         </View>
@@ -403,6 +413,18 @@ export default function HomeScreen({ navigation }) {
                                 <Text style={styles.rankXp}>{rankInfo.currentXP} XP</Text>
                             </PressableScale>
                         )}
+                        <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
+                            {profile ? (
+                                <Text style={styles.rankText}>
+                                    🎯 Défis du jour : {profile.daily.list.filter((c) => c.done).length}/3
+                                    <Text style={{ color: theme.textDim, fontWeight: '700' }}>
+                                        {'  '}{(profile.daily.list.find((c) => !c.done) || {}).label || 'Tous relevés, bravo !'}
+                                    </Text>
+                                </Text>
+                            ) : (
+                                <Text style={styles.rankText}>🔐 Crée ton compte : défis du jour, titres et classement</Text>
+                            )}
+                        </PressableScale>
 
                         {isSearching ? (
                             <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>

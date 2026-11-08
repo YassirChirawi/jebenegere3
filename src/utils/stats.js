@@ -1,25 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-export const RANK_THRESHOLDS = [
-    { maxXP: 200, name: "bida2i (Débutant)", emoji: "🥚", nextXP: 201 },
-    { maxXP: 500, name: "Zmagri", emoji: "🥉", nextXP: 501 },
-    { maxXP: 1000, name: "fchkel", emoji: "🥈", nextXP: 1001 },
-    { maxXP: 2500, name: "chdid", emoji: "🥇", nextXP: 2501 },
-    { maxXP: Infinity, name: "L'Boss", emoji: "👑", nextXP: null }
-];
+import { RANKS, rankFor } from '../../server/progress/defs';
+
+// Rangs partagés avec le serveur (5 rangs historiques + 3 nouveaux au-delà de L'Boss)
+export const RANK_THRESHOLDS = RANKS.map((r, i) => ({ maxXP: r.max, name: r.name, emoji: r.emoji, nextXP: RANKS[i + 1] ? r.max + 1 : null }));
 
 export function getRankInfo(xp) {
-    for (let i = 0; i < RANK_THRESHOLDS.length; i++) {
-        if (xp <= RANK_THRESHOLDS[i].maxXP) {
-            return {
-                ...RANK_THRESHOLDS[i],
-                currentXP: xp,
-                levelProgress: i === 0
-                    ? (xp / RANK_THRESHOLDS[0].maxXP)
-                    : ((xp - RANK_THRESHOLDS[i - 1].maxXP) / (RANK_THRESHOLDS[i].maxXP - RANK_THRESHOLDS[i - 1].maxXP))
-            };
-        }
-    }
-    return RANK_THRESHOLDS[RANK_THRESHOLDS.length - 1]; // Boss
+    const r = rankFor(xp || 0);
+    return { name: r.name, emoji: r.emoji, maxXP: r.max, nextXP: r.next ? r.next.min : null, currentXP: xp || 0, levelProgress: r.levelProgress, next: r.next };
 }
 
 // ---------------------------------------------------------------------------
@@ -28,6 +15,8 @@ export function getRankInfo(xp) {
 
 export async function addXp(amount) {
     try {
+        // Avec un compte, c'est le serveur qui compte l'XP (le profil est resynchronisé en fin de partie)
+        if (await AsyncStorage.getItem('authToken')) return;
         const cur = parseInt((await AsyncStorage.getItem('playerXP')) || '0', 10);
         await AsyncStorage.setItem('playerXP', String(cur + amount));
     } catch (e) { /* ignore */ }

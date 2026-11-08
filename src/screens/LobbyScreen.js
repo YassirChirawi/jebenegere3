@@ -108,10 +108,13 @@ export default function LobbyScreen({ route, navigation }) {
                             layout={LinearTransition.springify()}
                             style={[styles.playerRow, item.id === socketService.socket?.id && styles.playerRowMe]}
                         >
-                            <PlayerAvatar name={item.name} size={38} />
-                            <Text style={[styles.playerName, item.id === room?.hostId && { color: theme.goldLight }]} numberOfLines={1}>
-                                {item.name}{item.id === socketService.socket?.id ? ' (vous)' : ''}
-                            </Text>
+                            <PlayerAvatar name={item.name} variant={item.avatar || 0} size={38} />
+                            <View style={{ flex: 1 }}>
+                                <Text style={[styles.playerName, { flex: 0 }, item.id === room?.hostId && { color: theme.goldLight }]} numberOfLines={1}>
+                                    {item.name}{item.id === socketService.socket?.id ? ' (vous)' : ''}
+                                </Text>
+                                {item.title ? <Text style={{ color: theme.mint, fontSize: 11, fontStyle: 'italic', marginLeft: 10 }} numberOfLines={1}>« {item.title} »</Text> : null}
+                            </View>
                             {item.isBot ? (
                                 <Text style={styles.badge}>🤖 BOT</Text>
                             ) : item.id === room?.hostId ? (
@@ -132,7 +135,7 @@ export default function LobbyScreen({ route, navigation }) {
                             <Text style={[styles.sectionTitle, { marginTop: 16 }]}>SPECTATEURS · {spectators.length}</Text>
                             {spectators.map((item) => (
                                 <Animated.View key={item.id} entering={FadeInDown.springify()} style={styles.spectatorRow}>
-                                    <PlayerAvatar name={item.name} size={28} />
+                                    <PlayerAvatar name={item.name} variant={item.avatar || 0} size={28} />
                                     <Text style={styles.spectatorName}>{item.name}</Text>
                                     <Text>👁️</Text>
                                 </Animated.View>
