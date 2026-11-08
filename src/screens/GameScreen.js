@@ -280,6 +280,12 @@ export default function GameScreen({ route, navigation }) {
             }, 1100);
         }
 
+        // Anti-blocage : avertissement au 1er tour manqué, puis coup automatique
+        if (me >= 0 && gameState.afk?.[me] === 1 && prev.afk?.[me] !== 1) {
+            audioService.playSound('warning');
+            haptic('warning');
+            showToast("⏱️ Tu n'as pas joué. Au prochain oubli, ton coup sera joué automatiquement.", '#F59E0B');
+        }
         // Anti-blocage : un joueur absent a joué automatiquement
         if (gameState.autoPlay && gameState.autoPlay.n !== prev.autoPlay?.n) {
             const who = gameState.autoPlay.player === me ? 'Tu ne joues pas' : `${gameState.players?.[gameState.autoPlay.player]?.name || 'Un joueur'} ne joue pas`;

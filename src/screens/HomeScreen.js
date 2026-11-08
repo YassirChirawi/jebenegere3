@@ -28,7 +28,9 @@ import { GAMES, GAME_ORDER, gameInfo } from '../games';
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
 // Mode test (web) : ajouter ?test=1 à l'adresse pour démarrer les parties Hezz2 contre l'IA avec des 1, 2 et 7
-const TEST_MODE = Platform.OS === 'web' && typeof window !== 'undefined' && /[?&]test=1\b/.test(window.location?.search || '');
+// ?test=1 : 1, 2 et 7 en main ; ?test=big : la main commence avec 20 cartes (vérification de l'éventail)
+const TEST_PARAM = Platform.OS === 'web' && typeof window !== 'undefined' ? ((window.location?.search || '').match(/[?&]test=(1|big)(&|$)/) || [])[1] : null;
+const TEST_MODE = TEST_PARAM ? (TEST_PARAM === 'big' ? 'big' : 'specials') : null;
 
 // Logo : trois figures en éventail qui respirent doucement
 function LogoCards() {
@@ -98,6 +100,7 @@ export default function HomeScreen({ navigation }) {
     const [isMuted, setIsMuted] = useState(audioService.muted);
     const [musicOn, setMusicOn] = useState(audioService.musicOn);
     const [isConnected, setIsConnected] = useState(false);
+    const [wakeSeconds, setWakeSeconds] = useState(0);
     const [hasConnected, setHasConnected] = useState(false);
     const [rankInfo, setRankInfo] = useState(null);
 
@@ -152,6 +155,13 @@ export default function HomeScreen({ navigation }) {
             stopSearchUi();
         };
     }, []);
+
+    // Pendant le réveil du serveur gratuit (Render), on affiche le temps écoulé : l'accueil reste utilisable
+    useEffect(() => {
+        if (isConnected) { setWakeSeconds(0); return; }
+        const t = setInterval(() => setWakeSeconds((x) => x + 1), 1000);
+        return () => clearInterval(t);
+    }, [isConnected]);
 
     // Serveur connecté mais muet sur sa version : c'est une ancienne version (pas de matchmaking, etc.)
     useEffect(() => {
@@ -230,7 +240,7 @@ export default function HomeScreen({ navigation }) {
             } else {
                 dialog.alert('Erreur', response?.message || "Impossible de créer la partie contre l'ordinateur.");
             }
-        }, TEST_MODE && game === 'hezz2' ? { debugHand: 'specials' } : {});
+        }, TEST_MODE && game === 'hezz2' ? { debugHand: TEST_MODE } : {});
     };
 
     const stopSearchUi = () => {
@@ -347,12 +357,14 @@ export default function HomeScreen({ navigation }) {
                     )}
                     {TEST_MODE && (
                         <View style={[styles.reconnect, { backgroundColor: 'rgba(124,58,237,0.7)' }]}>
-                            <Text style={styles.reconnectText}>🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7</Text>
+                            <Text style={styles.reconnectText}>{TEST_MODE === 'big' ? "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec 20 cartes" : "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7"}</Text>
                         </View>
                     )}
                     {!isConnected && (
                         <Animated.View entering={FadeIn} style={styles.reconnect}>
-                            <Text style={styles.reconnectText}>⏳ Reconnexion au serveur…</Text>
+                            <Text style={styles.reconnectText}>
+                                {wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s (jusqu'à 1 min après une pause)`}
+                            </Text>
                         </Animated.View>
                     )}
 

@@ -81,9 +81,9 @@ function startGame(roomId, prevState = null) {
     const room = rooms[roomId];
     const engine = getEngine(room.gameType);
     room.gameState = engine.init(room.activePlayers.length, prevState);
-    if (room.debugHand === 'specials' && engine.rigSpecials) {
+    if (room.debugHand && engine.rigSpecials) {
         const me = room.activePlayers.findIndex((p) => !p.isBot);
-        if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me);
+        if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me, room.debugHand);
     }
     room.version = (room.version || 0) + 1;
     emitState(roomId, 'game_started');
@@ -344,10 +344,10 @@ io.on('connection', (socket) => {
 
         const room = rooms[roomId];
         room.gameState = engine.init(size, null);
-        // Mode test (parties contre bots uniquement) : main forcée avec des 1, 2 et 7
-        if (data?.debugHand === 'specials' && engine.rigSpecials) {
-            room.debugHand = 'specials';
-            room.gameState = engine.rigSpecials(room.gameState, 0);
+        // Mode test (parties contre bots uniquement) : main forcée avec des 1, 2 et 7, ou grosse main de 20 cartes
+        if (['specials', 'big'].includes(data?.debugHand) && engine.rigSpecials) {
+            room.debugHand = data.debugHand;
+            room.gameState = engine.rigSpecials(room.gameState, 0, data.debugHand);
         }
         room.version = 1;
         callback && callback({ success: true, roomId, gameState: stateFor(room, 0) });

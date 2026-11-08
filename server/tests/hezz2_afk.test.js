@@ -43,3 +43,10 @@ test("le compteur d'inactivité retombe à 0 dès que le joueur rejoue", () => {
 test('la fenêtre de défense contre le 1 dure 5 s', () => {
     assert.equal(e.timerFor({ pendingAction: { type: 'skip_response' }, mancheTerminee: false }), 5);
 });
+
+test('mode test « big » : main de 20 cartes, aucune carte perdue', () => {
+    const s = e.rigSpecials(e.init(2), 0, 'big');
+    assert.equal(s.hands[0].length, 20);
+    const total = s.hands.reduce((n, h) => n + h.length, 0) + s.deck.length + s.middlePile.length;
+    assert.equal(total, 40);
+});

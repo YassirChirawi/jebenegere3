@@ -103,8 +103,13 @@ function forfeit(s, leaver) {
 
 // Mode test : donne au joueur des 1, 2 et 7 pour vérifier les cartes spéciales contre les bots
 const SPECIALS = ['Oros-1', 'Oros-2', 'Oros-7', 'Copas-1', 'Copas-2', 'Copas-7'];
-function rigSpecials(state, p = 0) {
+function rigSpecials(state, p = 0, mode = 'specials') {
     const s = JSON.parse(JSON.stringify(state));
+    if (mode === 'big') {
+        // Grosse main (20 cartes) pour vérifier l'affichage de l'éventail
+        while (s.hands[p].length < 20 && s.deck.length > 0) s.hands[p].push(s.deck.pop());
+        return s;
+    }
     const hand = s.hands[p];
     SPECIALS.forEach((id) => {
         if (hand.some((c) => c.id === id) || s.middlePile.some((c) => c.id === id)) return;
