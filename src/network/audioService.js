@@ -35,6 +35,10 @@ const SFX = {
     announce:    { src: require('../../assets/sfx/announce.wav'),    volume: 0.75 },
     warning:     { src: require('../../assets/sfx/warning.wav'),     volume: 0.6 },
     reveal:      { src: require('../../assets/sfx/reveal.wav'),      volume: 0.8 },
+    kdoub:       { src: require('../../assets/sfx/kdoub.wav'),       volume: 0.85 },
+    menteur:     { src: require('../../assets/sfx/menteur.wav'),     volume: 0.75 },
+    vrai:        { src: require('../../assets/sfx/vrai.wav'),        volume: 0.7 },
+    sota:        { src: require('../../assets/sfx/sota.wav'),        volume: 0.85 },
     // Sons "culturels" existants
     plus_two:    { src: require('../../assets/plus_two.mp3'),        volume: 1.0 },
     skip:        { src: require('../../assets/alexis_gaming_cam-vinyl-stop-342938.mp3'), volume: 0.8 },
@@ -203,7 +207,7 @@ class AudioService {
             }
             const status = await this.music.getStatusAsync();
             if (!status.isPlaying) await this.music.playAsync();
-            this.fadeMusicTo(MUSIC_VOLUME[mode] ?? MUSIC_VOLUME.menu);
+            this.fadeMusicTo(this.musicTarget());
         } catch (e) {
             // Autoplay bloqué sur le web : on réessaiera au premier geste
         }
@@ -211,9 +215,29 @@ class AudioService {
 
     setMusicMode(mode) {
         this.musicMode = mode;
+        if (mode !== 'game') this.setMusicIntensity(0);
         if (this.music && !this.muted && this.musicOn) {
-            this.fadeMusicTo(MUSIC_VOLUME[mode] ?? MUSIC_VOLUME.menu);
+            this.fadeMusicTo(this.musicTarget());
         }
+    }
+
+    // Volume cible : la musique monte un peu quand la partie se tend
+    musicTarget() {
+        const base = MUSIC_VOLUME[this.musicMode] ?? MUSIC_VOLUME.menu;
+        return this.musicMode === 'game' ? base * (1 + 0.6 * (this.intensity || 0)) : base;
+    }
+
+    /**
+     * Intensité de la partie (0 = début calme, 1 = fin tendue) : la musique accélère légèrement
+     * (tempo +7 % au maximum, sans changer la hauteur) et monte un peu, en restant discrète.
+     */
+    setMusicIntensity(level) {
+        const lvl = Math.max(0, Math.min(1, level || 0));
+        if (Math.abs(lvl - (this.intensity || 0)) < 0.05) return;
+        this.intensity = lvl;
+        if (!this.music || this.muted || !this.musicOn) return;
+        this.music.setRateAsync(1 + 0.07 * lvl, true).catch(() => {});
+        if (this.musicMode === 'game') this.fadeMusicTo(this.musicTarget(), 1200);
     }
 
     async pauseMusic() {

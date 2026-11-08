@@ -376,6 +376,54 @@ const sounds = {
         }
         return lowpass(d, 1200);
     },
+
+    // KDOUB ! : cri de tambour (deux frappes sèches + accent grave)
+    kdoub() {
+        const d = buf(0.9);
+        [0, 0.11, 0.26].forEach((off, k) => {
+            const hit = buf(0.3);
+            for (let i = 0; i < hit.length; i++) {
+                const t = i / SR;
+                hit[i] = Math.sin(2 * Math.PI * (k === 2 ? 70 : 140) * t) * Math.exp(-t / (k === 2 ? 0.14 : 0.05)) + noise() * Math.exp(-t / 0.015) * 0.7;
+            }
+            mixInto(d, lowpass(hit, 2600), off, k === 2 ? 1 : 0.7);
+        });
+        mixInto(d, pluck(NOTE(50), 0.5, 0.994), 0.26, 0.5);
+        return d;
+    },
+
+    // MENTEUR ! : accord descendant dissonant
+    menteur() {
+        const d = buf(1.1);
+        [[67, 0], [66, 0.12], [63, 0.24], [58, 0.38]].forEach(([n, t]) => mixInto(d, pluck(NOTE(n), 0.7, 0.995), t, 0.7));
+        const buzz = buf(0.5);
+        for (let i = 0; i < buzz.length; i++) {
+            const t = i / SR;
+            buzz[i] = (Math.sin(2 * Math.PI * 98 * t) + Math.sin(2 * Math.PI * 104 * t)) * Math.exp(-t / 0.2);
+        }
+        mixInto(d, lowpass(buzz, 900), 0.38, 0.6);
+        return d;
+    },
+
+    // C'ÉTAIT VRAI : arpège montant clair
+    vrai() {
+        const d = buf(1.0);
+        [[67, 0], [71, 0.08], [74, 0.16], [79, 0.26]].forEach(([n, t]) => mixInto(d, bell(NOTE(n), 0.7, 0.3, 0.5), t, 0.6));
+        return d;
+    },
+
+    // Sota finale : gong grave + cloches mineures
+    sota() {
+        const d = buf(1.8);
+        const gong = buf(1.6);
+        for (let i = 0; i < gong.length; i++) {
+            const t = i / SR;
+            gong[i] = (Math.sin(2 * Math.PI * 55 * t) + 0.6 * Math.sin(2 * Math.PI * 82.5 * t) + 0.3 * Math.sin(2 * Math.PI * 138 * t)) * Math.exp(-t / 0.6) * Math.min(1, t / 0.01);
+        }
+        mixInto(d, lowpass(gong, 1500), 0, 1);
+        [[63, 0.2], [66, 0.32], [70, 0.44]].forEach(([n, t]) => mixInto(d, bell(NOTE(n + 12), 1.0, 0.45, 0.4), t, 0.35));
+        return d;
+    },
 };
 
 fs.mkdirSync(OUT_DIR, { recursive: true });

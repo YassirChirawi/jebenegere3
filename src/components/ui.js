@@ -23,16 +23,39 @@ export const theme = {
     mint: '#34D399',
 };
 
-// Retour haptique sans erreur sur le web
+// Retour haptique : une vibration différente par type d'événement.
+// Respecte le réglage "Vibrations" de l'appli et le bouton muet (coupe tout).
+// Sur le web (Android), on utilise navigator.vibrate quand il existe.
+let hapticsEnabled = true;
+export function setHapticsEnabled(on) { hapticsEnabled = !!on; }
+
+const WEB_PATTERNS = { light: 12, medium: 22, heavy: 40, success: [30, 60, 30], error: [60, 50, 60], warning: [25, 40, 25], double: [35, 90, 35], long: 220, tap: 8 };
+
 export function haptic(style = 'light') {
-    if (Platform.OS === 'web') return;
+    if (!hapticsEnabled || audioService.muted) return;
+    if (Platform.OS === 'web') {
+        try { if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(WEB_PATTERNS[style] ?? 15); } catch (e) { /* ignore */ }
+        return;
+    }
     const map = {
+        tap: Haptics.ImpactFeedbackStyle.Light,
         light: Haptics.ImpactFeedbackStyle.Light,
         medium: Haptics.ImpactFeedbackStyle.Medium,
         heavy: Haptics.ImpactFeedbackStyle.Heavy,
     };
     if (style === 'success' || style === 'error' || style === 'warning') {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType[style[0].toUpperCase() + style.slice(1)]).catch(() => {});
+        return;
+    }
+    // Double (victoire) : deux impacts forts rapprochés
+    if (style === 'double') {
+        Haptics.impactAsync(map.heavy).catch(() => {});
+        setTimeout(() => Haptics.impactAsync(map.heavy).catch(() => {}), 140);
+        return;
+    }
+    // Longue (KDOUB, Sota finale) : rafale d'impacts forts
+    if (style === 'long') {
+        [0, 70, 140, 210].forEach((t) => setTimeout(() => Haptics.impactAsync(map.heavy).catch(() => {}), t));
         return;
     }
     Haptics.impactAsync(map[style] || map.light).catch(() => {});
