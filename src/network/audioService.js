@@ -50,7 +50,7 @@ const SFX = {
 const ALIASES = { turn: 'card_play', win: 'victory', lose: 'defeat' };
 
 const MUSIC_SRC = require('../../assets/FREE DYSTINCT X TIF X CHAABI TYPE BEAT - ZINA (1).mp3');
-const MUSIC_VOLUME = { menu: 0.1, game: 0.035 }; // discrète : fond sonore qui ne couvre pas les effets
+const MUSIC_VOLUME = { menu: 0.1, game: 0 }; // musique au menu seulement : silence pendant les parties
 const TICK_SRC = require('../../assets/freesound_community-tic-tac-27828.mp3');
 
 class AudioService {
@@ -196,6 +196,7 @@ class AudioService {
         this.musicMode = mode;
         this.musicWanted = true;
         if (this.muted || !this.musicOn) return;
+        if (mode === 'game') { this.fadeMusicTo(0, 600, true); return; } // pas de musique en partie
         try {
             if (!this.music) {
                 const { sound } = await Audio.Sound.createAsync(MUSIC_SRC, {
@@ -216,9 +217,9 @@ class AudioService {
     setMusicMode(mode) {
         this.musicMode = mode;
         if (mode !== 'game') this.setMusicIntensity(0);
-        if (this.music && !this.muted && this.musicOn) {
-            this.fadeMusicTo(this.musicTarget());
-        }
+        if (this.muted || !this.musicOn) return;
+        if (mode === 'game') this.fadeMusicTo(0, 600, true); // fondu puis pause pendant la partie
+        else this.startMusic(mode);
     }
 
     // Volume cible : la musique monte un peu quand la partie se tend
@@ -235,7 +236,7 @@ class AudioService {
         const lvl = Math.max(0, Math.min(1, level || 0));
         if (Math.abs(lvl - (this.intensity || 0)) < 0.05) return;
         this.intensity = lvl;
-        if (!this.music || this.muted || !this.musicOn) return;
+        if (!this.music || this.muted || !this.musicOn || this.musicMode === 'game') return;
         this.music.setRateAsync(1 + 0.07 * lvl, true).catch(() => {});
         if (this.musicMode === 'game') this.fadeMusicTo(this.musicTarget(), 1200);
     }
@@ -249,7 +250,7 @@ class AudioService {
         if (this.musicWanted) this.startMusic(this.musicMode);
     }
 
-    fadeMusicTo(target, duration = 800) {
+    fadeMusicTo(target, duration = 800, pauseAtEnd = false) {
         if (!this.music) return;
         clearInterval(this.fadeTimer);
         const steps = 16;
@@ -261,7 +262,10 @@ class AudioService {
                 step++;
                 const v = from + (target - from) * (step / steps);
                 sound.setVolumeAsync(Math.max(0, Math.min(1, v))).catch(() => {});
-                if (step >= steps) clearInterval(this.fadeTimer);
+                if (step >= steps) {
+                    clearInterval(this.fadeTimer);
+                    if (pauseAtEnd) sound.pauseAsync().catch(() => {});
+                }
             }, duration / steps);
         }).catch(() => {});
     }
