@@ -279,3 +279,19 @@ test('vue joueur : les mains adverses sont cachées', () => {
     assert.equal(v.deck, undefined);
     assert.equal(v.dealtHands, undefined);
 });
+
+test('détail des points : chaque catégorie séparée, la somme égale les bonus', () => {
+    for (const n of [2, 4]) {
+        for (let k = 0; k < 10; k++) {
+            let s = R.init(n);
+            let guard = 0;
+            while (!s.mancheTerminee && guard++ < 1000) {
+                const a = R.botActions(s, () => true);
+                s = R.apply(s, a[0].player, a[0].action);
+            }
+            const d = s.summary.detail;
+            for (const key of ['darba', 'ronda', 'hbel', 'boug', 'missa', 'rey', 'as', 'denonce']) assert.ok(Array.isArray(d[key]), key);
+            [0, 1].forEach((t) => assert.equal(Object.values(d).reduce((x, v) => x + v[t], 0), s.summary.bonus[t]));
+        }
+    }
+});

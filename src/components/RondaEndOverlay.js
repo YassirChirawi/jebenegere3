@@ -7,8 +7,22 @@ import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
 
 /**
- * Fin de manche Ronda : cartes ramassées, points cartes (au-delà de 20), bonus, total / 41.
+ * Fin de manche Ronda : le détail des points catégorie par catégorie
+ * (Makla, Darba, Ronda, Hbel, Boug, Missa, 9a3a Rey, 9a3a AS…), puis le total / 41.
  */
+// [clé, libellé, toujours affichée, explication]
+const DETAIL_ROWS = [
+    ['darba', 'Darba', true, 'prendre la carte posée'],
+    ['ronda', 'Ronda / Tringa', true, 'annonces'],
+    ['hbel', 'Hbel', false, '3e exemplaire'],
+    ['boug', 'Boug', false, '4e exemplaire'],
+    ['missa', 'Missa', false, 'table vidée'],
+    ['rey', '9a3a Rey', true, 'dernière carte : 12 qui mange'],
+    ['as', '9a3a AS', true, 'dernière carte ratée ou 1'],
+    ['denonce', 'Il est rondé', false, 'dénonciations'],
+];
+const STEP = 180; // délai entre deux lignes du détail
+
 export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, canReplay, onReplay, onQuit }) {
     const { summary, winnerTeam, target, manche } = state;
     const { height } = useWindowDimensions();
@@ -21,7 +35,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
 
     // Le classement apparaît ligne par ligne, avec un petit son à chaque ligne
     useEffect(() => {
-        const ts = Array.from({ length: rows.length }).map((_, i) => setTimeout(() => audioService.playSound('pop', { volume: 0.5, rate: 0.9 + i * 0.08 }), 450 + i * 300));
+        const ts = Array.from({ length: rows.length }).map((_, i) => setTimeout(() => audioService.playSound('pop', { volume: 0.5, rate: 0.9 + i * 0.08 }), 450 + i * STEP));
         return () => ts.forEach(clearTimeout);
     }, []);
 
@@ -30,10 +44,15 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
         : `MANCHE ${manche}`;
     const emoji = gameOver ? (iWonGame ? '🏆' : spectator ? '🏁' : '😤') : iWonManche ? '🔥' : '🃏';
 
+    const fmt = (v) => `${v > 0 ? '+' : ''}${v}`;
+    const d = summary.detail;
     const rows = [
-        { label: 'Cartes ramassées', values: summary.captured.map((c) => `${c}`) },
-        { label: 'Points cartes (> 20)', values: summary.cardPoints.map((p) => `+${p}`) },
-        { label: 'Bonus (darba, ronda…)', values: summary.bonus.map((b) => `${b >= 0 ? '+' : ''}${b}`) },
+        { label: 'Makla', hint: 'cartes au-delà de 20', values: summary.cardPoints.map(fmt), subs: summary.captured.map((c) => `${c} cartes`) },
+        ...(d
+            ? DETAIL_ROWS
+                .filter(([k, , always]) => always || d[k]?.[0] || d[k]?.[1])
+                .map(([k, label, , hint]) => ({ label, hint, values: [0, 1].map((t) => fmt(d[k]?.[t] || 0)) }))
+            : [{ label: 'Bonus', values: summary.bonus.map(fmt) }]), // ancien serveur : bonus groupés
     ];
 
     return (
@@ -53,12 +72,20 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                             ))}
                         </View>
                         {rows.map((r, i) => (
-                            <Animated.View key={r.label} entering={FadeInUp.delay(450 + i * 300)} style={styles.row}>
-                                <Text style={[styles.cell, styles.labelCell]}>{r.label}</Text>
-                                {r.values.map((v, t) => <Text key={t} style={styles.cell}>{v}</Text>)}
+                            <Animated.View key={r.label} entering={FadeInUp.delay(450 + i * STEP)} style={styles.row}>
+                                <View style={styles.labelBox}>
+                                    <Text style={styles.labelText}>{r.label}</Text>
+                                    {r.hint && !compact ? <Text style={styles.hint}>{r.hint}</Text> : null}
+                                </View>
+                                {r.values.map((v, t) => (
+                                    <View key={t} style={styles.valueCell}>
+                                        <Text style={[styles.cell, v === '0' && styles.zero]}>{v}</Text>
+                                        {r.subs ? <Text style={styles.hint}>{r.subs[t]}</Text> : null}
+                                    </View>
+                                ))}
                             </Animated.View>
                         ))}
-                        <Animated.View entering={FadeInUp.delay(450 + rows.length * 300)} style={[styles.row, styles.totalRow]}>
+                        <Animated.View entering={FadeInUp.delay(450 + rows.length * STEP)} style={[styles.row, styles.totalRow]}>
                             <Text style={[styles.cell, styles.labelCell, { color: theme.goldLight }]}>TOTAL</Text>
                             {summary.scores.map((v, t) => (
                                 <Text key={t} style={[styles.cell, styles.totalCell, t === winnerTeam && { color: theme.mint }]}>
@@ -68,7 +95,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                         </Animated.View>
                     </View>
 
-                    <XpCounter xp={xpEarned} delay={800 + rows.length * 300} compact={compact} />
+                    <XpCounter xp={xpEarned} delay={800 + rows.length * STEP} compact={compact} />
                 </ScrollView>
 
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>
@@ -147,8 +174,28 @@ const styles = StyleSheet.create({
     },
     row: {
         flexDirection: 'row',
-        paddingVertical: 6,
+        paddingVertical: 4,
         alignItems: 'center',
+    },
+    labelBox: {
+        flex: 1.6,
+    },
+    valueCell: {
+        flex: 1,
+        alignItems: 'center',
+    },
+    labelText: {
+        color: theme.cream,
+        fontWeight: '800',
+        fontSize: 13,
+    },
+    hint: {
+        color: theme.textDim,
+        fontSize: 9,
+    },
+    zero: {
+        color: theme.textDim,
+        fontWeight: '600',
     },
     totalRow: {
         borderTopWidth: 1,

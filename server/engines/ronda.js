@@ -31,9 +31,15 @@ function emit(s, ev) {
     s.events.push({ ...ev, id: s.eventSeq });
 }
 
-function addPoints(s, team, pts) {
+// Détail des points de la manche, catégorie par catégorie (affichage seulement, ne change aucune règle)
+const DETAIL_KEYS = ['darba', 'ronda', 'hbel', 'boug', 'missa', 'rey', 'as', 'denonce'];
+const emptyDetail = () => Object.fromEntries(DETAIL_KEYS.map((k) => [k, [0, 0]]));
+
+function addPoints(s, team, pts, cat) {
     s.scores[team] += pts;
     s.mancheBonus[team] += pts;
+    if (!s.mancheDetail) s.mancheDetail = emptyDetail();
+    if (cat && s.mancheDetail[cat]) s.mancheDetail[cat][team] += pts;
 }
 
 // Meilleure annonce d'une main : tringa (3 identiques) sinon ronda la plus forte
@@ -101,6 +107,7 @@ function init(numPlayers, prev = null) {
         captured: [0, 0],
         topCaptured: [null, null],
         mancheBonus: [0, 0],
+        mancheDetail: emptyDetail(),
         scores: continuing ? [...prev.scores] : [0, 0],
         warnings: continuing ? [...prev.warnings] : Array(numPlayers).fill(0),
         manche: continuing ? prev.manche + 1 : 1,
@@ -139,7 +146,7 @@ function resolveAnnouncements(s) {
         return;
     }
 
-    addPoints(s, teamOf(best.player), total);
+    addPoints(s, teamOf(best.player), total, 'ronda');
     emit(s, {
         type: 'announce_win',
         player: best.player,
@@ -171,6 +178,7 @@ function endManche(s) {
         captured: [...s.captured],
         cardPoints,
         bonus: [...s.mancheBonus],
+        detail: s.mancheDetail,
         scores: [...s.scores],
     };
     s.mancheTerminee = true;
@@ -204,7 +212,7 @@ function play(s, p, cardIndex) {
         s.captured[t] += len + 1;
         const kind = len === 2 ? 'hbel' : 'bachra';
         const pts = kind === 'hbel' ? 5 : 10;
-        addPoints(s, t, pts);
+        addPoints(s, t, pts, kind === 'hbel' ? 'hbel' : 'boug');
         s.chain = { value: card.value, cards: [...s.chain.cards, card], team: t };
         s.topCaptured[t] = card;
         s.lastCaptureTeam = t;
@@ -231,7 +239,7 @@ function play(s, p, cardIndex) {
 
             const darba = s.lastPlay && s.lastPlay.player === prevPlayer && !s.lastPlay.captured && s.lastPlay.card.id === taken[0].id;
             if (darba) {
-                addPoints(s, t, 1);
+                addPoints(s, t, 1, 'darba');
                 s.chain = { value: card.value, cards: [taken[0], card], team: t };
                 emit(s, { type: 'darba', player: p, team: t, card, points: 1 });
             } else {
@@ -239,7 +247,7 @@ function play(s, p, cardIndex) {
             }
 
             if (s.table.length === 0 && !finalPlay) {
-                addPoints(s, t, 1);
+                addPoints(s, t, 1, 'missa');
                 emit(s, { type: 'missa', player: p, team: t, points: 1 });
             }
         } else {
@@ -255,7 +263,7 @@ function play(s, p, cardIndex) {
         const eater = tie.players.find((q) => teamOf(q) === t);
         const other = tie.players.find((q) => teamOf(q) !== t);
         if (eater !== undefined && other !== undefined) {
-            addPoints(s, teamOf(other), tie.points);
+            addPoints(s, teamOf(other), tie.points, 'ronda');
             emit(s, { type: 'ronda_tie_resolved', eater, player: other, team: teamOf(other), value: tie.value, points: tie.points });
             s.deal.tie = null;
         }
@@ -268,10 +276,10 @@ function play(s, p, cardIndex) {
     // Dernière carte du donneur
     if (p === s.dealer && finalPlay) {
         if (capturedSomething && card.value === 12) {
-            addPoints(s, t, 5);
+            addPoints(s, t, 5, 'rey');
             emit(s, { type: 'rey', player: p, team: t, points: 5 });
         } else if (!capturedSomething || card.value === 1) {
-            addPoints(s, 1 - t, 5);
+            addPoints(s, 1 - t, 5, 'as');
             emit(s, { type: 'as', player: p, team: 1 - t, points: 5, missed: !capturedSomething });
         }
     }
@@ -317,12 +325,12 @@ function denounce(s, d, target, value) {
         const warning = s.warnings[target] === 0;
         s.warnings[target] += 1;
         const pts = warning ? 0 : ANN_POINTS[combo];
-        if (pts) addPoints(s, teamOf(d), pts);
+        if (pts) addPoints(s, teamOf(d), pts, 'denonce');
         emit(s, { type: 'denounce_ok', by: d, target, value, combo, warning, points: pts, team: teamOf(d) });
     } else {
         const warning = s.warnings[d] === 0;
         s.warnings[d] += 1;
-        if (!warning) addPoints(s, teamOf(d), -1);
+        if (!warning) addPoints(s, teamOf(d), -1, 'denonce');
         emit(s, { type: 'denounce_false', by: d, target, value, warning, points: warning ? 0 : -1, team: teamOf(d) });
     }
     return true;
