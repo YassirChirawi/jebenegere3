@@ -117,6 +117,19 @@ class SocketService {
         this._afterAuth(() => this.socket.emit('join_room', { roomId, playerName }, callback));
     }
 
+    // Salon privé (hôte) : ajouter / retirer un bot, échanger deux places (équipes de la Ronda)
+    addBot(roomId, callback) {
+        this._emitAck('add_bot', { roomId }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
+    removeBot(roomId, playerId, callback) {
+        this._emitAck('remove_bot', { roomId, playerId }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
+    swapSeats(roomId, a, b, callback) {
+        this._emitAck('swap_seats', { roomId, a, b }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
     // -- MATCHMAKING ACTIONS --
     findMatch(playerName, targetSize, gameType, callback) {
         this._afterAuth(() => this._emitAck('find_match', { playerName, targetSize, gameType }, callback, 6000,

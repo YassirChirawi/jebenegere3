@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
@@ -30,6 +30,8 @@ function WaitingDots() {
 export default function LobbyScreen({ route, navigation }) {
     const { roomId, playerName, isHost, initialRoom } = route.params;
     const [room, setRoom] = useState(initialRoom || null);
+    const [picked, setPicked] = useState(null); // place choisie par l'hôte pour un échange
+    const [busy, setBusy] = useState(false);
     const prevCount = useRef(initialRoom?.activePlayers?.length || 0);
 
     useEffect(() => {
@@ -81,6 +83,25 @@ export default function LobbyScreen({ route, navigation }) {
     const MAX_PLAYERS = room?.maxPlayers || game.maxPlayers;
     const emptySeats = Math.max(0, MAX_PLAYERS - players.length);
     const canStart = game.canStart(players.length);
+    const gameType = room?.gameType || initialRoom?.gameType;
+    const lobbyBots = amHost && !room?.inGame && socketService.supports('lobby_bots');
+    const teams = gameType === 'ronda' && players.length >= 3; // Ronda à 4 : places 1+3 contre 2+4
+    const TEAM_COLORS = ['#60A5FA', '#F87171'];
+    // En Ronda, on affiche les joueurs regroupés par équipe
+    const ordered = teams
+        ? players.map((p, i) => ({ p, i })).sort((x, y) => (x.i % 2) - (y.i % 2) || x.i - y.i)
+        : players.map((p, i) => ({ p, i }));
+
+    const ack = (msg) => (r) => { setBusy(false); if (r && r.success === false && r.message) dialog.alert('Oups', r.message); else if (msg) audioService.playSound(msg); };
+    const addBot = () => { setBusy(true); socketService.addBot(roomId, ack('pop')); };
+    const removeBot = (id) => { setPicked(null); socketService.removeBot(roomId, id, ack()); };
+    const pickSeat = (id) => {
+        if (!lobbyBots) return;
+        if (!picked) { setPicked(id); audioService.playSound('pop', { volume: 0.4 }); return; }
+        if (picked === id) { setPicked(null); return; }
+        socketService.swapSeats(roomId, picked, id, ack('card_flip'));
+        setPicked(null);
+    };
 
     return (
         <ImageBackground source={BG} style={styles.container} resizeMode="cover">
@@ -100,13 +121,27 @@ export default function LobbyScreen({ route, navigation }) {
 
                 <View style={styles.panel}>
                     <Text style={styles.sectionTitle}>JOUEURS · {players.length}/{MAX_PLAYERS}</Text>
-                    {players.map((item, i) => (
+                    {lobbyBots && players.length >= 2 && (
+                        <Text style={styles.swapHint}>
+                            {teams ? 'Équipes : touche deux joueurs pour échanger leurs places' : 'Touche deux joueurs pour échanger leurs places'}
+                        </Text>
+                    )}
+                    {ordered.map(({ p: item, i: seat }, i) => (
                         <Animated.View
                             key={item.id}
                             entering={FadeInDown.delay(i * 60).springify().damping(15)}
                             exiting={FadeOut}
                             layout={LinearTransition.springify()}
-                            style={[styles.playerRow, item.id === socketService.socket?.id && styles.playerRowMe]}
+                        >
+                        <Pressable
+                            onPress={() => pickSeat(item.id)}
+                            disabled={!lobbyBots}
+                            style={[
+                                styles.playerRow,
+                                item.id === socketService.socket?.id && styles.playerRowMe,
+                                teams && { borderLeftWidth: 4, borderLeftColor: TEAM_COLORS[seat % 2] },
+                                picked === item.id && styles.playerRowPicked,
+                            ]}
                         >
                             <PlayerAvatar name={item.name} variant={item.avatar || 0} size={38} />
                             <View style={{ flex: 1 }}>
@@ -115,13 +150,25 @@ export default function LobbyScreen({ route, navigation }) {
                                 </Text>
                                 {item.title ? <Text style={{ color: theme.mint, fontSize: 11, fontStyle: 'italic', marginLeft: 10 }} numberOfLines={1}>« {item.title} »</Text> : null}
                             </View>
+                            {teams && <Text style={[styles.teamChip, { color: TEAM_COLORS[seat % 2], borderColor: TEAM_COLORS[seat % 2] }]}>ÉQ. {seat % 2 + 1}</Text>}
                             {item.isBot ? (
                                 <Text style={styles.badge}>🤖 BOT</Text>
                             ) : item.id === room?.hostId ? (
                                 <Text style={styles.badge}>👑 HÔTE</Text>
                             ) : null}
+                            {item.isBot && lobbyBots && (
+                                <Pressable onPress={() => removeBot(item.id)} hitSlop={8} style={styles.removeBot}>
+                                    <Text style={styles.removeBotText}>✕</Text>
+                                </Pressable>
+                            )}
+                        </Pressable>
                         </Animated.View>
                     ))}
+                    {lobbyBots && emptySeats > 0 && (
+                        <Pressable onPress={addBot} disabled={busy} style={[styles.addBot, busy && { opacity: 0.5 }]}>
+                            <Text style={styles.addBotText}>🤖 ＋ Ajouter un bot</Text>
+                        </Pressable>
+                    )}
                     {Array.from({ length: emptySeats }).map((_, i) => (
                         <View key={`empty-${i}`} style={styles.emptySeat}>
                             <View style={styles.emptyAvatar}><Text style={{ color: theme.textDim }}>?</Text></View>
@@ -243,6 +290,52 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         borderWidth: 1,
         borderColor: 'rgba(212,175,55,0.2)',
+    },
+    playerRowPicked: {
+        borderColor: theme.mint,
+        borderWidth: 2,
+        backgroundColor: 'rgba(52,211,153,0.15)',
+    },
+    swapHint: {
+        color: theme.textDim,
+        fontSize: 11,
+        fontStyle: 'italic',
+        marginTop: -4,
+        marginBottom: 8,
+    },
+    teamChip: {
+        fontSize: 10,
+        fontWeight: '900',
+        borderWidth: 1,
+        borderRadius: 8,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        overflow: 'hidden',
+    },
+    removeBot: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: 'rgba(185,28,28,0.6)',
+    },
+    removeBotText: {
+        color: '#fff',
+        fontWeight: '900',
+    },
+    addBot: {
+        alignItems: 'center',
+        paddingVertical: 12,
+        borderRadius: 14,
+        marginBottom: 8,
+        borderWidth: 1.5,
+        borderColor: theme.gold,
+        backgroundColor: 'rgba(212,175,55,0.15)',
+    },
+    addBotText: {
+        color: theme.goldLight,
+        fontWeight: '900',
     },
     playerRowMe: {
         borderColor: theme.gold,

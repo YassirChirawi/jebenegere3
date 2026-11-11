@@ -74,7 +74,7 @@ const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
 const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots'] };
 }
 
 // Joueur d'une room : le pseudo du compte remplace le nom saisi quand le joueur est connecté
@@ -132,6 +132,7 @@ function startGame(roomId, prevState = null) {
     const room = rooms[roomId];
     const engine = getEngine(room.gameType);
     room.gameState = engine.init(room.activePlayers.length, prevState);
+    room.isBotMatch = room.activePlayers.some((p) => p.isBot);
     if (!(room.gameType === 'ronda' && prevState && prevState.winnerTeam === null)) room.tally = {};
     room.afkCount = {};
     if (room.debugHand && engine.rigSpecials) {
@@ -457,8 +458,11 @@ io.on('connection', (socket) => {
         const newPlayer = playerOf(socket, playerName);
         const inGame = room.gameState && !engine.isOver(room.gameState);
 
+        const botSeat = !inGame ? room.activePlayers.map((p) => !!p.isBot).lastIndexOf(true) : -1;
         if (!inGame && room.activePlayers.length < engine.maxPlayers) {
             room.activePlayers.push(newPlayer);
+        } else if (botSeat !== -1) {
+            room.activePlayers[botSeat] = newPlayer; // salon complet avec un bot : l'humain prend sa place
         } else if (room.spectators.length < 2) {
             room.spectators.push(newPlayer);
         } else {
@@ -469,6 +473,45 @@ io.on('connection', (socket) => {
         console.log(`${newPlayer.name} a rejoint la room ${roomId}`);
         broadcastRoomUpdate(roomId);
         callback && callback({ success: true, roomData: publicRoom(room) });
+    });
+
+    // --- SALON PRIVÉ : bots et places (hôte seulement, avant le lancement) ---
+    const lobbyOf = (data) => {
+        const room = rooms[data?.roomId];
+        if (!room || room.hostId !== socket.id) return null;
+        if (room.gameState && !getEngine(room.gameType).isOver(room.gameState)) return null;
+        return room;
+    };
+
+    socket.on('add_bot', (data, callback) => {
+        const room = lobbyOf(data);
+        if (!room) return callback && callback({ success: false, message: "Seul l'hôte peut ajouter un bot avant la partie." });
+        if (room.activePlayers.length >= getEngine(room.gameType).maxPlayers) return callback && callback({ success: false, message: 'Le salon est complet.' });
+        const used = new Set(room.activePlayers.map((p) => p.name));
+        const name = BOT_NAMES.find((n) => !used.has(n)) || `Bot ${room.activePlayers.length + 1}`;
+        room.activePlayers.push({ id: `bot_${room.id}_l${Date.now()}`, name, isBot: true });
+        broadcastRoomUpdate(room.id);
+        callback && callback({ success: true });
+    });
+
+    socket.on('remove_bot', (data, callback) => {
+        const room = lobbyOf(data);
+        const idx = room ? room.activePlayers.findIndex((p) => p.id === data.playerId && p.isBot) : -1;
+        if (idx === -1) return callback && callback({ success: false });
+        room.activePlayers.splice(idx, 1);
+        broadcastRoomUpdate(room.id);
+        callback && callback({ success: true });
+    });
+
+    // Échange deux places : en Ronda à 4, les places 1+3 jouent contre 2+4
+    socket.on('swap_seats', (data, callback) => {
+        const room = lobbyOf(data);
+        const a = room ? room.activePlayers.findIndex((p) => p.id === data.a) : -1;
+        const b = room ? room.activePlayers.findIndex((p) => p.id === data.b) : -1;
+        if (a === -1 || b === -1 || a === b) return callback && callback({ success: false });
+        [room.activePlayers[a], room.activePlayers[b]] = [room.activePlayers[b], room.activePlayers[a]];
+        broadcastRoomUpdate(room.id);
+        callback && callback({ success: true });
     });
 
     // --- MATCHMAKING ---

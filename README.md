@@ -45,7 +45,8 @@ La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La
 - **Dernière carte du donneur** :
   - il mange avec un 12 : **+5** pour son camp (*9a3a Rey*) ;
   - il mange avec un 1, ou ne mange rien : **+5** pour l'adversaire (*9a3a AS*).
-- **Fin de manche** : le reste de la table va au dernier camp qui a mangé. Chaque carte au-delà de 20 vaut 1 point.
+- **Fin de manche** : le reste de la table va au dernier camp qui a mangé. Chaque carte au-delà de 20 vaut 1 point (la **Makla**).
+- **Détail des points** : l'écran de fin de manche montre chaque catégorie sur sa ligne, pour chaque camp : Makla (avec le nombre de cartes), Darba, Ronda / Tringa, 9a3a Rey, 9a3a AS, puis Hbel, Boug, Missa et dénonciations quand il y en a.
 
 ### Kdoub
 Jeu de bluff pour 3 à 6 joueurs. Les 40 cartes sont distribuées. Les annonces suivent l'ordre imposé 1, 2… 7, 10, 11, 12, puis on recommence à 1.
@@ -99,6 +100,12 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.
 
 Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichage de l'éventail sur un grand écran comme sur un téléphone.
+
+## Salons privés : bots et équipes
+- L'hôte peut **ajouter un bot** avant le lancement (bouton « 🤖 ＋ Ajouter un bot ») et le retirer (✕). Exemple : 3 amis en Ronda + 1 bot pour jouer en 2 contre 2, ou 2 amis contre 2 bots.
+- **Équipes (Ronda à 4)** : les places 1+3 jouent contre 2+4. L'hôte touche deux joueurs pour échanger leurs places ; les équipes sont affichées en bleu et en rouge.
+- Un ami qui rejoint un salon complet prend la place d'un bot.
+- Pas de musique pendant les parties : elle s'arrête en fondu au lancement et reprend au menu.
 
 ## Anti-blocage
 
