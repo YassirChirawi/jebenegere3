@@ -295,3 +295,24 @@ test('détail des points : chaque catégorie séparée, la somme égale les bonu
         }
     }
 });
+
+test('Darba et Hbel repartent de zéro à chaque distribution', () => {
+    // Fin de distribution : le donneur pose un 5 ; nouvelle distribution : prendre ce 5 n'est pas une Darba
+    let s = make({ hands: [[], [C(5)]], turn: 1 });
+    s = play(s, 1, 5);
+    assert.ok(types(s).includes('deal'), 'nouvelle distribution');
+    s.hands[0].push(C(5, 'Copas'));
+    s = play(s, 0, 5, 'Copas');
+    assert.ok(types(s).includes('capture'));
+    assert.ok(!types(s).includes('darba'), 'pas de Darba sur la carte de la distribution précédente');
+
+    // Darba sur la dernière carte d'une distribution : le 3e exemplaire au début de la suivante n'est pas un Hbel
+    let t = make({ hands: [[C(5)], [C(5, 'Copas')]], turn: 0 });
+    t = play(t, 0, 5);
+    t = play(t, 1, 5, 'Copas');
+    assert.ok(types(t).includes('darba'));
+    assert.ok(types(t).includes('deal'));
+    t.hands[0].push(C(5, 'Espadas'));
+    t = play(t, 0, 5, 'Espadas');
+    assert.ok(!types(t).includes('hbel'), 'pas de Hbel à travers deux distributions');
+});
