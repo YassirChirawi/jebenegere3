@@ -19,6 +19,7 @@ import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
 import { loadCosmetics, setCurrentGame } from './src/utils/cosmetics';
+import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +27,13 @@ const Stack = createNativeStackNavigator();
 function GameRouter(props) {
   const type = props.route?.params?.initialGameState?.gameType || 'hezz2';
   useEffect(() => { setCurrentGame(type); }, [type]); // dos de carte "couleurs du jeu"
+  // Téléphone (web) : plein écran pendant la partie, la Ronda se joue en paysage
+  useEffect(() => {
+    const orientation = type === 'ronda' ? 'landscape' : 'any';
+    setGameOrientation(orientation);
+    const disarm = armFullscreenOnTouch(orientation);
+    return () => { disarm(); setGameOrientation('any'); };
+  }, [type]);
   if (type === 'ronda') return <RondaScreen {...props} />;
   if (type === 'kdoub') return <KdoubScreen {...props} />;
   if (type === 'sota') return <SotaScreen {...props} />;

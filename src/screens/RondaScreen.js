@@ -32,6 +32,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 import { GoldBurst } from '../components/Flights';
+import { isPhoneWeb } from '../utils/fullscreen';
 
 const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -147,12 +148,31 @@ function FlyCard({ card, i, n, dir, t }) {
 }
 
 // Tas de cartes ramassées d'un camp
-function CapturePile({ label, count, top, mine, points }) {
+function CapturePile({ label, count, top, mine, points, compact }) {
     const bump = useSharedValue(1);
     useEffect(() => {
         bump.value = withSequence(withTiming(1.25, { duration: 120 }), withSpring(1, { damping: 7 }));
     }, [count]);
     const s = useAnimatedStyle(() => ({ transform: [{ scale: bump.value }] }));
+    if (compact) {
+        // Paysage : petit tas + nombre de cartes, sans cadre
+        return (
+            <View style={styles.pileCompact}>
+                <View style={{ width: 28, height: 40 }}>
+                    {count > 0 ? (
+                        <>
+                            <View style={{ position: 'absolute', left: 2, top: 2 }}><CardBack width={26} height={38} /></View>
+                            {top ? <CardFace card={top} width={26} height={38} /> : <CardBack width={26} height={38} />}
+                        </>
+                    ) : (
+                        <View style={[styles.pileEmpty, { width: 26, height: 38 }]} />
+                    )}
+                </View>
+                <Text style={[styles.pileLabel, mine && { color: theme.goldLight }, { marginTop: 3 }]}>{label}</Text>
+                <Animated.Text style={[styles.pileCountCompact, s]}>{count}</Animated.Text>
+            </View>
+        );
+    }
     return (
         <View style={styles.pile}>
             <View style={{ width: 34, height: 48 }}>
@@ -225,6 +245,14 @@ export default function RondaScreen({ route, navigation }) {
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
     const [spot, setSpot] = useState(null);
+    // Téléphone tenu en portrait : on propose de le tourner (une fois, refermable)
+    const [rotateDismissed, setRotateDismissed] = useState(false);
+    const showRotate = !rotateDismissed && isPhoneWeb();
+    useEffect(() => {
+        if (!showRotate) return undefined;
+        const t = setTimeout(() => setRotateDismissed(true), 7000);
+        return () => clearTimeout(t);
+    }, [showRotate]);
     const [burst, setBurst] = useState(null);
     const goldBurst = (color, size) => setBurst({ id: Date.now() + Math.random(), color, size });
     const [showEnd, setShowEnd] = useState(false);
@@ -638,8 +666,9 @@ export default function RondaScreen({ route, navigation }) {
         );
     };
 
-    const tableW = land ? 46 : TABLE_W;
-    const tableH = land ? 66 : TABLE_H;
+    // Paysage : cartes de la table à la taille de l'écran
+    const tableH = land ? Math.round(Math.max(60, Math.min(86, stageH * 0.21))) : TABLE_H;
+    const tableW = land ? Math.round(tableH * 0.7) : TABLE_W;
     const canReplay = state.hostId && state.hostId === socketService.socket?.id;
     const myDealerLast = isMyTurn && me === state.dealer && state.dealIndex === state.totalDeals && myHand.length === 1;
     const scorePill = (
@@ -709,8 +738,26 @@ export default function RondaScreen({ route, navigation }) {
                         )}
                         </View>
 
-                        <View style={land ? styles.sideInfoLand : styles.centerCol}>
-                        <View style={[styles.infoRow, land && styles.infoRowLand]}>
+                        {land ? (
+                        <View style={styles.sideInfoLand}>
+                            {scorePill}
+                            <View style={styles.pilesLand}>
+                                <CapturePile compact label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine />
+                                <CapturePile compact label={teamNames[myTeam === null ? 1 : 1 - myTeam]} count={state.captured[myTeam === null ? 1 : 1 - myTeam]} top={state.topCaptured[myTeam === null ? 1 : 1 - myTeam]} />
+                            </View>
+                            <Text style={styles.dealLand}>Distrib. {state.dealIndex}/{state.totalDeals} · Paquet {state.deckCount ?? 0}</Text>
+                            {!state.mancheTerminee && (
+                                <View style={[styles.turnChip, styles.turnChipLand, isMyTurn && styles.turnChipMine]}>
+                                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
+                                    <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
+                                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
+                                    </Text>
+                                </View>
+                            )}
+                        </View>
+                        ) : (
+                        <View style={styles.centerCol}>
+                        <View style={styles.infoRow}>
                             <CapturePile label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine points={land ? state.scores[myTeam ?? 0] : undefined} />
                             {!land && (
                                 <View style={styles.deckInfo}>
@@ -735,6 +782,7 @@ export default function RondaScreen({ route, navigation }) {
                             </View>
                         )}
                         </View>
+                        )}
                         </View>
                     </View>
 
@@ -742,6 +790,16 @@ export default function RondaScreen({ route, navigation }) {
                 </View>
 
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
+
+                {!land && showRotate && (
+                    <Animated.View entering={FadeIn.delay(600)} exiting={FadeOut} style={styles.rotateHint}>
+                        <Pressable onPress={() => setRotateDismissed(true)} style={styles.rotateInner}>
+                            <Text style={styles.rotateIcon}>🔄</Text>
+                            <Text style={styles.rotateText}>Tourne ton téléphone : la Ronda se joue mieux en paysage</Text>
+                            <Text style={styles.rotateClose}>✕</Text>
+                        </Pressable>
+                    </Animated.View>
+                )}
 
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {me < 0 ? (
@@ -939,8 +997,63 @@ const styles = StyleSheet.create({
     },
     sideInfoLand: {
         alignItems: 'center',
-        width: 190,
+        width: 150,
+        gap: 6,
     },
+    pilesLand: {
+        flexDirection: 'row',
+        gap: 14,
+    },
+    pileCompact: {
+        alignItems: 'center',
+    },
+    pileCountCompact: {
+        color: theme.cream,
+        fontSize: 15,
+        fontWeight: '900',
+    },
+    dealLand: {
+        color: theme.textDim,
+        fontSize: 10,
+        fontWeight: '800',
+        letterSpacing: 0.5,
+    },
+    turnChipLand: {
+        paddingVertical: 4,
+        paddingLeft: 4,
+        paddingRight: 12,
+        maxWidth: 150,
+    },
+    turnNameLand: {
+        color: theme.cream,
+        fontSize: 13,
+        fontWeight: '900',
+        marginLeft: 6,
+        flexShrink: 1,
+    },
+    rotateHint: {
+        position: 'absolute',
+        top: 58,
+        left: 12,
+        right: 12,
+        zIndex: 80,
+        elevation: 80,
+        alignItems: 'center',
+    },
+    rotateInner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 8,
+        paddingHorizontal: 12,
+        borderRadius: 14,
+        backgroundColor: 'rgba(12,6,8,0.9)',
+        borderWidth: 1,
+        borderColor: theme.gold,
+    },
+    rotateIcon: { fontSize: 20 },
+    rotateText: { color: theme.cream, fontSize: 12, fontWeight: '800', flexShrink: 1 },
+    rotateClose: { color: theme.gold, fontSize: 14, fontWeight: '900', marginLeft: 4 },
     infoRowLand: {
         flexDirection: 'column',
         gap: 6,

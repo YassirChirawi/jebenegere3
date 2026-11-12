@@ -19,6 +19,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import InstallAppButton from '../components/InstallAppButton';
+import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
@@ -212,6 +213,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleCreateRoom = () => {
         if (!requireName() || !requireGameSupport()) return;
+        enterFullscreen();
         socketService.createRoom(name.trim(), game, (response) => {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: response.roomId, playerName: name.trim(), isHost: true, initialRoom: response.roomData });
@@ -229,6 +231,7 @@ export default function HomeScreen({ navigation }) {
             dialog.alert('Code manquant', 'Entre le code du salon de ton ami.');
             return;
         }
+        enterFullscreen();
         socketService.joinRoom(roomCode, name.trim(), (response) => {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: roomCode, playerName: name.trim(), isHost: false, initialRoom: response.roomData });
@@ -240,6 +243,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleCreateBotRoom = (count) => {
         if (!requireName() || !requireGameSupport()) return;
+        enterFullscreen(game === 'ronda' ? 'landscape' : 'any');
         socketService.createBotRoom(name.trim(), count, game, (response) => {
             if (response?.success) {
                 setMenu(null);
@@ -258,6 +262,7 @@ export default function HomeScreen({ navigation }) {
 
     const handleSearchMatch = (size) => {
         if (!requireName() || !requireGameSupport()) return;
+        enterFullscreen(game === 'ronda' ? 'landscape' : 'any');
         setIsSearching(true);
         setSearchingSize(size);
         setSearchSeconds(0);

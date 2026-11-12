@@ -7,6 +7,7 @@ import PlayerAvatar from '../components/PlayerAvatar';
 import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { gameInfo } from '../games';
+import { enterFullscreen } from '../utils/fullscreen';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -59,6 +60,7 @@ export default function LobbyScreen({ route, navigation }) {
     const amHost = isHost || (room && room.hostId === socketService.socket?.id);
 
     const handleStartGame = () => {
+        enterFullscreen((room?.gameType || initialRoom?.gameType) === 'ronda' ? 'landscape' : 'any');
         if (amHost) socketService.startGame(roomId);
         else dialog.alert('Action non permise', "Seul l'hôte du salon peut démarrer la partie.");
     };
