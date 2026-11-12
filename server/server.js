@@ -6,12 +6,17 @@ const { getEngine, normalizeType, engines } = require('./engines');
 const { createStore } = require('./progress/store');
 const { createProgress } = require('./progress/progress');
 const { tallyEvents, gameResults } = require('./progress/results');
+const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
 
 // Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
 const SERVER_VERSION = 3;
 
 const app = express();
-app.use(cors());
+// Render est derrière un proxy : vraie IP du joueur (limite d'essais de connexion)
+app.set('trust proxy', 1);
+app.disable('x-powered-by');
+app.use(securityHeaders);
+app.use(cors(corsOptions));
 app.use(express.json({ limit: '20kb' }));
 app.get('/', (_req, res) => res.send('Jeben Gere3 server OK'));
 app.get('/version', (_req, res) => res.json(serverInfo()));
@@ -57,8 +62,12 @@ app.get('/api/leaderboard', api(async (req, res) => {
 
 const server = http.createServer(app);
 const io = new Server(server, {
-    cors: { origin: '*', methods: ['GET', 'POST'] },
+    cors: corsOptions,
+    // Refuse aussi les connexions WebSocket venant d'un site non autorisé
+    allowRequest: (req, cb) => cb(null, isAllowedOrigin(req.headers.origin)),
+    maxHttpBufferSize: 64 * 1024,
 });
+const limitSocket = socketRateLimit();
 
 /**
  * Room : {
@@ -381,6 +390,7 @@ function removePlayer(roomId, socketId) {
 }
 
 io.on('connection', (socket) => {
+    limitSocket(socket);
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
     socket.emit('server_info', serverInfo());
 
