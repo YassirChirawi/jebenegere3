@@ -8,7 +8,7 @@ import XpCounter from './XpCounter';
 
 /**
  * Fin de manche Ronda : le détail des points catégorie par catégorie
- * (Makla, Darba, Ronda, Hbel, Boug, Missa, 9a3a Rey, 9a3a AS…), puis le total / 41.
+ * (Makla, Darba, Ronda, Hbel, Boug, Missa, 9a3a Rey, 9a3a AS…), puis le total / 42.
  */
 // [clé, libellé, toujours affichée, explication]
 const DETAIL_ROWS = [
@@ -62,7 +62,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                     {!compact && <Text style={styles.emoji}>{emoji}</Text>}
                     <Text style={[styles.title, compact && { fontSize: 22 }]}>{title}</Text>
-                    <Text style={styles.subtitle}>{state.forfeit ? 'Adversaire parti : victoire par forfait' : `Premier camp à ${target} points`}</Text>
+                    <Text style={styles.subtitle}>{state.forfeit ? 'Adversaire parti : victoire par forfait' : summary.stopped ? `${target} points atteints : partie arrêtée` : `Premier camp à ${target} points`}</Text>
 
                     <View style={styles.table}>
                         <View style={styles.headRow}>

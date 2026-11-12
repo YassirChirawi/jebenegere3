@@ -7,16 +7,19 @@
  * - Capture : même valeur + suite ascendante 1..7,10,11,12.
  * - Darba +1 (prendre la carte que l'adversaire vient de poser), Hbel +5 (3e exemplaire à la suite),
  *   Boug +10 (4e exemplaire), Missa +1 (vider la table, sauf la toute dernière capture).
- * - Annonces Ronda +1 / Tringa +5 avant sa première carte ; seule la plus forte marque
+ * - Annonces Ronda +1 / Tringa +5 tant qu'aucune carte de la combinaison n'est posée.
+ *   Le résultat est donné à la fin de la distribution ; seule la plus forte marque
  *   (et prend la somme des annonces : ronda contre tringa = 6, tringa contre tringa = 10).
- * - Égalité de rondas : le camp qui mange en premier avec cette valeur perd le point, l'autre le prend.
- * - Dénonciation "Il est rondé", avertissement la 1re fois puis pénalité.
+ * - Égalité de rondas : le camp qui a mangé en premier avec cette valeur perd le point, l'autre le prend.
+ * - "Il est rondé" : on désigne un adversaire, à tout moment de la distribution. Juste si une carte
+ *   de sa ronda (non annoncée) est déjà posée. Avertissement la 1re fois, puis pénalité.
  * - Dernière carte du donneur : 12 qui mange = +5 (9a3a Rey) ; 1 ou rien mangé = +5 adverse (9a3a AS).
- * - Fin de manche : reste de la table au dernier preneur, 1 point par carte au-delà de 20. Cible 41.
+ * - Fin de manche : reste de la table au dernier preneur, 1 point par carte au-delà de 20 (Makla).
+ * - Dès qu'un camp atteint 42 points, même en pleine manche, la partie s'arrête et il gagne.
  */
 const { VALUES, generateDeck, shuffleDeck, valueRank, nextValue } = require('./common');
 
-const TARGET = 41;
+const TARGET = 42;
 const NEUTRAL = 20;
 const DEAL_SIZES = [3, 3, 4];
 const ANN_POINTS = { ronda: 1, tringa: 5 };
@@ -68,6 +71,7 @@ function newDealTracking(n) {
         denounced: Array(n).fill(false),
         resolved: false,
         tie: null,
+        firstEat: {}, // valeur -> camp qui a mangé le premier avec elle (égalité de rondas)
     };
 }
 
@@ -141,8 +145,16 @@ function resolveAnnouncements(s) {
     // Égalité : deux rondas de même valeur dans deux camps différents
     const rival = list.find((a) => a !== best && a.type === best.type && a.value === best.value && teamOf(a.player) !== teamOf(best.player));
     if (rival) {
-        s.deal.tie = { value: best.value, points: total, players: [best.player, rival.player] };
         emit(s, { type: 'ronda_tie', value: best.value, players: [best.player, rival.player], points: total });
+        const eaterTeam = s.deal.firstEat[best.value];
+        if (eaterTeam === undefined) {
+            emit(s, { type: 'ronda_tie_void', value: best.value });
+            return;
+        }
+        const eater = [best.player, rival.player].find((q) => teamOf(q) === eaterTeam);
+        const other = [best.player, rival.player].find((q) => teamOf(q) !== eaterTeam);
+        addPoints(s, teamOf(other), total, 'ronda');
+        emit(s, { type: 'ronda_tie_resolved', eater, player: other, team: teamOf(other), value: best.value, points: total });
         return;
     }
 
@@ -156,6 +168,27 @@ function resolveAnnouncements(s) {
         points: total,
         all: list.map((a) => ({ player: a.player, combo: a.type, value: a.value })),
     });
+}
+
+// 42 points atteints (même en pleine manche) : on arrête et on déclare le gagnant
+function checkTarget(s) {
+    if (s.mancheTerminee) return false;
+    const [a, b] = s.scores;
+    if ((a < TARGET && b < TARGET) || a === b) return false;
+    s.winnerTeam = a > b ? 0 : 1;
+    s.summary = {
+        captured: [...s.captured],
+        cardPoints: [0, 0],
+        bonus: [...s.mancheBonus],
+        detail: s.mancheDetail,
+        scores: [...s.scores],
+        stopped: true,
+    };
+    s.mancheTerminee = true;
+    s.turn = null;
+    emit(s, { type: 'target_reached', team: s.winnerTeam, score: s.scores[s.winnerTeam] });
+    emit(s, { type: 'manche_end', winnerTeam: s.winnerTeam });
+    return true;
 }
 
 function isLastDeal(s) {
@@ -257,21 +290,11 @@ function play(s, p, cardIndex) {
         }
     }
 
-    // Égalité de rondas : le camp qui mange avec cette valeur laisse le point à l'autre
-    const tie = s.deal.tie;
-    if (tie && capturedSomething && card.value === tie.value) {
-        const eater = tie.players.find((q) => teamOf(q) === t);
-        const other = tie.players.find((q) => teamOf(q) !== t);
-        if (eater !== undefined && other !== undefined) {
-            addPoints(s, teamOf(other), tie.points, 'ronda');
-            emit(s, { type: 'ronda_tie_resolved', eater, player: other, team: teamOf(other), value: tie.value, points: tie.points });
-            s.deal.tie = null;
-        }
-    }
+    // Égalité de rondas : on retient le premier camp qui mange avec chaque valeur
+    if (capturedSomething && s.deal.firstEat[card.value] === undefined) s.deal.firstEat[card.value] = t;
 
     s.lastPlay = { player: p, card, captured: capturedSomething };
     s.deal.playedCount[p] += 1;
-    if (!s.deal.resolved && s.deal.playedCount.every((c) => c >= 1)) resolveAnnouncements(s);
 
     // Dernière carte du donneur
     if (p === s.dealer && finalPlay) {
@@ -284,8 +307,11 @@ function play(s, p, cardIndex) {
         }
     }
 
+    if (checkTarget(s)) return true;
     if (s.hands.every((h) => h.length === 0)) {
-        if (s.deal.tie) emit(s, { type: 'ronda_tie_void', value: s.deal.tie.value });
+        // Fin de la distribution : résultat des annonces
+        if (!s.deal.resolved) resolveAnnouncements(s);
+        if (checkTarget(s)) return true;
         if (!isLastDeal(s)) dealNext(s);
         else endManche(s);
     } else {
@@ -298,7 +324,8 @@ function play(s, p, cardIndex) {
 }
 
 function announce(s, p) {
-    if (s.mancheTerminee || s.deal.playedCount[p] > 0 || s.deal.announced[p]) return false;
+    // Possible tant que les cartes de la combinaison sont toutes encore en main
+    if (s.mancheTerminee || s.deal.resolved || s.deal.announced[p]) return false;
     const combo = bestCombo(s.hands[p]);
     if (!combo) return false;
     s.deal.announced[p] = combo;
@@ -306,22 +333,39 @@ function announce(s, p) {
     return true;
 }
 
-// Fenêtre de dénonciation : la cible a joué exactement sa première carte de la distribution sans annoncer
+// Dénonciation possible à tout moment de la distribution, contre un adversaire qui a déjà posé une carte
 function canDenounce(s, d, target) {
     if (s.mancheTerminee || !s.deal) return false;
-    if (teamOf(d) === teamOf(target)) return false;
+    if (!(target >= 0 && target < s.numPlayers) || teamOf(d) === teamOf(target)) return false;
     if (s.deal.denounceUsed[d] || s.deal.denounced[target]) return false;
-    return s.deal.playedCount[target] === 1 && !s.deal.announced[target];
+    return s.deal.playedCount[target] >= 1 && !s.deal.announced[target];
+}
+
+// Ronda cachée : une paire (ou tringa) reçue, non annoncée, dont au moins une carte est déjà posée
+function hiddenCombo(s, target, value) {
+    const dealt = {};
+    s.dealtHands[target].forEach((c) => { dealt[c.value] = (dealt[c.value] || 0) + 1; });
+    let best = null;
+    for (const [v, n] of Object.entries(dealt)) {
+        if (n < 2 || (value !== undefined && Number(v) !== value)) continue;
+        const inHand = s.hands[target].filter((c) => c.value === Number(v)).length;
+        if (inHand >= n) continue; // toutes encore en main : il peut encore l'annoncer
+        const combo = { type: n >= 3 ? 'tringa' : 'ronda', value: Number(v) };
+        if (!best || stronger(combo, best)) best = combo;
+    }
+    return best;
 }
 
 function denounce(s, d, target, value) {
-    if (!VALUES.includes(value) || !canDenounce(s, d, target)) return false;
+    if (value !== undefined && value !== null && !VALUES.includes(value)) return false;
+    if (!canDenounce(s, d, target)) return false;
     s.deal.denounceUsed[d] = true;
-    const count = s.dealtHands[target].filter((c) => c.value === value).length;
+    const found = hiddenCombo(s, target, value ?? undefined);
 
-    if (count >= 2) {
+    if (found) {
+        value = found.value;
         s.deal.denounced[target] = true;
-        const combo = count >= 3 ? 'tringa' : 'ronda';
+        const combo = found.type;
         const warning = s.warnings[target] === 0;
         s.warnings[target] += 1;
         const pts = warning ? 0 : ANN_POINTS[combo];
@@ -344,6 +388,7 @@ function apply(state, p, action) {
     if (action.type === 'play') ok = play(s, p, action.cardIndex);
     else if (action.type === 'announce') ok = announce(s, p);
     else if (action.type === 'denounce') ok = denounce(s, p, action.target, action.value);
+    if (ok && action.type !== 'play') checkTarget(s);
     return ok ? s : state;
 }
 
@@ -424,9 +469,8 @@ function botActions(s, isBot) {
         // Dénonciation d'une ronda adverse non annoncée (pas à chaque fois)
         for (let target = 0; target < s.numPlayers; target++) {
             if (!canDenounce(s, p, target)) continue;
-            const combo = bestCombo(s.dealtHands[target]);
-            if (combo && chance(s.manche, s.dealIndex, p, target) < 0.45) {
-                out.push({ player: p, delay: 1400, action: { type: 'denounce', target, value: combo.value } });
+            if (hiddenCombo(s, target) && chance(s.manche, s.dealIndex, p, target) < 0.45) {
+                out.push({ player: p, delay: 1400, action: { type: 'denounce', target } });
                 break;
             }
         }
@@ -434,7 +478,9 @@ function botActions(s, isBot) {
     if (out.length) return out;
     const p = s.turn;
     if (p !== null && isBot(p) && s.hands[p].length) {
-        out.push({ player: p, delay: 2000 + Math.random() * 1000, action: { type: 'play', cardIndex: chooseCard(s, p) } });
+        // Juste après une Darba ou un Hbel : on laisse 2,5 s pour voir s'il y aura Hbel (ou Boug)
+        const afterChain = s.chain && s.lastPlay && s.chain.cards.some((c) => c.id === s.lastPlay.card.id);
+        out.push({ player: p, delay: (afterChain ? 2700 : 0) + 2000 + Math.random() * 1000, action: { type: 'play', cardIndex: chooseCard(s, p) } });
     }
     return out;
 }

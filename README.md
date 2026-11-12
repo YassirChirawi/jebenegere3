@@ -30,7 +30,7 @@ Le but est de vider sa main en premier. On pose une carte de même famille ou de
 Le dernier joueur qui a encore des cartes est le *Khasser*.
 
 ### Ronda
-La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La table est vide au départ. Chaque joueur reçoit 3, puis 3, puis 4 cartes ; en 1 contre 1, ce cycle se fait deux fois. Le premier camp à **41 points** gagne.
+La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La table est vide au départ. Chaque joueur reçoit 3, puis 3, puis 4 cartes ; en 1 contre 1, ce cycle se fait deux fois. Le premier camp à **42 points** gagne : dès qu'un camp les atteint, même en pleine manche, la partie s'arrête.
 
 - **Manger** : une carte ramasse la carte de même valeur sur la table, plus la suite ascendante (1…7, 10, 11, 12).
 - **Coups spéciaux** :
@@ -38,10 +38,11 @@ La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La
   - **Hbel +5** : 3ᵉ exemplaire joué à la suite, on reprend 3 cartes.
   - **Boug +10** : 4ᵉ exemplaire, on reprend 4 cartes.
   - **Missa +1** : vider la table, sauf à la toute dernière prise.
-- **Annonces**, avant sa première carte : **Ronda +1** (une paire), **Tringa +5** (un brelan).
-  - Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : 6 pour une tringa contre une ronda, 10 pour une tringa contre une tringa.
-  - Égalité de rondas : le camp qui mange en premier avec cette valeur laisse le point à l'autre.
-- **« Il est rondé ! »** : dénoncer une ronda non annoncée. La première fois, c'est un avertissement ; ensuite, une dénonciation juste rapporte les points et une fausse coûte -1.
+- **Annonces**, tant qu'aucune carte de la combinaison n'est posée : **Ronda +1** (une paire), **Tringa +5** (un brelan).
+  - Le résultat est donné à la fin de la distribution. Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : 6 pour une tringa contre une ronda, 10 pour une tringa contre une tringa.
+  - Égalité de rondas : le camp qui a mangé en premier avec cette valeur laisse le point à l'autre.
+- **« Il est rondé ! »** : toucher l'adversaire, à tout moment de la distribution. C'est juste s'il a posé une carte de sa ronda sans l'annoncer.
+- **Darba et Hbel** : les cartes restent 2,5 s au centre, en zoom, pour voir s'il y aura Hbel (ou Boug). La première fois, c'est un avertissement ; ensuite, une dénonciation juste rapporte les points et une fausse coûte -1.
 - **Dernière carte du donneur** :
   - il mange avec un 12 : **+5** pour son camp (*9a3a Rey*) ;
   - il mange avec un 1, ou ne mange rien : **+5** pour l'adversaire (*9a3a AS*).

@@ -17,7 +17,7 @@ function RondaRules() {
         <>
             <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
             <Text style={styles.text}>
-                Ramasser un maximum de cartes et de points. Premier camp à <Text style={styles.highlight}>41 points</Text> gagne. En 1 contre 1 ou en 2 contre 2 (coéquipiers face à face, cartes et points en commun).
+                Ramasser un maximum de cartes et de points. Premier camp à <Text style={styles.highlight}>42 points</Text> gagne : dès qu'un camp les atteint, même en pleine manche, la partie s'arrête. En 1 contre 1 ou en 2 contre 2 (coéquipiers face à face, cartes et points en commun).
             </Text>
 
             <Text style={styles.sectionTitle}>🃏 Distribution</Text>
@@ -38,16 +38,16 @@ function RondaRules() {
             <Item icon="🧹" name="Missa (+1)" desc="Tu vides toute la table d'un coup (sauf la toute dernière prise de la manche)." />
 
             <Text style={styles.sectionTitle}>📣 Annonces</Text>
-            <Item icon="✌️" name="Ronda (+1)" desc="Une paire en main. Annonce-la avant de jouer ta première carte de la distribution." />
+            <Item icon="✌️" name="Ronda (+1)" desc="Une paire en main. Tu peux l'annoncer tant qu'aucune de ses cartes n'est posée." />
             <Item icon="🤟" name="Tringa (+5)" desc="Trois cartes de même valeur en main." />
             <Text style={styles.text}>
-                Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : tringa contre ronda = 6, tringa contre tringa = 10. Entre deux rondas, la plus haute gagne (12 en haut, 1 en bas).{'\n'}
-                Égalité de rondas : le camp qui mange en premier avec cette valeur laisse le point à l'autre.
+                Le résultat des annonces est donné à la fin de la distribution. Seule l'annonce la plus forte marque, et elle prend tous les points annoncés : tringa contre ronda = 6, tringa contre tringa = 10. Entre deux rondas, la plus haute gagne (12 en haut, 1 en bas).{'\n'}
+                Égalité de rondas : le camp qui a mangé en premier avec cette valeur laisse le point à l'autre.
             </Text>
 
             <Text style={styles.sectionTitle}>🕵️ Il est rondé !</Text>
             <Text style={styles.text}>
-                Si un adversaire a joué sa première carte sans annoncer sa ronda, dénonce-le avant qu'il joue la suivante en choisissant la valeur. Une seule dénonciation par distribution.{'\n'}
+                Un adversaire a posé une carte de sa ronda sans l'annoncer ? Touche-le (ou le bouton « Il est rondé ? ») pour le dénoncer, à tout moment de la distribution. Une seule dénonciation par distribution.{'\n'}
                 Juste : ton camp prend les points (1 ou 5). Fausse : -1 point.{'\n'}
                 La première fois, c'est seulement un <Text style={styles.highlight}>avertissement</Text> (sans points), dans les deux cas.
             </Text>

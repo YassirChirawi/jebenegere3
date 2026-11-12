@@ -11,6 +11,7 @@ import Animated, {
     withTiming,
     withSpring,
     withDelay,
+    withRepeat,
     Easing,
     interpolate,
 } from 'react-native-reanimated';
@@ -93,6 +94,40 @@ function CaptureFly({ fly }) {
         </View>
     );
 }
+// Après une Darba (ou un Hbel) : les cartes restent 2,5 s au centre, en léger zoom,
+// le temps de voir si l'adversaire suivant va faire Hbel (ou Boug)
+const SPOT_MS = 2500;
+function ChainSpotlight({ spot, w, h }) {
+    const z = useSharedValue(0.6);
+    const bar = useSharedValue(1);
+    useEffect(() => {
+        z.value = withSequence(
+            withTiming(1.18, { duration: 380, easing: Easing.out(Easing.back(2)) }),
+            withRepeat(withSequence(withTiming(1.1, { duration: 450 }), withTiming(1.18, { duration: 450 })), 2, false),
+            withTiming(1.12, { duration: 300 }),
+        );
+        bar.value = withTiming(0, { duration: SPOT_MS, easing: Easing.linear });
+    }, [spot.id]);
+    const zoom = useAnimatedStyle(() => ({ transform: [{ scale: z.value }] }));
+    const barStyle = useAnimatedStyle(() => ({ width: `${bar.value * 100}%` }));
+    return (
+        <View pointerEvents="none" style={styles.spotLayer}>
+            <Animated.View entering={FadeIn.duration(200)} style={[styles.spotBox, { borderColor: spot.color }]}>
+                <Animated.View style={[styles.spotCards, zoom]}>
+                    {spot.cards.map((c, i) => (
+                        <View key={c.id} style={{ marginLeft: i ? -w * 0.45 : 0, transform: [{ rotateZ: `${(i - (spot.cards.length - 1) / 2) * 8}deg` }] }}>
+                            <CardFace card={c} width={w} height={h} />
+                        </View>
+                    ))}
+                </Animated.View>
+                <Text style={[styles.spotTitle, { color: spot.color }]}>{spot.title}</Text>
+                {spot.next ? <Text style={styles.spotNext}>{spot.next}</Text> : null}
+                <View style={styles.spotTrack}><Animated.View style={[styles.spotBar, { backgroundColor: spot.color }, barStyle]} /></View>
+            </Animated.View>
+        </View>
+    );
+}
+
 function FlyCard({ card, i, n, dir, t }) {
     const spread = (i - (n - 1) / 2) * 26;
     const style = useAnimatedStyle(() => ({
@@ -189,6 +224,7 @@ export default function RondaScreen({ route, navigation }) {
     const [moods, setMoods] = useState({});
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
+    const [spot, setSpot] = useState(null);
     const [burst, setBurst] = useState(null);
     const goldBurst = (color, size) => setBurst({ id: Date.now() + Math.random(), color, size });
     const [showEnd, setShowEnd] = useState(false);
@@ -318,7 +354,7 @@ export default function RondaScreen({ route, navigation }) {
         if (!isMyTurn) setSelectedId(null);
     }, [state]);
 
-    // Musique : plus tendue quand une équipe approche des 41 points
+    // Musique : plus tendue quand une équipe approche des 42 points
     useEffect(() => {
         if (!state?.scores || state.mancheTerminee) { audioService.setMusicIntensity(0); return; }
         audioService.setMusicIntensity((Math.max(...state.scores) - 20) / 21);
@@ -336,29 +372,42 @@ export default function RondaScreen({ route, navigation }) {
                 audioService.playSound('card_play');
                 react(e.player, 'play');
                 break;
-            case 'capture':
+            case 'capture': {
                 audioService.playSound('card_play');
                 react(e.player, 'play');
                 later(() => audioService.playSound('card_draw'), 220);
                 haptic(e.player === me ? 'medium' : 'light');
-                setFly({ id: e.id, cards: [...e.taken, e.card], mine: e.team === myTeam });
+                const flight = { id: e.id, cards: [...e.taken, e.card], mine: e.team === myTeam };
+                // Darba : les cartes restent d'abord au centre (zoom), puis partent vers le tas
+                if ((s.events || []).some((x) => x.type === 'darba' && x.player === e.player)) later(() => setFly(flight), SPOT_MS);
+                else setFly(flight);
                 break;
-            case 'darba':
+            }
+            case 'darba': {
                 react(e.player, 'proud');
+                const pair = s.chain?.cards?.length === 2 ? s.chain.cards : [e.card];
+                setSpot({ id: e.id, cards: pair, color: '#FB923C', title: 'DARBA', next: s.chain ? 'Hbel ?…' : null });
+                later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
-                    text: 'DARBA !', sub: `${who} prend la carte posée · +${e.points} ${teamWord(e.team)}`, color: '#EA580C', textColor: '#fff',
+                    text: 'DARBA !', sub: `${who} prend la carte posée · +${e.points} ${teamWord(e.team)}`, color: '#EA580C', textColor: '#fff', duration: 2800, top: '13%',
                     onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); goldBurst('#FDBA74', 200); },
                 });
                 break;
-            case 'hbel':
+            }
+            case 'hbel': {
                 react(e.player, 'proud');
+                const three = s.chain?.cards?.length === 3 ? s.chain.cards : [e.card];
+                setSpot({ id: e.id, cards: three, color: '#C4B5FD', title: 'HBEL', next: s.chain ? 'Boug ?…' : null });
+                later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
-                    text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2600,
+                    text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2800, top: '13%',
                     onShow: () => { audioService.playSound('hbel'); haptic('double'); shake(14); goldBurst('#C4B5FD', 240); },
                 });
-                setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
+                later(() => setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam }), SPOT_MS);
                 break;
+            }
             case 'bachra':
+                setSpot(null);
                 react(e.player, 'proud');
                 pushBanner({
                     text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
@@ -443,6 +492,14 @@ export default function RondaScreen({ route, navigation }) {
                     onShow: () => { audioService.playSound('warning'); haptic('warning'); },
                 });
                 break;
+            case 'target_reached':
+                setSpot(null);
+                pushBanner({
+                    text: `${e.score} POINTS !`, sub: `${teamWord(e.team) === 'nous' ? 'Vous gagnez' : `${teamNames[e.team]} gagnent`} : la partie s'arrête`,
+                    color: theme.gold, textColor: theme.bg, duration: 2600,
+                    onShow: () => { audioService.playSound(e.team === myTeam ? 'victory' : 'defeat'); haptic('long'); },
+                });
+                break;
             case 'manche_end':
                 audioService.stopTickTock();
                 onMancheEnd(s);
@@ -504,13 +561,14 @@ export default function RondaScreen({ route, navigation }) {
 
     const deal = state?.deal;
     const myCombo = useMemo(() => comboOf(myHand), [myHand]);
-    const canAnnounce = me >= 0 && deal && !state.mancheTerminee && deal.playedCount[me] === 0 && !deal.announced[me] && myCombo;
+    // Annonce possible tant que les cartes de la ronda sont toutes en main (jusqu'à la fin de la distribution)
+    const canAnnounce = me >= 0 && deal && !state.mancheTerminee && !deal.resolved && !deal.announced[me] && myCombo;
 
     const denounceTargets = useMemo(() => {
         if (me < 0 || !deal || state.mancheTerminee || deal.denounceUsed[me]) return [];
         return (state.players || [])
             .map((_, i) => i)
-            .filter((i) => teamOf(i) !== myTeam && deal.playedCount[i] === 1 && !deal.announced[i] && !deal.denounced[i]);
+            .filter((i) => teamOf(i) !== myTeam && deal.playedCount[i] >= 1 && !deal.announced[i] && !deal.denounced[i]);
     }, [state]);
 
     const announce = () => {
@@ -522,11 +580,18 @@ export default function RondaScreen({ route, navigation }) {
         setDenounceOpen(true);
         audioService.playSound('whoosh');
     };
-    const sendDenounce = (value) => {
+    // Toucher un adversaire pour dire qu'il est rondé
+    const tapSeat = (i) => {
+        if (!denounceTargets.includes(i)) return;
+        setDenounceTarget(i);
+        setDenounceOpen(true);
+        audioService.playSound('whoosh');
+    };
+    const sendDenounce = () => {
         setDenounceOpen(false);
         if (denounceTarget === null) return;
         haptic('heavy');
-        socketService.sendAction(roomId, { type: 'denounce', target: denounceTarget, value });
+        socketService.sendAction(roomId, { type: 'denounce', target: denounceTarget });
     };
 
     // --- Main (triée par valeur) ---
@@ -555,6 +620,7 @@ export default function RondaScreen({ route, navigation }) {
         if (i === null || i === undefined) return null;
         const partner = myTeam !== null && teamOf(i) === myTeam;
         return (
+            <Pressable onPress={() => tapSeat(i)} disabled={!denounceTargets.includes(i)}>
             <OpponentSeat
                 mood={moods[i]}
                 player={state.players[i]}
@@ -568,6 +634,7 @@ export default function RondaScreen({ route, navigation }) {
                 badgeColor={n === 4 ? (partner ? theme.mint : '#F87171') : undefined}
                 isInitialDeal={false}
             />
+            </Pressable>
         );
     };
 
@@ -628,6 +695,7 @@ export default function RondaScreen({ route, navigation }) {
                                 </View>
                             )}
                             {fly && <CaptureFly key={fly.id} fly={fly} />}
+                            {spot && <ChainSpotlight key={spot.id} spot={spot} w={tableW} h={tableH} />}
                             {burst && <GoldBurst key={burst.id} burst={burst} />}
                         </View>
 
@@ -688,7 +756,7 @@ export default function RondaScreen({ route, navigation }) {
                                         <GameButton small title={myCombo.type === 'tringa' ? 'TRINGA ! +5' : 'RONDA ! +1'} icon="📣" variant="gold" onPress={announce} />
                                     </Animated.View>
                                 )}
-                                {deal?.announced?.[me] && deal.playedCount[me] === 0 && (
+                                {deal?.announced?.[me] && !deal.resolved && (
                                     <Text style={styles.announcedText}>✓ {deal.announced[me].type} annoncée</Text>
                                 )}
                                 {denounceTargets.length > 0 && (
@@ -749,7 +817,7 @@ export default function RondaScreen({ route, navigation }) {
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setDenounceOpen(false)} />
                     <Animated.View entering={SlideInDown.springify().damping(16)} style={styles.sheet}>
                         <Text style={styles.sheetTitle}>🕵️ Il est rondé !</Text>
-                        <Text style={styles.sheetSub}>Juste : tu prends ses points. Faux : avertissement, puis -1.</Text>
+                        <Text style={styles.sheetSub}>Il a posé une carte de sa ronda sans l'annoncer ? Juste : tu prends ses points. Faux : avertissement, puis -1.</Text>
                         {denounceTargets.length > 1 && (
                             <View style={styles.targetRow}>
                                 {denounceTargets.map((t) => (
@@ -761,16 +829,9 @@ export default function RondaScreen({ route, navigation }) {
                             </View>
                         )}
                         <Text style={styles.sheetLabel}>
-                            {denounceTarget === null ? 'Choisis le joueur' : `${nameOf(denounceTarget)} est rondé en…`}
+                            {denounceTarget === null ? 'Choisis le joueur' : `${nameOf(denounceTarget)} est rondé ?`}
                         </Text>
-                        <View style={styles.valueGrid}>
-                            {ORDER.map((v) => (
-                                <PressableScale key={v} disabled={denounceTarget === null} onPress={() => sendDenounce(v)} style={styles.valueBtn}>
-                                    <CardFace card={{ suit: 'Oros', value: v }} width={34} height={49} />
-                                    <Text style={styles.valueText}>{v}</Text>
-                                </PressableScale>
-                            ))}
-                        </View>
+                        <GameButton title={denounceTarget === null ? 'Choisis le joueur' : `OUI, ${nameOf(denounceTarget).toUpperCase()} EST RONDÉ !`} icon="🕵️" variant="red" disabled={denounceTarget === null} onPress={sendDenounce} />
                         <PressableScale onPress={() => setDenounceOpen(false)} style={{ alignSelf: 'center', padding: 10 }}>
                             <Text style={{ color: theme.textDim, fontWeight: '800' }}>Annuler</Text>
                         </PressableScale>
@@ -798,6 +859,13 @@ export default function RondaScreen({ route, navigation }) {
 }
 
 const styles = StyleSheet.create({
+    spotLayer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', zIndex: 60, elevation: 60 },
+    spotBox: { alignItems: 'center', paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(12,6,8,0.82)' },
+    spotCards: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
+    spotTitle: { fontWeight: '900', fontSize: 18, letterSpacing: 3 },
+    spotNext: { color: theme.cream, fontWeight: '800', fontSize: 12, fontStyle: 'italic', marginTop: 2 },
+    spotTrack: { width: 120, height: 4, borderRadius: 2, backgroundColor: 'rgba(255,255,255,0.15)', marginTop: 8, overflow: 'hidden' },
+    spotBar: { height: 4, borderRadius: 2 },
     board: {
         flex: 1,
         paddingTop: 10,

@@ -106,110 +106,147 @@ test('pas de Missa sur la toute dernière capture de la manche', () => {
     assert.ok(!types(s).includes('missa'));
 });
 
-test('annonces : tringa contre ronda = 6 points à la tringa', () => {
-    let s = R.init(2);
-    s.hands = [[C(4), C(4, 'Copas'), C(4, 'Bastos')], [C(12), C(12, 'Copas'), C(1)]];
+// Distribution contrôlée de 3 cartes chacun, annonces encore ouvertes (pas encore résolues)
+function fresh(hands, { numPlayers = hands.length, dealer = numPlayers - 1, lastDeal = false } = {}) {
+    const s = R.init(numPlayers);
+    s.hands = hands.map((h) => h.map((c) => ({ ...c })));
     s.dealtHands = JSON.parse(JSON.stringify(s.hands));
     s.table = [];
-    s.turn = 0;
+    s.dealer = dealer;
+    s.turn = (dealer + 1) % numPlayers;
+    s.events = [];
+    if (lastDeal) { s.dealIndex = s.totalDeals; s.deck = []; }
+    return s;
+}
+
+test('annonces : résultat à la fin de la distribution, tringa contre ronda = 6 points', () => {
+    let s = fresh([[C(4), C(4, 'Copas'), C(4, 'Bastos')], [C(12), C(12, 'Copas'), C(1)]], { dealer: 1 });
     s = R.apply(s, 0, { type: 'announce' });
     s = R.apply(s, 1, { type: 'announce' });
     s = play(s, 0, 4);
     s = play(s, 1, 1);
+    assert.ok(!s.events.some((e) => e.type === 'announce_win'), 'pas encore de résultat');
+    s = play(s, 0, 4, 'Copas');
+    s = play(s, 1, 12);
+    s = play(s, 0, 4, 'Bastos');
+    s = play(s, 1, 12, 'Copas'); // dernière carte de la distribution
     const win = s.events.find((e) => e.type === 'announce_win');
-    assert.ok(win);
+    assert.ok(win, 'résultat donné à la fin de la distribution');
     assert.equal(win.combo, 'tringa');
     assert.equal(win.points, 6);
-    assert.equal(s.scores[0] >= 6, true);
+    assert.equal(s.mancheDetail.ronda[0], 6);
 });
 
 test('annonces : deux rondas, la plus forte prend tout (12 bat 3)', () => {
-    let s = R.init(2);
-    s.hands = [[C(3), C(3, 'Copas'), C(5)], [C(12), C(12, 'Copas'), C(1)]];
-    s.dealtHands = JSON.parse(JSON.stringify(s.hands));
-    s.table = [];
-    s.turn = 0;
+    let s = fresh([[C(3), C(3, 'Copas'), C(5)], [C(12), C(12, 'Copas'), C(1)]], { dealer: 1 });
     s = R.apply(s, 0, { type: 'announce' });
     s = R.apply(s, 1, { type: 'announce' });
-    s = play(s, 0, 5);
-    s = play(s, 1, 1);
+    for (const [p, v, suit] of [[0, 5], [1, 1], [0, 3], [1, 12], [0, 3, 'Copas']]) s = play(s, p, v, suit);
+    s = play(s, 1, 12, 'Copas');
     const win = s.events.find((e) => e.type === 'announce_win');
     assert.equal(win.player, 1);
     assert.equal(win.points, 2);
 });
 
-test('annonce impossible sans paire, ou après sa première carte', () => {
-    let s = R.init(2);
-    s.hands = [[C(3), C(5), C(6)], [C(12), C(12, 'Copas'), C(1)]];
-    s.turn = 0;
-    assert.equal(R.apply(s, 0, { type: 'announce' }), s);
-    s.deal.playedCount[1] = 1;
-    assert.equal(R.apply(s, 1, { type: 'announce' }), s);
+test('annonce possible tant que les cartes de la ronda sont en main, plus après', () => {
+    let s = fresh([[C(3), C(5), C(6)], [C(12), C(12, 'Copas'), C(1)]], { dealer: 1 });
+    assert.equal(R.apply(s, 0, { type: 'announce' }), s, 'sans paire : impossible');
+    s = play(s, 0, 3);
+    s = play(s, 1, 1); // une autre carte : la paire de 12 est intacte
+    s = play(s, 0, 5);
+    const later = R.apply(s, 1, { type: 'announce' });
+    assert.notEqual(later, s, 'annonce encore possible en milieu de distribution');
+
+    let t = fresh([[C(3), C(5), C(6)], [C(12), C(12, 'Copas'), C(1)]], { dealer: 1 });
+    t = play(t, 0, 3);
+    t = play(t, 1, 12); // un 12 est posé
+    assert.equal(R.apply(t, 1, { type: 'announce' }), t, 'une carte de la ronda est posée : trop tard');
 });
 
-test('égalité de rondas : celui qui mange avec la valeur laisse le point à l\'autre', () => {
-    let s = R.init(4);
-    s.dealer = 3;
-    s.hands = [
+test("égalité de rondas : le camp qui a mangé en premier avec la valeur laisse le point à l'autre", () => {
+    let s = fresh([
         [C(7), C(7, 'Copas'), C(1)],
         [C(7, 'Espadas'), C(7, 'Bastos'), C(2)],
         [C(10), C(11), C(12)],
         [C(4), C(5), C(6)],
-    ];
-    s.dealtHands = JSON.parse(JSON.stringify(s.hands));
-    s.table = [];
-    s.turn = 0;
+    ]);
     s = R.apply(s, 0, { type: 'announce' });
     s = R.apply(s, 1, { type: 'announce' });
-    s = play(s, 0, 7); // pose un 7
-    s = play(s, 1, 2);
-    s = play(s, 2, 10);
-    s = play(s, 3, 4); // tout le monde a joué : égalité détectée
-    assert.ok(s.deal.tie);
     s = play(s, 0, 1);
+    s = play(s, 1, 7, 'Espadas'); // pose un 7
+    s = play(s, 2, 10);
+    s = play(s, 3, 4);
+    s = play(s, 0, 7); // l'équipe 0 mange avec un 7 la première
+    s = play(s, 1, 2);
+    s = play(s, 2, 11);
+    s = play(s, 3, 5);
+    s = play(s, 0, 7, 'Copas');
+    s = play(s, 1, 7, 'Bastos');
+    s = play(s, 2, 12);
     const before = [...s.scores];
-    s = play(s, 1, 7); // l'équipe 1 mange avec un 7 (darba) → l'équipe 0 prend le point de ronda (2 = 1+1)
+    s = play(s, 3, 6); // fin de distribution
     const res = s.events.find((e) => e.type === 'ronda_tie_resolved');
     assert.ok(res);
-    assert.equal(res.team, 0);
-    assert.equal(s.scores[0], before[0] + 2);
+    assert.equal(res.team, 1, "l'équipe 1 prend les points de ronda");
+    assert.equal(s.scores[1] - before[1] >= 2, true);
 });
 
-test('dénonciation juste : avertissement la 1re fois, points la 2e', () => {
-    let s = make({ hands: [[C(6), C(6, 'Copas'), C(1)], [C(2), C(3), C(4)]] });
-    s.deal = { playedCount: [0, 0], announced: [null, null], denounceUsed: [false, false], denounced: [false, false], resolved: false, tie: null };
-    s = play(s, 0, 1); // joue sans annoncer sa ronda de 6
-    s = R.apply(s, 1, { type: 'denounce', target: 0, value: 6 });
+test("il est rondé : on désigne le joueur, juste si une carte de sa ronda est posée", () => {
+    // Paire de 6 non annoncée, un 6 déjà posé : rondé
+    let s = fresh([[C(6), C(6, 'Copas'), C(1)], [C(2), C(3), C(4)]], { dealer: 1 });
+    s = play(s, 0, 6);
+    s = R.apply(s, 1, { type: 'denounce', target: 0 });
     let ev = s.events.find((e) => e.type === 'denounce_ok');
-    assert.ok(ev && ev.warning);
-    assert.deepEqual(s.scores, [0, 0]);
+    assert.ok(ev && ev.warning, '1re fois : avertissement');
+    assert.equal(ev.value, 6);
     assert.equal(s.warnings[0], 1);
 
-    // Deuxième fois (nouvelle distribution simulée)
-    s.deal = { playedCount: [1, 0], announced: [null, null], denounceUsed: [false, false], denounced: [false, false], resolved: true, tie: null };
-    s = R.apply(s, 1, { type: 'denounce', target: 0, value: 6 });
-    ev = s.events.find((e) => e.type === 'denounce_ok');
+    // 2e fois (autre distribution), en plein milieu : points pris
+    let t = fresh([[C(1), C(6), C(6, 'Copas')], [C(2), C(3), C(4)]], { dealer: 1 });
+    t.warnings = [1, 0];
+    t = play(t, 0, 1);
+    t = play(t, 1, 2);
+    t = play(t, 0, 6);
+    t = R.apply(t, 1, { type: 'denounce', target: 0 });
+    ev = t.events.find((e) => e.type === 'denounce_ok');
     assert.equal(ev.warning, false);
-    assert.equal(s.scores[1], 1);
+    assert.equal(t.scores[1], 1);
 });
 
-test('fausse dénonciation : avertissement puis -1 ; une seule par distribution', () => {
-    let s = make({ hands: [[C(6), C(5), C(1)], [C(2), C(3), C(4)]] });
-    s.deal = { playedCount: [1, 0], announced: [null, null], denounceUsed: [false, false], denounced: [false, false], resolved: false, tie: null };
-    s = R.apply(s, 1, { type: 'denounce', target: 0, value: 6 });
-    assert.ok(s.events.find((e) => e.type === 'denounce_false').warning);
-    assert.equal(R.apply(s, 1, { type: 'denounce', target: 0, value: 5 }), s, 'une seule dénonciation par distribution');
-    s.deal.denounceUsed = [false, false];
-    s = R.apply(s, 1, { type: 'denounce', target: 0, value: 5 });
+test("il est rondé : faux si sa paire est encore en main (il peut encore l'annoncer)", () => {
+    let s = fresh([[C(1), C(6), C(6, 'Copas')], [C(2), C(3), C(4)]], { dealer: 1 });
+    s.warnings = [0, 1];
+    s = play(s, 0, 1);
+    s = R.apply(s, 1, { type: 'denounce', target: 0 });
+    const ev = s.events.find((e) => e.type === 'denounce_false');
+    assert.ok(ev);
     assert.equal(s.scores[1], -1);
 });
 
-test('dénonciation impossible après la 2e carte de la cible ou contre un coéquipier', () => {
+test('dénonciation impossible avant la 1re carte de la cible ou contre un coéquipier', () => {
     let s = make({ numPlayers: 4, dealer: 3, hands: [[C(6), C(6, 'Copas')], [C(2)], [C(3)], [C(4)]] });
-    s.deal.playedCount = [2, 0, 0, 0];
-    assert.equal(R.apply(s, 1, { type: 'denounce', target: 0, value: 6 }), s);
+    s.deal.playedCount = [0, 0, 0, 0];
+    assert.equal(R.apply(s, 1, { type: 'denounce', target: 0 }), s, 'pas encore joué');
     s.deal.playedCount = [1, 0, 0, 0];
-    assert.equal(R.apply(s, 2, { type: 'denounce', target: 0, value: 6 }), s, 'coéquipier');
+    assert.equal(R.apply(s, 2, { type: 'denounce', target: 0 }), s, 'coéquipier');
+});
+
+test('42 points en pleine manche : la partie s\'arrête et le gagnant est déclaré', () => {
+    let s = make({ hands: [[C(5, 'Copas'), C(1)], [C(5), C(2)]], turn: 1, dealer: 0 });
+    s.scores = [10, 41];
+    s.table = [];
+    s = play(s, 1, 5); // pose un 5
+    s = play(s, 0, 5, 'Copas'); // darba : équipe 0 +1 → 11
+    assert.equal(s.mancheTerminee, false);
+    let t = make({ hands: [[C(5)], [C(5, 'Copas'), C(2)]], turn: 0, dealer: 1 });
+    t.scores = [10, 41];
+    t = play(t, 0, 5);
+    t = play(t, 1, 5, 'Copas'); // darba : équipe 1 atteint 42
+    assert.equal(t.mancheTerminee, true);
+    assert.equal(t.winnerTeam, 1);
+    assert.equal(t.summary.stopped, true);
+    assert.ok(types(t).includes('target_reached'));
+    assert.deepEqual(t.hands[1].length, 1, 'arrêt immédiat, cartes restantes non jouées');
 });
 
 test('dernière carte du donneur : 12 qui mange = +5 (Rey)', () => {
@@ -245,7 +282,7 @@ test('fin de manche : reste de table au dernier preneur, 1 point par carte au-de
     assert.deepEqual(s.scores, [12, 0]);
 });
 
-test('victoire à 41 points', () => {
+test('victoire à 42 points en fin de manche', () => {
     let s = make({ hands: [[], [C(6)]], table: [], turn: 1, dealer: 1, lastDeal: true });
     s.scores = [38, 10];
     s.captured = [22, 17];
