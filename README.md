@@ -129,7 +129,7 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
 - **Abandons et absences** : un abandon en cours de partie compte comme une défaite, sans XP. Une partie jouée en automatique, avec plus de 3 tours manqués, ne rapporte pas d'XP.
 - **Défis du jour** : 3 défis par jour, renouvelés à minuit, heure du Maroc. Chacun rapporte des XP et débloque un dos ou un tapis exclusif.
 - **Titres** : 7 titres. On choisit dans le Profil celui qui s'affiche, et il apparaît aussi dans les salons.
-- **Rangs** : les 5 rangs existants sont conservés. L'Boss va désormais jusqu'à 5 000 XP, puis viennent Mo3allem, Sultan dyal l'karta et L'Ostora.
+- **Rangs** : les 5 rangs existants sont conservés. L'Boss va désormais jusqu'à 5 000 XP, puis viennent M3allem, Sultan dyal l'karta et L'Ostora.
 - **Saison de 4 semaines** : un classement général et un classement par jeu, avec le pseudo seulement. En fin de saison, le top 10 reçoit un dos exclusif et un badge.
 - **Avatars** : on peut choisir parmi 8 avatars.
 - Les définitions des rangs, défis, titres et récompenses sont regroupées dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
@@ -145,7 +145,7 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
   Le tapis est recoloré en gardant ses motifs, et le coffret de cartes reste dans ses couleurs d'origine.
 - **Personnalisation** (Profil → 🎨 Style) :
   - 5 dos de cartes : Classique, Couleurs du jeu et Doré dès le départ ; Zellige débloqué au rang fchkel, Nuit étoilée au rang chdid ;
-  - 3 tapis par jeu : celui par défaut, un 2ᵉ débloqué au rang Zmagri, un 3ᵉ au rang fchkel ;
+  - 3 tapis par jeu : celui par défaut, un 2ᵉ débloqué au rang Hara o kan, un 3ᵉ au rang fchkel ;
   - réglage des vibrations.
 - **Animations** :
   - la pioche vole vers le joueur qui pioche ;

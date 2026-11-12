@@ -180,8 +180,8 @@ test('résultats de partie : XP identiques aux règles de l\'appli, compteurs de
 
 test('rangs : les 5 rangs existants sont conservés, 3 nouveaux au-delà de L\'Boss', () => {
     assert.equal(defs.rankFor(0).name, 'bida2i (Débutant)');
-    assert.equal(defs.rankFor(201).name, 'Zmagri');
+    assert.equal(defs.rankFor(201).name, 'Hara o kan');
     assert.equal(defs.rankFor(2501).name, "L'Boss");
-    assert.equal(defs.rankFor(5001).name, 'Mo3allem');
+    assert.equal(defs.rankFor(5001).name, 'M3allem');
     assert.equal(defs.rankFor(20000).name, "L'Ostora");
 });

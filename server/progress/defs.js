@@ -11,11 +11,11 @@
 // ----------------------------------------------------------------------------
 const RANKS = [
     { min: 0, max: 200, name: 'bida2i (Débutant)', emoji: '🥚' },
-    { min: 201, max: 500, name: 'Zmagri', emoji: '🥉' },
+    { min: 201, max: 500, name: 'Hara o kan', emoji: '🥉' },
     { min: 501, max: 1000, name: 'fchkel', emoji: '🥈' },
     { min: 1001, max: 2500, name: 'chdid', emoji: '🥇' },
     { min: 2501, max: 5000, name: "L'Boss", emoji: '👑' },
-    { min: 5001, max: 9000, name: 'Mo3allem', emoji: '🎩', proposed: true },
+    { min: 5001, max: 9000, name: 'M3allem', emoji: '🎩' },
     { min: 9001, max: 15000, name: "Sultan dyal l'karta", emoji: '🕌', proposed: true },
     { min: 15001, max: Infinity, name: "L'Ostora", emoji: '🌟', proposed: true },
 ];
@@ -104,13 +104,13 @@ function dailyChallenges(day = dayKey()) {
 // Titres : débloqués par les statistiques cumulées
 // ----------------------------------------------------------------------------
 const TITLES = [
-    { id: 'roi_ronda', label: 'Roi de la Ronda', desc: 'Gagner 20 parties de Ronda', counter: 'win_ronda', target: 20 },
-    { id: 'menteur_chef', label: 'Menteur en chef', desc: 'Gagner 10 parties de Kdoub', counter: 'win_kdoub', target: 10 },
+    { id: 'roi_ronda', label: 'Rey', desc: 'Gagner 20 parties de Ronda', counter: 'win_ronda', target: 20 },
+    { id: 'menteur_chef', label: 'Mosaylima al kadab', desc: 'Gagner 10 parties de Kdoub', counter: 'win_kdoub', target: 10 },
     { id: 'chasseur_sota', label: 'Chasseur de Sota', desc: 'Finir 10 parties de Sota sans la Sota', counter: 'sota_safe', target: 10 },
     { id: 'jamais_khasser', label: 'Jamais Khasser', desc: '10 parties de Hezz2 de suite sans être Khasser', counter: 'hezz2_safe_best', target: 10 },
     { id: 'moul_missa', label: 'Moul Missa', desc: 'Réussir 25 Missa', counter: 'missa', target: 25 },
-    { id: 'oeil_lynx', label: 'Œil de lynx', desc: 'Démasquer 10 menteurs en Kdoub', counter: 'kdoub_catch', target: 10 },
-    { id: 'champion', label: 'Champion du tournoi', desc: 'Gagner un tournoi', counter: 'tournament_win', target: 1 },
+    { id: 'oeil_lynx', label: 'Se7ar', desc: 'Démasquer 10 menteurs en Kdoub', counter: 'kdoub_catch', target: 10 },
+    { id: 'champion', label: 'Moul chi', desc: 'Gagner un tournoi', counter: 'tournament_win', target: 1 },
 ];
 
 // ----------------------------------------------------------------------------

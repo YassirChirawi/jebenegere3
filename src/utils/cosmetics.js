@@ -7,10 +7,10 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { setHapticsEnabled } from '../components/ui';
 
-// Seuils d'XP = début des rangs existants (Zmagri 201, fchkel 501, chdid 1001)
+// Seuils d'XP = début des rangs existants (Hara o kan 201, fchkel 501, chdid 1001)
 export const UNLOCK = {
     free: { xp: 0, label: 'Disponible' },
-    zmagri: { xp: 201, label: 'Rang Zmagri 🥉' },
+    zmagri: { xp: 201, label: 'Rang Hara o kan 🥉' },
     fchkel: { xp: 501, label: 'Rang fchkel 🥈' },
     chdid: { xp: 1001, label: 'Rang chdid 🥇' },
     // Récompenses de défis, de saison et de tournoi (liste "unlocks" du compte)
