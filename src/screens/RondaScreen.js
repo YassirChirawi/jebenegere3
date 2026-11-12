@@ -33,6 +33,7 @@ import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 import { GoldBurst } from '../components/Flights';
 import { isPhoneWeb } from '../utils/fullscreen';
+import MoroccanTable, { TABLE_INSET } from '../components/MoroccanTable';
 
 const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -667,7 +668,12 @@ export default function RondaScreen({ route, navigation }) {
     };
 
     // Paysage : cartes de la table à la taille de l'écran
-    const tableH = land ? Math.round(Math.max(60, Math.min(86, stageH * 0.21))) : TABLE_H;
+    // Paysage : hauteur de table fixe (une rangée de cartes), cartes réduites s'il en faut deux
+    const landBaseH = Math.round(Math.max(56, Math.min(80, stageH * 0.19)));
+    const landZoneH = landBaseH + 2 * TABLE_INSET + 14;
+    const landInnerW = Math.min(stageW - 138 - 2 * 84 - 16, 540) - 2 * TABLE_INSET;
+    const landRows = land && state.table.length * (Math.round(landBaseH * 0.7) + 6) > landInnerW ? 2 : 1;
+    const tableH = land ? (landRows === 2 ? Math.floor((landZoneH - 2 * TABLE_INSET - 6) / 2) : landBaseH) : TABLE_H;
     const tableW = land ? Math.round(tableH * 0.7) : TABLE_W;
     const canReplay = state.hostId && state.hostId === socketService.socket?.id;
     const myDealerLast = isMyTurn && me === state.dealer && state.dealIndex === state.totalDeals && myHand.length === 1;
@@ -678,6 +684,36 @@ export default function RondaScreen({ route, navigation }) {
             <Text style={[styles.scoreTeam, myTeam === 1 && styles.scoreMine]}>{state.scores[1]} {teamNames[1]}</Text>
         </View>
     );
+
+    // Paysage : score, tas, distribution, tour et réactions dans une colonne tout à droite
+    const landPanel = land ? (
+                        <View style={styles.infoColumn}>
+                            <View style={styles.scoreBoxLand}>
+                                <Text style={styles.scoreBoxTitle}>SCORE · {state.target}</Text>
+                                {[myTeam ?? 0, myTeam === null ? 1 : 1 - myTeam].map((t) => (
+                                    <View key={t} style={styles.scoreBoxRow}>
+                                        <Text style={[styles.scoreBoxTeam, t === myTeam && styles.scoreMine]}>{teamNames[t]}</Text>
+                                        <Text style={[styles.scoreBoxPts, t === myTeam && styles.scoreMine]}>{state.scores[t]}</Text>
+                                    </View>
+                                ))}
+                            </View>
+                            <View style={styles.pilesLand}>
+                                <CapturePile compact label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine />
+                                <CapturePile compact label={teamNames[myTeam === null ? 1 : 1 - myTeam]} count={state.captured[myTeam === null ? 1 : 1 - myTeam]} top={state.topCaptured[myTeam === null ? 1 : 1 - myTeam]} />
+                            </View>
+                            <Text style={styles.dealLand}>Distrib. {state.dealIndex}/{state.totalDeals} · Paquet {state.deckCount ?? 0}</Text>
+                            {!state.mancheTerminee && (
+                                <View style={[styles.turnChip, styles.turnChipLand, isMyTurn && styles.turnChipMine]}>
+                                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
+                                    <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
+                                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
+                                    </Text>
+                                </View>
+                            )}
+                            <View style={{ flex: 1 }} />
+                            <View style={styles.reactionsLand}><ReactionBar onSend={sendReaction} /></View>
+                        </View>
+    ) : null;
 
     return (
         <TableBackground onSize={setBoard} game="ronda">
@@ -694,6 +730,8 @@ export default function RondaScreen({ route, navigation }) {
                     center={land ? null : scorePill}
                 />
 
+                <View style={land ? styles.landRow : styles.fill}>
+                <View style={styles.fill}>
                 <View style={[styles.topArea, land && styles.topAreaLand]}>{renderSeat('top')}</View>
 
                 <View style={styles.middleArea}>
@@ -705,8 +743,9 @@ export default function RondaScreen({ route, navigation }) {
                         </View>
 
                         <View style={land ? styles.centerLand : styles.centerCol}>
-                        <View style={land ? { flex: 1, alignItems: 'center' } : styles.centerCol}>
-                        <View style={[styles.tableZone, land && styles.tableZoneLand]}>
+                        <View style={land ? styles.tableColLand : styles.centerCol}>
+                        <View style={[styles.tableZone, land && styles.tableZoneLand, land && { height: landZoneH }]}>
+                            {land && <MoroccanTable />}
                             {state.table.length === 0 ? (
                                 <Text style={styles.emptyTable}>Table vide</Text>
                             ) : (
@@ -738,24 +777,7 @@ export default function RondaScreen({ route, navigation }) {
                         )}
                         </View>
 
-                        {land ? (
-                        <View style={styles.sideInfoLand}>
-                            {scorePill}
-                            <View style={styles.pilesLand}>
-                                <CapturePile compact label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine />
-                                <CapturePile compact label={teamNames[myTeam === null ? 1 : 1 - myTeam]} count={state.captured[myTeam === null ? 1 : 1 - myTeam]} top={state.topCaptured[myTeam === null ? 1 : 1 - myTeam]} />
-                            </View>
-                            <Text style={styles.dealLand}>Distrib. {state.dealIndex}/{state.totalDeals} · Paquet {state.deckCount ?? 0}</Text>
-                            {!state.mancheTerminee && (
-                                <View style={[styles.turnChip, styles.turnChipLand, isMyTurn && styles.turnChipMine]}>
-                                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
-                                    <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
-                                    </Text>
-                                </View>
-                            )}
-                        </View>
-                        ) : (
+                        {!land && (
                         <View style={styles.centerCol}>
                         <View style={styles.infoRow}>
                             <CapturePile label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine points={land ? state.scores[myTeam ?? 0] : undefined} />
@@ -840,7 +862,7 @@ export default function RondaScreen({ route, navigation }) {
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
-                                <ReactionBar land={land} onSend={sendReaction} />
+                                {!land && <ReactionBar onSend={sendReaction} />}
                             </View>
 
                             <View style={[styles.hand, land && styles.handLand]}>
@@ -865,6 +887,9 @@ export default function RondaScreen({ route, navigation }) {
                             </View>
                         </>
                     )}
+                </View>
+                </View>
+                {landPanel}
                 </View>
             </Animated.View>
 
@@ -990,15 +1015,40 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     centerLand: {
+        flex: 1,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignSelf: 'stretch',
         width: '100%',
-        gap: 10,
     },
-    sideInfoLand: {
+    fill: { flex: 1 },
+    landRow: { flex: 1, flexDirection: 'row' },
+    infoColumn: {
+        width: 138,
         alignItems: 'center',
-        width: 150,
         gap: 6,
+        paddingTop: 52,
+        paddingBottom: 4,
+        marginRight: 6,
+    },
+    scoreBoxLand: {
+        alignSelf: 'stretch',
+        paddingVertical: 5,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        borderWidth: 1,
+        borderColor: 'rgba(212,175,55,0.45)',
+    },
+    scoreBoxTitle: { color: theme.textDim, fontSize: 9, fontWeight: '900', letterSpacing: 1.5, textAlign: 'center', marginBottom: 2 },
+    scoreBoxRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+    scoreBoxTeam: { color: theme.cream, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
+    scoreBoxPts: { color: theme.cream, fontSize: 17, fontWeight: '900' },
+    reactionsLand: { transform: [{ scale: 0.82 }], marginBottom: -4 },
+    tableColLand: {
+        flex: 1,
+        alignSelf: 'stretch',
+        alignItems: 'stretch',
+        justifyContent: 'center',
     },
     pilesLand: {
         flexDirection: 'row',
@@ -1069,8 +1119,18 @@ const styles = StyleSheet.create({
     },
     tableZoneLand: {
         minHeight: 0,
-        height: 168,
-        paddingVertical: 4,
+        maxWidth: 540,
+        alignSelf: 'center',
+        marginVertical: 4,
+        padding: TABLE_INSET,
+        borderWidth: 0,
+        borderRadius: 26,
+        backgroundColor: 'transparent',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.55,
+        shadowRadius: 14,
+        elevation: 10,
     },
     tableZone: {
         width: '100%',
