@@ -61,8 +61,18 @@ export default function LobbyScreen({ route, navigation }) {
 
     const handleStartGame = () => {
         enterFullscreen((room?.gameType || initialRoom?.gameType) === 'ronda' ? 'landscape' : 'any');
-        if (amHost) socketService.startGame(roomId);
-        else dialog.alert('Action non permise', "Seul l'hôte du salon peut démarrer la partie.");
+        if (!amHost) { dialog.alert('Action non permise', "Seul l'hôte du salon peut démarrer la partie."); return; }
+        if (fillBots === 0) { socketService.startGame(roomId); return; }
+        // Pas assez de joueurs (ex. Ronda à 3) : on complète avec des bots, puis on lance
+        setBusy(true);
+        const addNext = (left) => {
+            if (left === 0) { setBusy(false); socketService.startGame(roomId); return; }
+            socketService.addBot(roomId, (r) => {
+                if (r && r.success === false) { setBusy(false); if (r.message) dialog.alert('Oups', r.message); return; }
+                addNext(left - 1);
+            });
+        };
+        addNext(fillBots);
     };
 
     const handleLeave = () => {
@@ -84,9 +94,16 @@ export default function LobbyScreen({ route, navigation }) {
     const game = gameInfo(room?.gameType || initialRoom?.gameType);
     const MAX_PLAYERS = room?.maxPlayers || game.maxPlayers;
     const emptySeats = Math.max(0, MAX_PLAYERS - players.length);
-    const canStart = game.canStart(players.length);
     const gameType = room?.gameType || initialRoom?.gameType;
     const lobbyBots = amHost && !room?.inGame && socketService.supports('lobby_bots');
+    // Bots à ajouter automatiquement au lancement si le nombre de joueurs ne suffit pas (ex. Ronda à 3 → +1 bot)
+    let fillBots = 0;
+    if (lobbyBots && players.length >= 2 && !game.canStart(players.length)) {
+        for (let k = 1; players.length + k <= MAX_PLAYERS; k++) {
+            if (game.canStart(players.length + k)) { fillBots = k; break; }
+        }
+    }
+    const canStart = game.canStart(players.length) || fillBots > 0;
     const teams = gameType === 'ronda' && players.length >= 3; // Ronda à 4 : places 1+3 contre 2+4
     const TEAM_COLORS = ['#60A5FA', '#F87171'];
     // En Ronda, on affiche les joueurs regroupés par équipe
@@ -197,11 +214,13 @@ export default function LobbyScreen({ route, navigation }) {
             <View style={styles.footer}>
                 {amHost ? (
                     <GameButton
-                        title={canStart ? `DÉMARRER · ${game.label.toUpperCase()}` : game.startHint.toUpperCase()}
+                        title={!canStart ? game.startHint.toUpperCase()
+                            : fillBots > 0 ? `DÉMARRER · +${fillBots} BOT${fillBots > 1 ? 'S' : ''} 🤖`
+                            : `DÉMARRER · ${game.label.toUpperCase()}`}
                         icon="🃏"
                         variant="gold"
                         onPress={handleStartGame}
-                        disabled={!canStart}
+                        disabled={!canStart || busy}
                     />
                 ) : (
                     <View style={styles.waitingBox}>

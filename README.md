@@ -121,6 +121,7 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
 - L'hôte peut **ajouter un bot** avant le lancement (bouton « 🤖 ＋ Ajouter un bot ») et le retirer (✕). Exemple : 3 amis en Ronda + 1 bot pour jouer en 2 contre 2, ou 2 amis contre 2 bots.
 - **Équipes (Ronda à 4)** : les places 1+3 jouent contre 2+4. L'hôte touche deux joueurs pour échanger leurs places ; les équipes sont affichées en bleu et en rouge.
 - Un ami qui rejoint un salon complet prend la place d'un bot.
+- **Bots ajoutés automatiquement** : s'il manque des joueurs pour lancer (ex. Ronda à 3, qui se joue à 2 ou à 4), le bouton devient « DÉMARRER · +1 BOT » et complète la table avec le nombre de bots nécessaire avant de lancer. Ça marche dès 2 humains dans le salon, pour tous les jeux (Sota à 2 ou 3, Kdoub à 2…).
 - Pas de musique pendant les parties : elle s'arrête en fondu au lancement et reprend au menu.
 
 ## Anti-blocage
