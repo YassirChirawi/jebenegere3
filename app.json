@@ -24,13 +24,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png",
-      "name": "Hezz 2 - Jeu de cartes",
-      "shortName": "Hezz2",
-      "description": "Le fameux jeu de cartes marocain Hezz2 !",
+      "name": "Jeben Gere3",
+      "shortName": "Jeben Gere3",
+      "description": "Hezz2, Ronda, Kdoub et Sota Ghamla : les jeux de cartes marocains, en ligne avec tes amis ou contre des bots.",
       "themeColor": "#1C0F13",
       "backgroundColor": "#1C0F13",
       "display": "standalone",
-      "orientation": "any"
+      "orientation": "any",
+      "lang": "fr"
     }
   }
 }

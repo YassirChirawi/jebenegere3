@@ -18,6 +18,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
+import InstallAppButton from '../components/InstallAppButton';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
@@ -467,6 +468,7 @@ export default function HomeScreen({ navigation }) {
                     <PressableScale onPress={() => setShowRules(true)} style={styles.rulesLink}>
                         <Text style={styles.rulesLinkText}>📜 Lire les règles</Text>
                     </PressableScale>
+                    <InstallAppButton />
                 </ScrollView>
             )}
 

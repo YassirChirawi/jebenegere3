@@ -95,6 +95,20 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
 - **Comptes joueurs (phase 2)** : il faut définir la variable `DATABASE_URL`, qui pointe vers une base PostgreSQL, par exemple une base gratuite Neon, Supabase ou Render Postgres. La table `players` est créée toute seule au démarrage.
   - Sans `DATABASE_URL`, les comptes sont enregistrés dans `server/data/players.json`. **Sur Render, ce fichier est effacé à chaque redéploiement ou redémarrage** : cette solution ne convient donc qu'en local.
   - Au démarrage, le journal de Render indique le stockage utilisé : `[progress] stockage : postgres`.
+- **Sécurité** ([server/security.js](server/security.js)) :
+  - seuls le site (`jebengere3.fun`), les déploiements Vercel, `localhost` et l'appli installée (sans origine) peuvent se connecter. Pour ajouter un domaine : variable `ALLOWED_ORIGINS` (séparés par des virgules ; `*` pour tout autoriser en dépannage) ;
+  - en-têtes de sécurité, vraie IP du joueur derrière le proxy Render (limite d'essais de connexion) ;
+  - anti-flood : au-delà de 25 messages par seconde, les messages sont ignorés ; au-delà de 120, la connexion est coupée.
+
+## Appli installable (PWA) et site (Vercel)
+
+Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
+- **Android (Chrome)** : bouton **« 📲 Installer l'appli »** sur l'accueil, ou menu ⋮ → « Installer l'application ».
+- **iPhone (Safari)** : Partager ⬆️ → « Sur l'écran d'accueil ». Le bouton de l'accueil l'explique.
+- Fichiers dans [public/](public/), copiés tels quels par `expo export` :
+  - `index.html` (modèle de la page), `manifest.webmanifest`, `icons/` ;
+  - `sw.js` : service worker. Les pages passent toujours par le réseau (dernière version), le code et les images sont gardés en cache. Le serveur de jeu n'est jamais mis en cache. Pour forcer le vidage du cache chez tous les joueurs : changer `VERSION` dans `sw.js`.
+- [vercel.json](vercel.json) : en-têtes de sécurité du site (HTTPS forcé, CSP, anti-iframe…). **Si le jeu charge un jour une ressource d'un autre domaine** (nouveau serveur, images externes), il faut l'ajouter dans la `Content-Security-Policy`, sinon le navigateur la bloque.
 
 ## Mode test (web)
 
