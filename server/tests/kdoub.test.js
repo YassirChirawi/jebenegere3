@@ -14,8 +14,8 @@ function make(hands, { turn = 0, expected = 1, pile = [] } = {}) {
     s.events = [];
     return s;
 }
-const pose = (s, p, idx) => {
-    const n = K.apply(s, p, { type: 'pose', cardIndexes: idx });
+const pose = (s, p, idx, value) => {
+    const n = K.apply(s, p, { type: 'pose', cardIndexes: idx, value });
     assert.notEqual(n, s, 'pose refusée');
     return n;
 };
@@ -26,25 +26,26 @@ test('distribution : 40 cartes réparties, écart max 1 carte', () => {
         const sizes = s.hands.map((h) => h.length);
         assert.equal(sizes.reduce((a, b) => a + b, 0), 40);
         assert.ok(Math.max(...sizes) - Math.min(...sizes) <= 1);
-        assert.equal(s.expected, 1);
+        assert.equal(s.expected, null, 'le premier joueur choisit la valeur');
     }
 });
 
-test('ordre imposé en boucle : 1, 2… 7, 10, 11, 12 puis 1', () => {
-    let s = make([[C(1), C(2)], [C(3), C(4)], [C(5), C(6)]], { expected: 12 });
-    s = pose(s, 0, [0]);
-    assert.equal(s.lastPose.value, 12);
+test('le premier joueur choisit la valeur ; sans KDOUB, tout le monde continue sur la même', () => {
+    let s = make([[C(5), C(2)], [C(3), C(4)], [C(5, 'Copas'), C(6)]], { expected: null });
+    assert.equal(K.apply(s, 0, { type: 'pose', cardIndexes: [0] }), s, 'valeur obligatoire');
+    assert.equal(K.apply(s, 0, { type: 'pose', cardIndexes: [0], value: 8 }), s, 'valeur inexistante');
+    s = pose(s, 0, [0], 5);
+    assert.equal(s.lastPose.value, 5);
+    assert.ok(types(s).includes('choose'));
     s = K.onTimeout(s); // fenêtre fermée sans accusation
-    assert.equal(s.expected, 1);
+    assert.equal(s.expected, 5, 'même valeur');
     assert.equal(s.turn, 1);
-    s = pose(s, 1, [0]);
+    s = pose(s, 1, [0], 12); // la valeur proposée est ignorée : on reste sur 5
+    assert.equal(s.lastPose.value, 5);
+    assert.equal(s.claimed, 2);
     s = K.onTimeout(s);
-    assert.equal(s.expected, 2);
-    // 7 → 10
-    let t = make([[C(7), C(3)], [C(1)], [C(2)]], { expected: 7 });
-    t = pose(t, 0, [0]);
-    t = K.onTimeout(t);
-    assert.equal(t.expected, 10);
+    assert.equal(s.expected, 5);
+    assert.equal(s.turn, 2);
 });
 
 test('pose : 1 à 4 cartes seulement, à son tour, pas pendant la fenêtre', () => {
@@ -66,8 +67,9 @@ test('accusation juste : le menteur ramasse tout le tas', () => {
     assert.equal(ev.loser, 0);
     assert.equal(s.hands[0].length, 1 + 3);
     assert.equal(s.pile.length, 0);
-    assert.equal(s.turn, 1);
-    assert.equal(s.expected, 2);
+    assert.equal(s.turn, 1, "le joueur d'après le menteur choisit la nouvelle valeur");
+    assert.equal(s.expected, null);
+    assert.equal(s.claimed, 0);
 });
 
 test('accusation fausse : l\'accusateur ramasse tout le tas', () => {
@@ -79,8 +81,10 @@ test('accusation fausse : l\'accusateur ramasse tout le tas', () => {
     assert.equal(ev.loser, 1);
     assert.equal(s.hands[1].length, 1 + 3);
     assert.equal(ev.revealed.length, 2);
-    assert.equal(s.turn, 2, 'le joueur après celui qui ramasse reprend');
-    assert.equal(s.expected, 2);
+    assert.equal(s.turn, 0, 'celui qui a dit vrai choisit la nouvelle valeur et rejoue');
+    assert.equal(s.expected, null);
+    s = pose(s, 0, [0], 5);
+    assert.equal(s.lastPose.value, 5);
 });
 
 test('on ne peut pas s\'accuser soi-même, ni accuser hors fenêtre, ni deux fois', () => {
@@ -128,13 +132,21 @@ test('dernières cartes posées en disant vrai et accusé : victoire immédiate'
     assert.equal(s.winner, 0);
 });
 
-test('timer : 5 s pendant la fenêtre ; pose automatique en cas d\'absence', () => {
-    let s = make([[C(1), C(2)], [C(6)], [C(7)]]);
+test('timer : 5 s pendant la fenêtre ; pose automatique en cas d\'absence (même s\'il faut choisir)', () => {
+    let s = make([[C(1), C(2)], [C(6)], [C(7)]], { expected: null });
     assert.equal(K.timerFor(s), 40);
     s = K.onTimeout(s);
     assert.equal(s.phase, 'window');
     assert.equal(K.timerFor(s), 5);
     assert.ok(types(s).includes('auto_pose'));
+    assert.ok([1, 2].includes(s.lastPose.value), 'valeur choisie = la carte posée');
+});
+
+test("bot : sait qu'il y a mensonge quand plus de 4 cartes ont été annoncées sur la valeur", () => {
+    let s = make([[C(1), C(2), C(3)], [C(1, 'Copas'), C(6)], [C(7), C(10)]], { expected: 1 });
+    s.claimed = 3;
+    s = pose(s, 0, [0]);
+    assert.equal(K._internal.lieProbability(s, 1), 1);
 });
 
 test('bot : accuse quand la pose est impossible (il a déjà les cartes)', () => {

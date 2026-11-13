@@ -50,10 +50,14 @@ La partie se joue en 1 contre 1 ou en 2 contre 2 (coéquipiers face à face). La
 - **Détail des points** : l'écran de fin de manche montre chaque catégorie sur sa ligne, pour chaque camp : Makla (avec le nombre de cartes), Darba, Ronda / Tringa, 9a3a Rey, 9a3a AS, puis Hbel, Boug, Missa et dénonciations quand il y en a.
 
 ### Kdoub
-Jeu de bluff pour 3 à 6 joueurs. Les 40 cartes sont distribuées. Les annonces suivent l'ordre imposé 1, 2… 7, 10, 11, 12, puis on recommence à 1.
+Jeu de bluff pour 3 à 6 joueurs. Les 40 cartes sont distribuées.
 
-- À ton tour, tu poses **1 à 4 cartes face cachée** en annonçant la valeur demandée. Tu peux mentir sur les cartes, jamais sur leur nombre.
-- Pendant **5 secondes**, chaque adversaire peut crier **KDOUB**. Si le poseur a menti, il ramasse le tas ; sinon, c'est l'accusateur qui le ramasse. Le joueur suivant celui qui ramasse reprend la partie.
+- Le premier joueur **choisit la carte à annoncer** (1, 2… 7, 10, 11 ou 12). Tant que personne ne crie KDOUB, tout le monde continue sur cette même carte.
+- À ton tour, tu poses **1 à 4 cartes face cachée** en annonçant cette carte. Tu peux mentir sur les cartes, jamais sur leur nombre.
+- Pendant **5 secondes**, chaque adversaire peut crier **KDOUB** :
+  - le poseur a menti : il ramasse le tas, et **le joueur d'après choisit la nouvelle carte** ;
+  - il a dit vrai : l'accusateur ramasse le tas, et **le poseur choisit lui-même la nouvelle carte et rejoue**.
+- À la fin du chrono, une carte est posée au hasard ; s'il fallait choisir l'annonce, c'est la valeur de cette carte.
 - Le premier qui vide sa main gagne. Les autres sont classés selon le nombre de cartes restantes.
 
 ### Sota Ghamla

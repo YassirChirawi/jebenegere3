@@ -173,6 +173,7 @@ export default function KdoubScreen({ route, navigation }) {
     const [isMuted, setIsMuted] = useState(audioService.muted);
     const [xpEarned, setXpEarned] = useState(0);
     const [accused, setAccused] = useState(false);
+    const [chosen, setChosen] = useState(null); // valeur choisie quand c'est à moi d'annoncer une nouvelle carte
 
     const { chatMessages, activeReactions, showChat, setShowChat, sendChat, sendReaction } = useRoomChat(roomId);
     const seen = useRef(new Set());
@@ -186,6 +187,9 @@ export default function KdoubScreen({ route, navigation }) {
     const seats = useMemo(() => seatMap(n, me >= 0 ? me : 0), [n, me]);
     const nameOf = (i) => (i === me ? 'Toi' : state?.players?.[i]?.name || `Joueur ${i + 1}`);
     const isMyTurn = me >= 0 && state?.phase === 'play' && state.turn === me;
+    // Début de partie ou après un KDOUB : le joueur dont c'est le tour choisit la valeur à annoncer
+    const choosing = state?.phase === 'play' && (state.expected === null || state.expected === undefined);
+    const announceValue = choosing ? chosen : state?.expected;
     const inWindow = state?.phase === 'window';
     const canAccuse = inWindow && me >= 0 && state.lastPose && state.lastPose.player !== me && !accused;
 
@@ -241,6 +245,7 @@ export default function KdoubScreen({ route, navigation }) {
         }
         prevTurn.current = state.phase === 'play' ? state.turn : null;
         if (!isMyTurn) setSelected([]);
+        if (!isMyTurn || !choosing) setChosen(null);
     }, [state]);
 
     // Musique : plus tendue quand quelqu'un n'a presque plus de cartes
@@ -254,7 +259,10 @@ export default function KdoubScreen({ route, navigation }) {
         switch (e.type) {
             case 'deal':
                 audioService.playDeal(10, 70);
-                showToast(`🃏 Toutes les cartes sont distribuées. On commence par l'As !`, theme.gold);
+                showToast(`🃏 Cartes distribuées. ${s.turn === me ? 'À toi de choisir la carte à annoncer !' : `${nameOf(s.turn)} choisit la carte à annoncer`}`, theme.gold);
+                break;
+            case 'choose':
+                if (e.player !== me) showToast(`📣 ${nameOf(e.player)} annonce des ${valueLabel(e.value)}`, theme.goldLight);
                 break;
             case 'pose':
                 setFly({ id: e.id, count: e.count, from: seats[e.player] || 'top' });
@@ -354,8 +362,10 @@ export default function KdoubScreen({ route, navigation }) {
         const idx = selected.map((id) => myHand.findIndex((c) => c.id === id)).filter((i) => i >= 0);
         if (!idx.length) return;
         haptic('medium');
-        socketService.sendAction(roomId, { type: 'pose', cardIndexes: idx });
+        if (choosing && !chosen) return;
+        socketService.sendAction(roomId, choosing ? { type: 'pose', cardIndexes: idx, value: chosen } : { type: 'pose', cardIndexes: idx });
         setSelected([]);
+        setChosen(null);
     };
     const accuse = () => {
         setAccused(true);
@@ -395,6 +405,20 @@ export default function KdoubScreen({ route, navigation }) {
     const lp = state.lastPose;
     const history = (state.history || []).slice(-4, -1).reverse();
     const nextExpected = state.expected;
+
+    // Choix de la carte à annoncer (portrait : au-dessus de la main ; paysage : au centre, à la place de l'annonce)
+    const picker = (
+        <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.picker}>
+            <Text style={styles.pickerTitle}>📣 CHOISIS LA CARTE À ANNONCER</Text>
+            <View style={styles.pickerRow}>
+                {ORDER.map((v) => (
+                    <PressableScale key={v} onPress={() => { setChosen(v); audioService.playSound('pop', { volume: 0.5 }); }} style={[styles.pickerChip, chosen === v && styles.pickerChipOn]}>
+                        <Text style={[styles.pickerText, chosen === v && { color: theme.bg }]}>{v}</Text>
+                    </PressableScale>
+                ))}
+            </View>
+        </Animated.View>
+    );
 
     // Dernière annonce, historique et puce de tour (sous le tas en portrait, à droite en paysage)
     const claimInfo = (
@@ -455,11 +479,21 @@ export default function KdoubScreen({ route, navigation }) {
                         </View>
 
                         <View style={[styles.centerRow, land && { gap: 18 }]}>
+                            {land && isMyTurn && choosing ? picker : (
                             <View style={styles.expectedBox}>
-                                <Text style={styles.expectedLabel}>{inWindow ? 'ANNONCÉ' : 'À ANNONCER'}</Text>
-                                <CardFace card={{ suit: 'Oros', value: inWindow && lp ? lp.value : nextExpected }} width={land ? 40 : 48} height={land ? 58 : 70} />
-                                <Text style={styles.expectedValue}>{valueLabel(inWindow && lp ? lp.value : nextExpected)}</Text>
+                                <Text style={styles.expectedLabel}>{inWindow ? 'ANNONCÉ' : choosing ? 'NOUVELLE CARTE' : 'À ANNONCER'}</Text>
+                                {choosing && !chosen ? (
+                                    <View style={[styles.choiceCard, { width: land ? 40 : 48, height: land ? 58 : 70 }]}>
+                                        <Text style={styles.choiceMark}>?</Text>
+                                    </View>
+                                ) : (
+                                    <CardFace card={{ suit: 'Oros', value: inWindow && lp ? lp.value : announceValue }} width={land ? 40 : 48} height={land ? 58 : 70} />
+                                )}
+                                <Text style={styles.expectedValue} numberOfLines={1}>
+                                    {inWindow && lp ? valueLabel(lp.value) : choosing && !chosen ? (isMyTurn ? 'À toi de choisir' : `${nameOf(state.turn)} choisit`) : valueLabel(announceValue)}
+                                </Text>
                             </View>
+                            )}
 
                             <View style={styles.pileWrap}>
                                 <Pile count={state.pileCount || 0} bumpKey={state.pileCount} />
@@ -493,14 +527,16 @@ export default function KdoubScreen({ route, navigation }) {
                         <>
                             <View style={[styles.actionRow, land && styles.actionRowLand]} pointerEvents="box-none">
                                 {canAccuse && <KdoubButton onPress={accuse} />}
+                                {isMyTurn && choosing && !land && picker}
                                 {isMyTurn && (
                                     <Animated.View entering={ZoomIn.springify()} exiting={FadeOut}>
                                         <GameButton
                                             small
-                                            title={selected.length ? `POSER ${selected.length} × ${nextExpected}` : `Choisis 1 à 4 cartes (${nextExpected})`}
+                                            title={!announceValue ? (selected.length ? 'Choisis la carte annoncée' : 'Choisis la carte et 1 à 4 cartes')
+                                                : selected.length ? `POSER ${selected.length} × ${announceValue}` : `Choisis 1 à 4 cartes (${announceValue})`}
                                             icon="🂠"
-                                            variant={selected.length ? 'gold' : 'outline'}
-                                            disabled={!selected.length}
+                                            variant={selected.length && announceValue ? 'gold' : 'outline'}
+                                            disabled={!selected.length || !announceValue}
                                             onPress={poseSelected}
                                         />
                                     </Animated.View>
@@ -532,7 +568,7 @@ export default function KdoubScreen({ route, navigation }) {
                                         arcY={arcY}
                                         isMyTurn={false}
                                         isPlayable={isMyTurn}
-                                        glow={isMyTurn && card.value === nextExpected}
+                                        glow={isMyTurn && card.value === announceValue}
                                         toggleMode
                                         selected={selected.includes(card.id)}
                                         onSelect={() => toggle(card.id)}
@@ -593,7 +629,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
     },
     expectedLabel: { color: theme.textDim, fontSize: 9, fontWeight: '900', letterSpacing: 1.5, marginBottom: 4 },
-    expectedValue: { color: theme.goldLight, fontSize: 14, fontWeight: '900', marginTop: 4 },
+    expectedValue: { color: theme.goldLight, fontSize: 14, fontWeight: '900', marginTop: 4, maxWidth: 120, textAlign: 'center' },
     pileWrap: { width: 110, height: 120, alignItems: 'center', justifyContent: 'center' },
     pile: { width: 90, height: 110, alignItems: 'center', justifyContent: 'center' },
     pileEmpty: {
@@ -655,8 +691,42 @@ const styles = StyleSheet.create({
     turnName: { color: theme.cream, fontSize: 14, fontWeight: '900' },
     playerArea: { height: 200, justifyContent: 'flex-end' },
     playerAreaLand: { height: 128 },
+    choiceCard: {
+        borderRadius: 6,
+        borderWidth: 2,
+        borderStyle: 'dashed',
+        borderColor: theme.gold,
+        backgroundColor: 'rgba(0,0,0,0.35)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    choiceMark: { color: theme.goldLight, fontSize: 26, fontWeight: '900' },
+    picker: {
+        alignItems: 'center',
+        paddingVertical: 6,
+        paddingHorizontal: 8,
+        borderRadius: 14,
+        backgroundColor: 'rgba(0,0,0,0.7)',
+        borderWidth: 1,
+        borderColor: theme.gold,
+        maxWidth: 230,
+    },
+    pickerTitle: { color: theme.goldLight, fontSize: 10, fontWeight: '900', letterSpacing: 1, marginBottom: 5 },
+    pickerRow: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 5 },
+    pickerChip: {
+        width: 36,
+        height: 32,
+        borderRadius: 8,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212,175,55,0.6)',
+        backgroundColor: 'rgba(212,175,55,0.12)',
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    pickerChipOn: { backgroundColor: theme.gold, borderColor: theme.goldLight },
+    pickerText: { color: theme.goldLight, fontSize: 15, fontWeight: '900' },
     actionRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 6, zIndex: 700 },
-    actionRowLand: { position: 'absolute', left: 10, bottom: 60, justifyContent: 'flex-start', flexDirection: 'column', alignItems: 'flex-start' },
+    actionRowLand: { position: 'absolute', left: 10, bottom: 60, justifyContent: 'flex-start', flexDirection: 'column', alignItems: 'flex-start', zIndex: 3000, elevation: 3000 },
     kdoubBtn: {
         backgroundColor: '#DC2626',
         borderRadius: 40,

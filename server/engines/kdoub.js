@@ -3,23 +3,23 @@
  *
  * Règles V1 (validées par Yassir le 7 nov 2026) :
  * - 3 à 6 joueurs, jeu espagnol 40 cartes entièrement distribué (certains ont une carte de plus).
- * - Ordre imposé en boucle : 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, puis 1…
- * - À son tour, on pose 1 à 4 cartes face cachée en annonçant la valeur attendue.
+ * - Annonce (règle demandée par Yassir le 13 nov 2026) : le premier joueur CHOISIT la valeur à annoncer
+ *   (1, 2… 7, 10, 11, 12) ; tant que personne ne crie KDOUB, tout le monde continue sur cette même valeur.
+ * - À son tour, on pose 1 à 4 cartes face cachée en annonçant la valeur en cours.
  *   On peut mentir sur les cartes, pas sur le nombre.
  * - Fenêtre de 5 s après chaque pose : n'importe quel adversaire peut crier KDOUB.
- *   Menteur → il ramasse tout le tas. Vrai → l'accusateur ramasse tout le tas.
+ *   Vrai → l'accusateur ramasse tout le tas, et celui qui a dit vrai choisit une nouvelle valeur et rejoue.
+ *   Menteur → il ramasse tout le tas, et le joueur d'après choisit la nouvelle valeur et joue.
  * - Personne n'accuse : le tas reste, le tour passe au suivant.
  * - Le premier à vider sa main gagne (validé à la fin de la fenêtre), les autres sont classés
  *   selon le nombre de cartes restantes.
  *
- * Choix d'implémentation (à valider) :
- * - Après une accusation, c'est le joueur APRÈS CELUI QUI RAMASSE le tas qui joue, avec la valeur suivante.
- *   (Repartir après le poseur crée un piège : avec 10 valeurs et 4, 5 ou 6 joueurs, chacun ne voit
- *   jamais que certaines valeurs et ne peut plus poser honnêtement ses autres cartes ; la partie
- *   durait alors plusieurs centaines de poses en simulation, contre ~60 avec cette règle.)
+ * Choix d'implémentation :
+ * - expected === null : le joueur dont c'est le tour doit choisir la valeur (action pose avec `value`).
+ * - claimed : nombre de cartes annoncées sur la valeur en cours (information publique, utile aux bots).
  * - Pas de chrono de 15 s, mais 40 s de sécurité anti-AFK (pose d'une carte au hasard).
  */
-const { VALUES, generateDeck, shuffleDeck, nextValueLoop } = require('./common');
+const { VALUES, generateDeck, shuffleDeck } = require('./common');
 
 const WINDOW_SECONDS = 5;
 const TURN_SECONDS = 40;
@@ -49,7 +49,8 @@ function init(numPlayers, prev = null) {
         numPlayers,
         hands,
         pile: [],
-        expected: VALUES[0],
+        expected: null, // le premier joueur choisit la valeur
+        claimed: 0,
         turn: starter,
         phase: 'play', // 'play' | 'window' | 'over'
         lastPose: null, // { player, count, value, cardIds }
@@ -78,15 +79,29 @@ function finish(s, winner) {
     emit(s, { type: 'game_over', winner, ranking: s.ranking });
 }
 
-function advance(s, from = s.lastPose.player) {
-    s.turn = nextPlayer(from, s.numPlayers);
-    s.expected = nextValueLoop(s.lastPose.value);
+// Personne n'accuse : le suivant continue sur la même valeur
+function advance(s) {
+    s.turn = nextPlayer(s.lastPose.player, s.numPlayers);
     s.phase = 'play';
 }
 
-function pose(s, p, cardIndexes) {
+// Après un KDOUB : `p` choisit une nouvelle valeur
+function newChoice(s, p) {
+    s.turn = p;
+    s.expected = null;
+    s.claimed = 0;
+    s.phase = 'play';
+}
+
+function pose(s, p, cardIndexes, value) {
     if (s.phase !== 'play' || s.turn !== p) return false;
     if (!Array.isArray(cardIndexes)) return false;
+    if (s.expected === null || s.expected === undefined) {
+        if (!VALUES.includes(value)) return false; // il faut choisir la valeur annoncée
+        s.expected = value;
+        s.claimed = 0;
+        emit(s, { type: 'choose', player: p, value });
+    }
     const idx = [...new Set(cardIndexes)].filter((i) => Number.isInteger(i) && i >= 0 && i < s.hands[p].length);
     if (idx.length < 1 || idx.length > MAX_POSE || idx.length !== cardIndexes.length) return false;
 
@@ -94,6 +109,7 @@ function pose(s, p, cardIndexes) {
     s.hands[p] = s.hands[p].filter((_, i) => !idx.includes(i));
     s.pile.push(...cards);
     s.lastPose = { player: p, count: cards.length, value: s.expected, cardIds: cards.map((c) => c.id) };
+    s.claimed = (s.claimed || 0) + cards.length;
     s.history.push({ player: p, count: cards.length, value: s.expected });
     if (s.history.length > 12) s.history.shift();
     s.phase = 'window';
@@ -116,7 +132,8 @@ function accuse(s, by) {
         finish(s, target);
         return true;
     }
-    advance(s, loser); // le joueur après celui qui ramasse reprend
+    // Vrai : celui qui a dit vrai choisit la nouvelle valeur et rejoue ; menteur : le joueur d'après choisit
+    newChoice(s, truthful ? target : nextPlayer(target, s.numPlayers));
     return true;
 }
 
@@ -138,7 +155,7 @@ function apply(state, p, action) {
     const s = clone(state);
     s.events = [];
     let ok = false;
-    if (action.type === 'pose') ok = pose(s, p, action.cardIndexes);
+    if (action.type === 'pose') ok = pose(s, p, action.cardIndexes, action.value);
     else if (action.type === 'accuse') ok = accuse(s, p);
     // Interne (bots uniquement, filtré par le serveur) : personne ne peut plus accuser
     else if (action.type === '_close_window') ok = closeWindow(s);
@@ -157,7 +174,8 @@ function onTimeout(state) {
     if (s.phase === 'play' && s.turn !== null) {
         const hand = s.hands[s.turn];
         if (!hand.length) return state;
-        const ok = pose(s, s.turn, [Math.floor(Math.random() * hand.length)]);
+        const k = Math.floor(Math.random() * hand.length);
+        const ok = pose(s, s.turn, [k], hand[k].value); // valeur à choisir : celle de la carte (vérité)
         if (ok) emit(s, { type: 'auto_pose', player: s.turn });
         return ok ? s : state;
     }
@@ -171,16 +189,24 @@ function onTimeout(state) {
 function lieProbability(s, bot) {
     const { count, value, player } = s.lastPose;
     const mine = s.hands[bot].filter((c) => c.value === value).length;
-    if (mine + count > 4) return 1; // impossible : mensonge certain
+    if (mine + Math.max(count, s.claimed || 0) > 4) return 1; // impossible : mensonge certain
+    if ((s.claimed || 0) >= 4) return 0.9; // déjà 4 cartes annoncées sur cette valeur
     let p = 0.2 + 0.15 * (count - 1) + 0.15 * mine;
     if (s.hands[player].length === 0) p += 0.25; // il pose ses dernières cartes : on vérifie plus volontiers
     if (s.hands[player].length <= 2) p += 0.1;
     return Math.min(0.95, p);
 }
 
-function choosePose(s, p) {
+// Valeur choisie par un bot : celle dont il a le plus de cartes
+function chooseValue(hand) {
+    const n = {};
+    hand.forEach((c) => { n[c.value] = (n[c.value] || 0) + 1; });
+    return Number(Object.keys(n).sort((a, b) => n[b] - n[a] || Math.random() - 0.5)[0]);
+}
+
+function choosePose(s, p, value = s.expected) {
     const hand = s.hands[p];
-    const good = hand.map((c, i) => (c.value === s.expected ? i : -1)).filter((i) => i >= 0);
+    const good = hand.map((c, i) => (c.value === value ? i : -1)).filter((i) => i >= 0);
     if (good.length) {
         // Vérité, en ajoutant parfois une carte "cachée" (bluff partiel)
         const pick = good.slice(0, MAX_POSE);
@@ -214,7 +240,11 @@ function botActions(s, isBot) {
         return [];
     }
     if (isBot(s.turn)) {
-        return [{ player: s.turn, delay: 1300 + Math.random() * 1200, action: { type: 'pose', cardIndexes: choosePose(s, s.turn) } }];
+        const choosing = s.expected === null || s.expected === undefined;
+        const value = choosing ? chooseValue(s.hands[s.turn]) : s.expected;
+        const action = { type: 'pose', cardIndexes: choosePose(s, s.turn, value) };
+        if (choosing) action.value = value;
+        return [{ player: s.turn, delay: (choosing ? 2000 : 1300) + Math.random() * 1200, action }];
     }
     return [];
 }

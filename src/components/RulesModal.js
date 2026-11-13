@@ -73,22 +73,22 @@ function KdoubRules() {
                 Être le premier à se débarrasser de toutes ses cartes. 3 à 6 joueurs, les 40 cartes sont distribuées.
             </Text>
 
-            <Text style={styles.sectionTitle}>🔁 Ordre imposé</Text>
+            <Text style={styles.sectionTitle}>📣 L'annonce</Text>
             <Text style={styles.text}>
-                Les annonces suivent l'ordre 1, 2, 3, 4, 5, 6, 7, 10, 11, 12, puis on recommence à 1.{'\n'}À ton tour, tu poses <Text style={styles.highlight}>1 à 4 cartes face cachée</Text> en annonçant la valeur demandée. Tu peux mentir sur les cartes, jamais sur le nombre.
+                Le premier joueur <Text style={styles.highlight}>choisit la carte à annoncer</Text> (1, 2… 7, 10, 11 ou 12). Tant que personne ne crie KDOUB, tout le monde continue sur cette même carte.{'\n'}À ton tour, tu poses <Text style={styles.highlight}>1 à 4 cartes face cachée</Text> en annonçant cette carte. Tu peux mentir sur les cartes, jamais sur le nombre.
             </Text>
 
             <Text style={styles.sectionTitle}>🤥 KDOUB !</Text>
             <Text style={styles.text}>
                 Après chaque pose, tout adversaire a <Text style={styles.highlight}>5 secondes</Text> pour crier KDOUB (le joueur suivant attend).{'\n'}
-                • Le poseur a menti : il ramasse tout le tas.{'\n'}
-                • Il a dit vrai : c'est l'accusateur qui ramasse tout le tas.{'\n'}
-                Personne n'accuse : le tas reste et on continue avec la valeur suivante.
+                • Le poseur a menti : il ramasse tout le tas, et le joueur d'après choisit la nouvelle carte à annoncer.{'\n'}
+                • Il a dit vrai : c'est l'accusateur qui ramasse tout le tas, et le poseur choisit lui-même la nouvelle carte et rejoue.{'\n'}
+                Personne n'accuse : le tas reste et le suivant continue sur la même carte.
             </Text>
 
             <Text style={styles.sectionTitle}>💡 Exemple</Text>
             <Text style={styles.text}>
-                On attend des 5. Tu n'en as qu'un : tu poses ton 5 et un 12 en disant « deux 5 ». Si quelqu'un crie KDOUB, les cartes sont retournées : tu as menti, tu ramasses tout le tas.
+                On joue des 5. Tu n'en as qu'un : tu poses ton 5 et un 12 en disant « deux 5 ». Si quelqu'un crie KDOUB, les cartes sont retournées : tu as menti, tu ramasses tout le tas.
             </Text>
 
             <Text style={styles.sectionTitle}>🏁 Fin</Text>
