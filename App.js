@@ -20,6 +20,8 @@ import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
 import { loadCosmetics, setCurrentGame } from './src/utils/cosmetics';
 import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen';
+import StartCountdown from './src/components/StartCountdown';
+import socketService from './src/network/socketService';
 
 const Stack = createNativeStackNavigator();
 
@@ -34,10 +36,19 @@ function GameRouter(props) {
     const disarm = armFullscreenOnTouch(orientation);
     return () => { disarm(); setGameOrientation('any'); };
   }, [type]);
-  if (type === 'ronda') return <RondaScreen {...props} />;
-  if (type === 'kdoub') return <KdoubScreen {...props} />;
-  if (type === 'sota') return <SotaScreen {...props} />;
-  return <GameScreen {...props} />;
+  // Salon privé : l'hôte ramène tout le monde au salon (pour changer de jeu)
+  const { roomId, playerName } = props.route?.params || {};
+  useEffect(() => socketService.onBackToLobby((room) => {
+    if (!room || room.id !== roomId) return;
+    props.navigation.replace('Lobby', { roomId, playerName, isHost: room.hostId === socketService.socket?.id, initialRoom: room });
+  }), [roomId]);
+  const Screen = type === 'ronda' ? RondaScreen : type === 'kdoub' ? KdoubScreen : type === 'sota' ? SotaScreen : GameScreen;
+  return (
+    <View style={{ flex: 1 }}>
+      <Screen {...props} />
+      <StartCountdown initialState={props.route?.params?.initialGameState} gameType={type} />
+    </View>
+  );
 }
 
 const navTheme = {

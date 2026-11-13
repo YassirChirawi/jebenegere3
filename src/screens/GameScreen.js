@@ -21,7 +21,7 @@ import { TurnBanner, ActionToast, SuitBadge, PenaltyBadge, SuitSelector, SUIT_IN
 import { haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import TableBackground from '../components/TableBackground';
-import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 
@@ -594,6 +594,7 @@ export default function GameScreen({ route, navigation }) {
                     canReplay={canReplay}
                     onReplay={() => requestReplay(roomId)}
                     onQuit={handleEndQuit}
+                    onChangeGame={changeGameHandler(roomId, gameState)}
                 />
             )}
 

@@ -23,7 +23,7 @@ const DETAIL_ROWS = [
 ];
 const STEP = 180; // délai entre deux lignes du détail
 
-export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, canReplay, onReplay, onQuit }) {
+export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
     const { summary, winnerTeam, target, manche } = state;
     const { height } = useWindowDimensions();
     const compact = height < 520;
@@ -108,6 +108,9 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                     )}
                     <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
+                {gameOver && onChangeGame && (
+                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                )}
             </Animated.View>
         </Animated.View>
     );

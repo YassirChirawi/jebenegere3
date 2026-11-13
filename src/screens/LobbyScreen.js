@@ -6,7 +6,7 @@ import audioService from '../network/audioService';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
-import { gameInfo } from '../games';
+import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
@@ -113,6 +113,18 @@ export default function LobbyScreen({ route, navigation }) {
 
     const ack = (msg) => (r) => { setBusy(false); if (r && r.success === false && r.message) dialog.alert('Oups', r.message); else if (msg) audioService.playSound(msg); };
     const addBot = () => { setBusy(true); socketService.addBot(roomId, ack('pop')); };
+    const lobbyGames = lobbyBots && socketService.supports('lobby_games') && room?.isPrivate !== false;
+    const pickGame = (key) => {
+        if (key === gameType || busy) return;
+        setBusy(true);
+        setPicked(null);
+        socketService.changeGame(roomId, key, (r) => {
+            setBusy(false);
+            if (r && r.success === false) { if (r.message) dialog.alert('Oups', r.message); return; }
+            if (r?.roomData) setRoom(r.roomData);
+            audioService.playSound('card_flip');
+        });
+    };
     const removeBot = (id) => { setPicked(null); socketService.removeBot(roomId, id, ack()); };
     const pickSeat = (id) => {
         if (!lobbyBots) return;
@@ -137,6 +149,29 @@ export default function LobbyScreen({ route, navigation }) {
                     <Text style={styles.code} selectable>{roomId}</Text>
                     <Text style={styles.codeHint}>Partage ce code à tes amis pour qu'ils te rejoignent</Text>
                 </Animated.View>
+
+                {lobbyGames && (
+                    <View style={[styles.panel, { marginBottom: 14 }]}>
+                        <Text style={styles.sectionTitle}>JEU DU SALON</Text>
+                        <View style={styles.gameChips}>
+                            {GAME_ORDER.filter((k) => socketService.supportsGame(k)).map((k) => {
+                                const g = GAMES[k];
+                                const on = k === gameType;
+                                return (
+                                    <Pressable
+                                        key={k}
+                                        onPress={() => pickGame(k)}
+                                        disabled={busy}
+                                        style={[styles.gameChip, on && { backgroundColor: g.color, borderColor: theme.goldLight }]}
+                                    >
+                                        <Text style={[styles.gameChipText, on && { color: '#fff' }]}>{g.label}</Text>
+                                        <Text style={[styles.gameChipSub, on && { color: 'rgba(255,255,255,0.85)' }]}>{g.players}</Text>
+                                    </Pressable>
+                                );
+                            })}
+                        </View>
+                    </View>
+                )}
 
                 <View style={styles.panel}>
                     <Text style={styles.sectionTitle}>JOUEURS · {players.length}/{MAX_PLAYERS}</Text>
@@ -317,6 +352,20 @@ const styles = StyleSheet.create({
         borderWidth: 2,
         backgroundColor: 'rgba(52,211,153,0.15)',
     },
+    gameChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    gameChip: {
+        flexGrow: 1,
+        flexBasis: '45%',
+        paddingVertical: 8,
+        paddingHorizontal: 10,
+        borderRadius: 14,
+        borderWidth: 1.5,
+        borderColor: 'rgba(212,175,55,0.35)',
+        backgroundColor: 'rgba(0,0,0,0.25)',
+        alignItems: 'center',
+    },
+    gameChipText: { color: theme.gold, fontWeight: '900', fontSize: 14 },
+    gameChipSub: { color: theme.textDim, fontSize: 10, marginTop: 2 },
     swapHint: {
         color: theme.textDim,
         fontSize: 11,

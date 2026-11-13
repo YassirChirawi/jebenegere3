@@ -14,7 +14,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
  * rows : [{ player, name, isMe, detail, loser }] dans l'ordre du classement.
  * hero : élément optionnel affiché sous le titre (ex : la Sota en grand).
  */
-export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, lost, hero, xpEarned, canReplay, onReplay, onQuit }) {
+export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, lost, hero, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
     const { height } = useWindowDimensions();
     const compact = height < 520;
 
@@ -61,6 +61,9 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                     )}
                     <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
+                {onChangeGame && (
+                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                )}
             </Animated.View>
         </Animated.View>
     );

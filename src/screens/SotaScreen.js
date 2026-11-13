@@ -26,7 +26,7 @@ import { FlyCards, GoldBurst } from '../components/Flights';
 import { CardFace, CardBack } from '../components/Card';
 import { ActionToast, TurnBanner } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
-import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
 import { PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -478,6 +478,7 @@ export default function SotaScreen({ route, navigation }) {
                     canReplay={canReplay}
                     onReplay={() => requestReplay(roomId)}
                     onQuit={state.players?.some((p) => p.isBot) ? leave : handleQuit}
+                    onChangeGame={changeGameHandler(roomId, state)}
                 />
             )}
 

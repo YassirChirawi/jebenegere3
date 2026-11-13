@@ -108,7 +108,7 @@ Le site est une **appli installable** : icône sur l'écran d'accueil, plein éc
 - Fichiers dans [public/](public/), copiés tels quels par `expo export` :
   - `index.html` (modèle de la page), `manifest.webmanifest`, `icons/` ;
   - `sw.js` : service worker. Les pages passent toujours par le réseau (dernière version), le code et les images sont gardés en cache. Le serveur de jeu n'est jamais mis en cache. Pour forcer le vidage du cache chez tous les joueurs : changer `VERSION` dans `sw.js`.
-- **Plein écran sur téléphone** ([src/utils/fullscreen.js](src/utils/fullscreen.js)) : au lancement d'une partie (ou au premier toucher en jeu), la barre du navigateur disparaît. **La Ronda passe en paysage** : les 4 joueurs autour d'une table marocaine dessinée (cadre en cèdre et clous en laiton, bande de zellige, tapis rouge — [src/components/MoroccanTable.js](src/components/MoroccanTable.js)), score, tas, tour et réactions dans une colonne tout à droite. Sur Android, c'est automatique. Sur iPhone, Safari ne le permet pas : le plein écran passe par l'appli installée, et la Ronda propose de tourner le téléphone.
+- **Plein écran sur téléphone** ([src/utils/fullscreen.js](src/utils/fullscreen.js)) : au lancement d'une partie (ou au premier toucher en jeu), la barre du navigateur disparaît. **La Ronda passe en paysage** : les 4 joueurs autour d'une table marocaine dessinée (cadre en cèdre et clous en laiton, bande de zellige, tapis rouge — [src/components/MoroccanTable.js](src/components/MoroccanTable.js)). La table prend toute la place libre entre les joueurs et les cartes posées prennent la plus grande taille qui tient (une ou deux rangées) ; les boutons « RONDA ! » et « Il est rondé ? » sont à gauche, au-dessus de « Toi », pour ne pas cacher la table. Score, tas, tour et réactions sont dans une colonne tout à droite. Sur Android, c'est automatique. Sur iPhone, Safari ne le permet pas : le plein écran passe par l'appli installée, et la Ronda propose de tourner le téléphone.
 - [vercel.json](vercel.json) : en-têtes de sécurité du site (HTTPS forcé, CSP, anti-iframe…). **Si le jeu charge un jour une ressource d'un autre domaine** (nouveau serveur, images externes), il faut l'ajouter dans la `Content-Security-Policy`, sinon le navigateur la bloque.
 
 ## Mode test (web)
@@ -117,12 +117,19 @@ Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?tes
 
 Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichage de l'éventail sur un grand écran comme sur un téléphone.
 
-## Salons privés : bots et équipes
+## Salons privés : jeu, bots et équipes
+- **Changer de jeu sans quitter le salon** : l'hôte choisit le jeu dans le salon (« JEU DU SALON » : Hezz2, Ronda, Kdoub, Sota Ghamla). En fin de partie, le bouton « 🎲 Changer de jeu » ramène tout le monde au salon, avec le même code. S'il y a trop de joueurs pour le nouveau jeu, les bots partent d'abord, puis les derniers arrivés passent spectateurs ; s'il y a de la place, les spectateurs entrent en jeu. Pas disponible en matchmaking ni contre les bots.
 - L'hôte peut **ajouter un bot** avant le lancement (bouton « 🤖 ＋ Ajouter un bot ») et le retirer (✕). Exemple : 3 amis en Ronda + 1 bot pour jouer en 2 contre 2, ou 2 amis contre 2 bots.
 - **Équipes (Ronda à 4)** : les places 1+3 jouent contre 2+4. L'hôte touche deux joueurs pour échanger leurs places ; les équipes sont affichées en bleu et en rouge.
 - Un ami qui rejoint un salon complet prend la place d'un bot.
 - **Bots ajoutés automatiquement** : s'il manque des joueurs pour lancer (ex. Ronda à 3, qui se joue à 2 ou à 4), le bouton devient « DÉMARRER · +1 BOT » et complète la table avec le nombre de bots nécessaire avant de lancer. Ça marche dès 2 humains dans le salon, pour tous les jeux (Sota à 2 ou 3, Kdoub à 2…).
 - Pas de musique pendant les parties : elle s'arrête en fondu au lancement et reprend au menu.
+
+## Compte à rebours avant la partie
+- Au lancement de chaque partie (salon, matchmaking, contre les bots, Rejouer), un compte à rebours de **6 secondes** s'affiche avec le nom du joueur qui commence (« C'est toi qui commences ! »). Le chrono du tour et les bots ne démarrent qu'après, et le serveur refuse les coups pendant ce temps : le premier joueur n'est jamais pris au dépourvu.
+- En Ronda, sur téléphone tenu en portrait, un bouton « 🔄 Tourner l'écran » passe en plein écran paysage (Android) ; sur iPhone, un message demande de tourner le téléphone.
+- Pas de compte à rebours entre deux manches d'une même Ronda (« Continuer »).
+- Variable d'environnement facultative du serveur : `START_COUNTDOWN_MS` (6000 par défaut, 0 pour le désactiver ; désactivé automatiquement pendant `npm test`).
 
 ## Anti-blocage
 
@@ -186,7 +193,8 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
 ```bash
 cd server
 npm test                   # tests des moteurs, puis tests réseau de bout en bout (vrai serveur et vrais clients) :
-                           # matchmaking, bots, annulation, Rejouer, abandon et forfait, mode test
+                           # matchmaking, bots, annulation, Rejouer, abandon et forfait, mode test,
+                           # compte à rebours, changement de jeu et retour au salon
 ```
 
 ## Architecture

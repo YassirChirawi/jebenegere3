@@ -12,7 +12,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 /**
  * Fin de manche : classement par ordre de sortie, points gagnés, total, XP.
  */
-export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned, canReplay, onReplay, onQuit }) {
+export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
     const players = gameState.players || [];
     const total = gameState.hands.length;
     const finished = gameState.finishedPlayers || [];
@@ -92,6 +92,9 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                     )}
                     <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
+                {onChangeGame && (
+                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                )}
             </Animated.View>
         </Animated.View>
     );

@@ -17,6 +17,19 @@ export function requestReplay(roomId) {
     });
 }
 
+// Salon privé, fin de partie : l'hôte ramène tout le monde au salon pour choisir un autre jeu.
+// Renvoie undefined si ce n'est pas possible (pas l'hôte, matchmaking, partie contre bots, vieux serveur).
+export function changeGameHandler(roomId, state) {
+    const host = state?.hostId && state.hostId === socketService.socket?.id;
+    if (!host || !state?.isPrivate || !socketService.supports('lobby_games')) return undefined;
+    return () => socketService.backToLobby(roomId, (res) => {
+        if (res && res.success === false) {
+            audioService.playSound('error');
+            dialog.alert('Impossible', res.message || 'Réessaie dans un instant.');
+        }
+    });
+}
+
 export const QUICK_MESSAGES = ['L3eb a zmagri !', 'Zid Jouj !', 'Hezz !', 'Zrebti 3lina...', 'Wry9a wa7da 😉', 'Saaaaaaaafi 😡'];
 export const REACTIONS = ['😂', '😡', '😱', '👏'];
 

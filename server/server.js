@@ -81,9 +81,14 @@ const rooms = {};
 const matchmakingQueues = {};
 const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
 const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
+// Compte à rebours avant le premier coup (le temps de s'installer / tourner l'écran).
+// Désactivé par défaut pendant les tests automatiques (node --test).
+const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
+    ? Number(process.env.START_COUNTDOWN_MS)
+    : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games'] };
 }
 
 // Joueur d'une room : le pseudo du compte remplace le nom saisi quand le joueur est connecté
@@ -108,6 +113,7 @@ function publicRoom(room) {
         spectators: room.spectators,
         inGame: !!(room.gameState && !getEngine(room.gameType).isOver(room.gameState)),
         maxPlayers: getEngine(room.gameType).maxPlayers,
+        isPrivate: !!room.isPrivate,
     };
 }
 
@@ -120,7 +126,8 @@ function broadcastRoomUpdate(roomId) {
 function stateFor(room, viewerIndex) {
     const engine = getEngine(room.gameType);
     const base = engine.viewFor ? engine.viewFor(room.gameState, viewerIndex) : room.gameState;
-    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId };
+    const startIn = room.startsAt ? Math.max(0, room.startsAt - Date.now()) : 0;
+    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId, isPrivate: !!room.isPrivate, startIn };
 }
 
 function emitState(roomId, event = 'game_state_update') {
@@ -149,10 +156,32 @@ function startGame(roomId, prevState = null) {
         if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me, room.debugHand);
     }
     room.version = (room.version || 0) + 1;
+    // Pas de compte à rebours entre deux manches d'une même Ronda
+    const continuing = room.gameType === 'ronda' && prevState && prevState.winnerTeam === null;
+    launchGame(roomId, continuing ? 0 : START_COUNTDOWN_MS);
+}
+
+/**
+ * Envoie le début de partie puis, après le compte à rebours, lance le chrono et les bots.
+ * Pendant le compte à rebours, les coups des joueurs sont refusés.
+ */
+function launchGame(roomId, countdownMs = START_COUNTDOWN_MS) {
+    const room = rooms[roomId];
+    clearTimeout(room.countdownTimer);
+    if (room.timerInterval) clearInterval(room.timerInterval);
+    room.startsAt = countdownMs > 0 ? Date.now() + countdownMs : 0;
     emitState(roomId, 'game_started');
     broadcastRoomUpdate(roomId);
-    resetTimer(roomId);
+    if (!room.startsAt) { resetTimer(roomId); return; }
+    room.countdownTimer = setTimeout(() => {
+        const r = rooms[roomId];
+        if (!r || r !== room) return;
+        r.startsAt = 0;
+        if (r.gameState && !getEngine(r.gameType).isOver(r.gameState)) resetTimer(roomId);
+    }, countdownMs);
 }
+
+const inCountdown = (room) => !!room.startsAt && Date.now() < room.startsAt;
 
 // Applique une action (joueur ou bot). Renvoie true si l'état a changé.
 function applyAction(roomId, playerIndex, action) {
@@ -310,6 +339,7 @@ function createMatchmakingRoom(gameType, targetSize, realPlayers) {
 
     const room = rooms[roomId];
     room.gameState = getEngine(gameType).init(targetSize, null);
+    room.startsAt = START_COUNTDOWN_MS > 0 ? Date.now() + START_COUNTDOWN_MS : 0; // pour match_found
     room.tally = {};
     room.afkCount = {};
     room.version = 1;
@@ -317,9 +347,7 @@ function createMatchmakingRoom(gameType, targetSize, realPlayers) {
         const idx = activePlayers.findIndex((a) => a.id === p.socketId);
         io.to(p.socketId).emit('match_found', { roomId, roomData: publicRoom(room), gameState: stateFor(room, idx) });
     });
-    emitState(roomId, 'game_started');
-    broadcastRoomUpdate(roomId);
-    resetTimer(roomId);
+    launchGame(roomId);
 }
 
 function playerIndexOf(room, socketId) {
@@ -416,6 +444,7 @@ io.on('connection', (socket) => {
             activePlayers: [playerOf(socket, playerName)],
             spectators: [],
             gameState: null,
+            isPrivate: true,
         };
         socket.join(roomId);
         console.log(`${playerName} a créé la room ${roomId} (${rooms[roomId].gameType})`);
@@ -451,10 +480,9 @@ io.on('connection', (socket) => {
             room.gameState = engine.rigSpecials(room.gameState, 0, data.debugHand);
         }
         room.version = 1;
+        room.startsAt = START_COUNTDOWN_MS > 0 ? Date.now() + START_COUNTDOWN_MS : 0;
         callback && callback({ success: true, roomId, gameState: stateFor(room, 0) });
-        emitState(roomId, 'game_started');
-        broadcastRoomUpdate(roomId);
-        resetTimer(roomId);
+        launchGame(roomId);
     });
 
     socket.on('join_room', (data, callback) => {
@@ -524,6 +552,46 @@ io.on('connection', (socket) => {
         callback && callback({ success: true });
     });
 
+    // --- SALON PRIVÉ : changer de jeu sans quitter le salon (hôte, hors partie en cours) ---
+    // Fin de partie → tout le monde revient au salon
+    socket.on('back_to_lobby', (data, callback) => {
+        const room = lobbyOf(data);
+        if (!room || !room.isPrivate) return callback && callback({ success: false, message: "Seul l'hôte d'un salon privé peut revenir au salon après la partie." });
+        if (room.timerInterval) clearInterval(room.timerInterval);
+        clearTimeout(room.countdownTimer);
+        room.gameState = null;
+        room.startsAt = 0;
+        io.to(room.id).emit('back_to_lobby', publicRoom(room));
+        broadcastRoomUpdate(room.id);
+        callback && callback({ success: true });
+    });
+
+    // Choix du jeu dans le salon : s'il y a trop de joueurs pour le nouveau jeu,
+    // on retire d'abord des bots, puis les derniers arrivés passent spectateurs
+    socket.on('change_game', (data, callback) => {
+        const room = lobbyOf(data);
+        if (!room || !room.isPrivate) return callback && callback({ success: false, message: "Seul l'hôte peut changer de jeu, entre deux parties." });
+        const type = normalizeType(data.gameType);
+        if (type !== data.gameType) return callback && callback({ success: false, message: 'Jeu inconnu.' });
+        if (type !== room.gameType) {
+            const max = getEngine(type).maxPlayers;
+            while (room.activePlayers.length > max) {
+                const botIdx = room.activePlayers.map((p) => !!p.isBot).lastIndexOf(true);
+                if (botIdx !== -1) { room.activePlayers.splice(botIdx, 1); continue; }
+                const lastIdx = room.activePlayers.length - 1 - [...room.activePlayers].reverse().findIndex((p) => p.id !== room.hostId);
+                room.spectators.unshift(...room.activePlayers.splice(lastIdx, 1));
+            }
+            // Places libérées : les spectateurs entrent en jeu
+            while (room.activePlayers.length < max && room.spectators.length) room.activePlayers.push(room.spectators.shift());
+            room.gameType = type;
+            room.gameState = null;
+            room.tally = {};
+            room.startsAt = 0;
+        }
+        broadcastRoomUpdate(room.id);
+        callback && callback({ success: true, roomData: publicRoom(room) });
+    });
+
     // --- MATCHMAKING ---
     socket.on('find_match', (data, callback) => {
         const { playerName = 'Joueur Anonyme', targetSize = 4, gameType } = data || {};
@@ -582,13 +650,13 @@ io.on('connection', (socket) => {
     // Hezz2 (événements historiques)
     socket.on('play_card', (data) => {
         const room = rooms[data?.roomId];
-        if (!room) return;
+        if (!room || inCountdown(room)) return;
         applyAction(room.id, playerIndexOf(room, socket.id), { type: 'play', cardIndex: data.cardIndex, newSuitFor7: data.newSuitFor7 });
     });
 
     socket.on('draw_card', (data) => {
         const room = rooms[data?.roomId];
-        if (!room) return;
+        if (!room || inCountdown(room)) return;
         applyAction(room.id, playerIndexOf(room, socket.id), { type: 'draw' });
     });
 
@@ -598,7 +666,7 @@ io.on('connection', (socket) => {
         if (!room || !data.action || String(data.action.type).startsWith('_')) return; // actions internes réservées aux bots
         const idx = playerIndexOf(room, socket.id);
         if (idx === -1) return;
-        if (!applyAction(room.id, idx, data.action)) {
+        if (inCountdown(room) || !applyAction(room.id, idx, data.action)) {
             socket.emit('action_rejected', { action: data.action });
         }
     });
@@ -655,7 +723,7 @@ function start(port = process.env.PORT || 3000) {
 function stop() {
     clearInterval(matchmakingTimer);
     store.flushNow && store.flushNow();
-    Object.values(rooms).forEach((r) => r.timerInterval && clearInterval(r.timerInterval));
+    Object.values(rooms).forEach((r) => { if (r.timerInterval) clearInterval(r.timerInterval); clearTimeout(r.countdownTimer); });
     io.close();
     return new Promise((resolve) => server.close(() => resolve()));
 }

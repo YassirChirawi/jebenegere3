@@ -25,7 +25,7 @@ import RulesModal from '../components/RulesModal';
 import TableBackground from '../components/TableBackground';
 import { CardFace, CardBack } from '../components/Card';
 import { TurnBanner, ActionToast } from '../components/GameFx';
-import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble } from '../components/GameChrome';
+import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -667,13 +667,19 @@ export default function RondaScreen({ route, navigation }) {
         );
     };
 
-    // Paysage : cartes de la table à la taille de l'écran
-    // Paysage : hauteur de table fixe (une rangée de cartes), cartes réduites s'il en faut deux
-    const landBaseH = Math.round(Math.max(56, Math.min(80, stageH * 0.19)));
-    const landZoneH = landBaseH + 2 * TABLE_INSET + 14;
-    const landInnerW = Math.min(stageW - 138 - 2 * 84 - 16, 540) - 2 * TABLE_INSET;
-    const landRows = land && state.table.length * (Math.round(landBaseH * 0.7) + 6) > landInnerW ? 2 : 1;
-    const tableH = land ? (landRows === 2 ? Math.floor((landZoneH - 2 * TABLE_INSET - 6) / 2) : landBaseH) : TABLE_H;
+    // Paysage : la table occupe tout l'espace libre entre les joueurs (haut, côtés, main) ;
+    // les cartes prennent la plus grande taille qui tient, sur une ou deux rangées
+    const landZoneH = Math.round(Math.max(120, Math.min(240, stageH - 62 - 128 - 8)));
+    const landZoneW = Math.round(Math.max(260, Math.min(stageW - 138 - 2 * 84 - 16, 680)));
+    const landInnerW = landZoneW - 2 * TABLE_INSET;
+    const landInnerH = landZoneH - 2 * TABLE_INSET - 10;
+    const fitH = (rows) => {
+        const perRow = Math.max(1, Math.ceil(state.table.length / rows));
+        const byW = (landInnerW - 6 * (perRow - 1)) / perRow / 0.7;
+        const byH = (landInnerH - 6 * (rows - 1)) / rows;
+        return Math.floor(Math.min(byW, byH, 116));
+    };
+    const tableH = land ? Math.max(fitH(1), fitH(2)) : TABLE_H;
     const tableW = land ? Math.round(tableH * 0.7) : TABLE_W;
     const canReplay = state.hostId && state.hostId === socketService.socket?.id;
     const myDealerLast = isMyTurn && me === state.dealer && state.dealIndex === state.totalDeals && myHand.length === 1;
@@ -744,7 +750,7 @@ export default function RondaScreen({ route, navigation }) {
 
                         <View style={land ? styles.centerLand : styles.centerCol}>
                         <View style={land ? styles.tableColLand : styles.centerCol}>
-                        <View style={[styles.tableZone, land && styles.tableZoneLand, land && { height: landZoneH }]}>
+                        <View style={[styles.tableZone, land && styles.tableZoneLand, land && { height: landZoneH, width: landZoneW }]}>
                             {land && <MoroccanTable />}
                             {state.table.length === 0 ? (
                                 <Text style={styles.emptyTable}>Table vide</Text>
@@ -933,6 +939,7 @@ export default function RondaScreen({ route, navigation }) {
                     canReplay={canReplay}
                     onReplay={() => requestReplay(roomId)}
                     onQuit={state.players?.some((p) => p.isBot) ? leave : handleQuit}
+                    onChangeGame={changeGameHandler(roomId, state)}
                 />
             )}
 
@@ -1119,7 +1126,7 @@ const styles = StyleSheet.create({
     },
     tableZoneLand: {
         minHeight: 0,
-        maxWidth: 540,
+        maxWidth: '100%',
         alignSelf: 'center',
         marginVertical: 4,
         padding: TABLE_INSET,
@@ -1291,10 +1298,15 @@ const styles = StyleSheet.create({
         flexWrap: 'wrap',
     },
     actionRowLand: {
+        // Paysage : à gauche, au-dessus de « Toi », pour ne pas cacher la table
         position: 'absolute',
-        top: -46,
-        left: 0,
-        right: 0,
+        top: 2,
+        left: 8,
+        flexDirection: 'column',
+        alignItems: 'flex-start',
+        justifyContent: 'flex-start',
+        gap: 4,
+        zIndex: 20,
     },
     announcedText: {
         color: theme.mint,

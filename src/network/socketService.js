@@ -130,6 +130,15 @@ class SocketService {
         this._emitAck('swap_seats', { roomId, a, b }, callback, 6000, 'Le serveur ne répond pas.');
     }
 
+    // Salon privé (hôte) : choisir un autre jeu, ou ramener tout le monde au salon après une partie
+    changeGame(roomId, gameType, callback) {
+        this._emitAck('change_game', { roomId, gameType }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
+    backToLobby(roomId, callback) {
+        this._emitAck('back_to_lobby', { roomId }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
     // -- MATCHMAKING ACTIONS --
     findMatch(playerName, targetSize, gameType, callback) {
         this._afterAuth(() => this._emitAck('find_match', { playerName, targetSize, gameType }, callback, 6000,
@@ -210,6 +219,7 @@ class SocketService {
     onTimerTick(callback) { return this._listen('timer_tick', callback); }
     onPlayerReaction(callback) { return this._listen('player_reaction_broadcast', callback); }
     onActionRejected(callback) { return this._listen('action_rejected', callback); }
+    onBackToLobby(callback) { return this._listen('back_to_lobby', callback); }
 
     offAll() {
         if (this.socket) {
