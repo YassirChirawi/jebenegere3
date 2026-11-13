@@ -670,14 +670,14 @@ export default function RondaScreen({ route, navigation }) {
     // Paysage : la table occupe tout l'espace libre entre les joueurs (haut, côtés, main) ;
     // les cartes prennent la plus grande taille qui tient, sur une ou deux rangées
     const landZoneH = Math.round(Math.max(120, Math.min(240, stageH - 62 - 128 - 8)));
-    const landZoneW = Math.round(Math.max(260, Math.min(stageW - 138 - 2 * 84 - 16, 680)));
+    const landZoneW = Math.round(Math.max(260, Math.min(stageW - 2 * 84 - 16, 760)));
     const landInnerW = landZoneW - 2 * TABLE_INSET;
     const landInnerH = landZoneH - 2 * TABLE_INSET - 10;
     const fitH = (rows) => {
         const perRow = Math.max(1, Math.ceil(state.table.length / rows));
         const byW = (landInnerW - 6 * (perRow - 1)) / perRow / 0.7;
         const byH = (landInnerH - 6 * (rows - 1)) / rows;
-        return Math.floor(Math.min(byW, byH, 116));
+        return Math.floor(Math.min(byW, byH, 132));
     };
     const tableH = land ? Math.max(fitH(1), fitH(2)) : TABLE_H;
     const tableW = land ? Math.round(tableH * 0.7) : TABLE_W;
@@ -691,34 +691,32 @@ export default function RondaScreen({ route, navigation }) {
         </View>
     );
 
-    // Paysage : score, tas, distribution, tour et réactions dans une colonne tout à droite
+    // Paysage : score, cartes ramassées et distribution dans une petite barre en haut à droite ;
+    // tour + chrono et réactions en bas à droite. La table garde toute la largeur.
+    const oppTeam = myTeam === null ? 1 : 1 - myTeam;
     const landPanel = land ? (
-                        <View style={styles.infoColumn}>
-                            <View style={styles.scoreBoxLand}>
-                                <Text style={styles.scoreBoxTitle}>SCORE · {state.target}</Text>
-                                {[myTeam ?? 0, myTeam === null ? 1 : 1 - myTeam].map((t) => (
-                                    <View key={t} style={styles.scoreBoxRow}>
-                                        <Text style={[styles.scoreBoxTeam, t === myTeam && styles.scoreMine]}>{teamNames[t]}</Text>
-                                        <Text style={[styles.scoreBoxPts, t === myTeam && styles.scoreMine]}>{state.scores[t]}</Text>
-                                    </View>
-                                ))}
-                            </View>
-                            <View style={styles.pilesLand}>
-                                <CapturePile compact label={teamNames[myTeam ?? 0]} count={state.captured[myTeam ?? 0]} top={state.topCaptured[myTeam ?? 0]} mine />
-                                <CapturePile compact label={teamNames[myTeam === null ? 1 : 1 - myTeam]} count={state.captured[myTeam === null ? 1 : 1 - myTeam]} top={state.topCaptured[myTeam === null ? 1 : 1 - myTeam]} />
-                            </View>
-                            <Text style={styles.dealLand}>Distrib. {state.dealIndex}/{state.totalDeals} · Paquet {state.deckCount ?? 0}</Text>
-                            {!state.mancheTerminee && (
-                                <View style={[styles.turnChip, styles.turnChipLand, isMyTurn && styles.turnChipMine]}>
-                                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
-                                    <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
-                                    </Text>
-                                </View>
-                            )}
-                            <View style={{ flex: 1 }} />
-                            <View style={styles.reactionsLand}><ReactionBar onSend={sendReaction} /></View>
-                        </View>
+        <>
+            <View style={styles.infoBarLand} pointerEvents="none">
+                <View style={styles.infoLineLand}>
+                    <Text style={[styles.infoTeamLand, styles.scoreMine]}>{teamNames[myTeam ?? 0]} {state.scores[myTeam ?? 0]}</Text>
+                    <Text style={styles.infoDimLand}> – </Text>
+                    <Text style={styles.infoTeamLand}>{state.scores[oppTeam]} {teamNames[oppTeam]}</Text>
+                    <Text style={styles.infoDimLand}>  /{state.target}</Text>
+                </View>
+                <Text style={styles.infoSubLand} numberOfLines={1}>
+                    🃏 {state.captured[myTeam ?? 0]} · {state.captured[oppTeam]}   Distrib. {state.dealIndex}/{state.totalDeals}   Paquet {state.deckCount ?? 0}
+                </Text>
+            </View>
+            {!state.mancheTerminee && (
+                <View style={[styles.turnChip, styles.turnChipLand, styles.turnChipLandPos, isMyTurn && styles.turnChipMine]} pointerEvents="none">
+                    <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
+                    <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
+                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
+                    </Text>
+                </View>
+            )}
+            <View style={styles.reactionsLand}><ReactionBar onSend={sendReaction} /></View>
+        </>
     ) : null;
 
     return (
@@ -1050,7 +1048,26 @@ const styles = StyleSheet.create({
     scoreBoxRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
     scoreBoxTeam: { color: theme.cream, fontSize: 13, fontWeight: '900', letterSpacing: 0.5 },
     scoreBoxPts: { color: theme.cream, fontSize: 17, fontWeight: '900' },
-    reactionsLand: { transform: [{ scale: 0.82 }], marginBottom: -4 },
+    reactionsLand: { position: 'absolute', right: 0, bottom: 2, transform: [{ scale: 0.78 }], zIndex: 30 },
+    infoBarLand: {
+        position: 'absolute',
+        top: 6,
+        right: 104,
+        maxWidth: 240,
+        paddingVertical: 3,
+        paddingHorizontal: 10,
+        borderRadius: 12,
+        backgroundColor: 'rgba(0,0,0,0.55)',
+        borderWidth: 1,
+        borderColor: 'rgba(212,175,55,0.4)',
+        alignItems: 'center',
+        zIndex: 30,
+    },
+    infoLineLand: { flexDirection: 'row', alignItems: 'baseline' },
+    infoTeamLand: { color: theme.cream, fontSize: 13, fontWeight: '900' },
+    infoDimLand: { color: theme.textDim, fontSize: 11, fontWeight: '800' },
+    infoSubLand: { color: theme.textDim, fontSize: 10, fontWeight: '800', marginTop: 1 },
+    turnChipLandPos: { position: 'absolute', right: 10, bottom: 50, zIndex: 30 },
     tableColLand: {
         flex: 1,
         alignSelf: 'stretch',
