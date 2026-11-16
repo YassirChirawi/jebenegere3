@@ -112,3 +112,60 @@ test('départ en pleine partie : annonce visible, remplacé par un bot à 3 ; vi
     assert.equal(d.forfeit, true);
     [h, a, b].forEach((s) => s.close());
 });
+
+test("joueur parti : l'écran de fin nomme les vrais joueurs, puis le spectateur prend la place du bot", async () => {
+    const { getEngine } = require('../engines');
+    const [h, a, b, sp] = [client(), client(), client(), client()];
+    await Promise.all([h, a, b, sp].map(connected));
+    const { roomId } = await emitAck(h, 'create_room', { playerName: 'Hote', gameType: 'hezz2' });
+    await emitAck(a, 'join_room', { roomId, playerName: 'Amine' });
+    await emitAck(b, 'join_room', { roomId, playerName: 'Badr' });
+    let started = once(h, 'game_started');
+    h.emit('start_game', { roomId });
+    await started;
+    await emitAck(sp, 'join_room', { roomId, playerName: 'Chama' });
+    const left = once(h, 'player_left');
+    b.emit('leave_room', { roomId });
+    await left;
+    const room = app.rooms[roomId];
+    // Fin de manche : Amine (siège 1) est le Khasser
+    const end = once(h, 'game_state_update');
+    app._commitState(roomId, room.gameState, getEngine('hezz2').forfeit(room.gameState, 1, 0));
+    const st = await end;
+    assert.deepEqual(st.players.map((p) => p.name), ['Hote', 'Amine', 'Badr (parti)'], 'écran de fin : pas encore de rotation');
+    assert.equal(st.players[st.loserIndex].name, 'Amine');
+    // Rejouer : Chama prend la place du joueur parti, plus de « (parti) » ; Amine reste (le spectateur est déjà entré)
+    started = once(h, 'game_started');
+    assert.equal((await emitAck(h, 'play_again', { roomId })).success, true);
+    const g2 = await started;
+    assert.deepEqual(g2.players.map((p) => p.name), ['Hote', 'Amine', 'Chama']);
+    assert.equal(room.spectators.length, 0, 'pas de bot parmi les spectateurs');
+    [h, a, b, sp].forEach((s) => s.close());
+});
+
+test('joueur parti sans spectateur : bot ordinaire pour la manche suivante, siège libéré au retour au salon', async () => {
+    const { getEngine } = require('../engines');
+    const [h, a, b] = [client(), client(), client()];
+    await Promise.all([h, a, b].map(connected));
+    const { roomId } = await emitAck(h, 'create_room', { playerName: 'Hote', gameType: 'hezz2' });
+    await emitAck(a, 'join_room', { roomId, playerName: 'Amine' });
+    await emitAck(b, 'join_room', { roomId, playerName: 'Badr' });
+    let started = once(h, 'game_started');
+    h.emit('start_game', { roomId });
+    await started;
+    const left = once(h, 'player_left');
+    b.emit('leave_room', { roomId });
+    await left;
+    const room = app.rooms[roomId];
+    app._commitState(roomId, room.gameState, getEngine('hezz2').forfeit(room.gameState, 2, 0));
+    started = once(h, 'game_started');
+    await emitAck(h, 'play_again', { roomId });
+    const g2 = await started;
+    assert.equal(g2.players.length, 3);
+    assert.ok(g2.players[2].isBot && !/parti/.test(g2.players[2].name), g2.players[2].name);
+    app._commitState(roomId, room.gameState, getEngine('hezz2').forfeit(room.gameState, 2, 0));
+    const back = await emitAck(h, 'back_to_lobby', { roomId });
+    assert.equal(back.success, true);
+    assert.deepEqual(room.activePlayers.map((p) => p.name), ['Hote', 'Amine']);
+    [h, a, b].forEach((s) => s.close());
+});

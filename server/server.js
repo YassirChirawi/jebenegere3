@@ -270,7 +270,9 @@ function commitState(roomId, prev, next) {
 
     if (engine.isOver(next)) {
         if (room.timerInterval) clearInterval(room.timerInterval);
-        if (engine.rotateLoser) rotateLoser(room);
+        // Rotation du Khasser et départ des bots remplaçants : au moment de rejouer,
+        // pour que l'écran de fin nomme les joueurs qui ont vraiment joué la manche
+        room.seatsToSettle = true;
         emitState(roomId);
         broadcastRoomUpdate(roomId);
         return;
@@ -295,16 +297,40 @@ function awardProgress(room, state) {
     });
 }
 
-// Hezz2 : le Khasser laisse sa place à un spectateur
+// Hezz2 : le Khasser laisse sa place à un spectateur (un bot perdant disparaît, il ne devient pas spectateur)
 function rotateLoser(room) {
     const s = room.gameState;
     const loser = room.activePlayers[s.loserIndex];
-    if (room.spectators.length > 0 && s.loserIndex !== null && s.loserIndex !== undefined) {
+    if (room.spectators.length > 0 && loser && !loser.replaced) {
         const incoming = room.spectators.shift();
         room.activePlayers.splice(s.loserIndex, 1, incoming);
-        room.spectators.push(loser);
+        if (!loser.isBot) room.spectators.push(loser);
         s.log && s.log.push(`🔄 Rotation : ${incoming.name} entre en jeu.`);
     }
+}
+
+/**
+ * Entre deux manches : places des joueurs partis (bots « X (parti) »).
+ * - un spectateur qui attend prend la place ;
+ * - sinon, avant une nouvelle manche, le bot garde la place sous un nom de bot ordinaire ;
+ * - au retour au salon (keepCount = false), la place est libérée.
+ * Puis rotation du Khasser au Hezz2.
+ */
+function settleSeats(room, { keepCount = true } = {}) {
+    if (!room.seatsToSettle) return;
+    room.seatsToSettle = false;
+    room.activePlayers.forEach((p, i) => {
+        if (!p.replaced) return;
+        if (room.spectators.length) {
+            room.activePlayers[i] = room.spectators.shift();
+        } else {
+            const used = new Set(room.activePlayers.map((x) => x.name));
+            const name = BOT_NAMES.find((n) => !used.has(n)) || `Bot ${i + 1}`;
+            room.activePlayers[i] = { id: p.id, name, isBot: true, wasReplaced: true };
+        }
+    });
+    if (room.gameState && getEngine(room.gameType).rotateLoser) rotateLoser(room);
+    if (!keepCount) room.activePlayers = room.activePlayers.filter((p) => !(p.isBot && p.wasReplaced));
 }
 
 function resetTimer(roomId) {
@@ -427,6 +453,8 @@ function playerIndexOf(room, socketId) {
 function removePlayer(roomId, socketId) {
     const room = rooms[roomId];
     if (!room) return;
+    // Départ après la fin de partie : on règle d'abord les places (le Khasser est repéré par son siège)
+    if (room.seatsToSettle && room.gameState && getEngine(room.gameType).isOver(room.gameState)) settleSeats(room);
     const activeIdx = playerIndexOf(room, socketId);
     const spectatorIdx = room.spectators.findIndex((p) => p.id === socketId);
     if (activeIdx === -1 && spectatorIdx === -1) return;
@@ -712,6 +740,8 @@ io.on('connection', (socket) => {
         if (!room || !room.isPrivate) return callback && callback({ success: false, message: "Seul l'hôte d'un salon privé peut revenir au salon après la partie." });
         if (room.timerInterval) clearInterval(room.timerInterval);
         clearTimeout(room.countdownTimer);
+        settleSeats(room, { keepCount: false });
+        room.activePlayers = room.activePlayers.filter((p) => !p.replaced && !p.wasReplaced);
         room.gameState = null;
         room.startsAt = 0;
         io.to(room.id).emit('back_to_lobby', publicRoom(room));
@@ -793,6 +823,7 @@ io.on('connection', (socket) => {
         if (room.hostId !== socket.id) return reply({ success: false, message: "Seul l'hôte peut relancer la partie." });
         const engine = getEngine(room.gameType);
         if (!engine.isOver(room.gameState)) return reply({ success: false, message: 'La partie est encore en cours.' });
+        settleSeats(room);
         if (!engine.canStart(room.activePlayers.length)) {
             return reply({ success: false, message: 'Pas assez de joueurs pour relancer.' });
         }

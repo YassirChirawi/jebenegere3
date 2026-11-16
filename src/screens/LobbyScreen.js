@@ -50,6 +50,12 @@ export default function LobbyScreen({ route, navigation }) {
                 const amHost = isHost || gameState?.players?.[0]?.id === socketService.socket?.id;
                 navigation.replace('Game', { roomId, playerName, initialGameState: gameState, isHost: amHost });
             }),
+            // Spectateur resté sur le salon alors que la partie tourne : on l'emmène voir la table
+            socketService.onGameStateUpdate((gameState) => {
+                if (!gameState?.players || gameState.mancheTerminee || gameState.gameOver) return;
+                if (gameState.players.some((p) => p.id === socketService.socket?.id)) return;
+                navigation.replace('Game', { roomId, playerName, initialGameState: gameState, isHost: false });
+            }),
             socketService.onGameError((error) => {
                 audioService.playSound('error');
                 dialog.alert('Oups', error.message);
