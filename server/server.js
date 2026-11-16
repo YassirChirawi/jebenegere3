@@ -108,9 +108,31 @@ function serverInfo() {
 
 // === MODÉRATION DU CHAT ===
 // Clé anonyme d'un joueur : son compte s'il est connecté, sinon son appareil (envoyé par le client)
+// Deux onglets d'un même navigateur partagent l'identifiant d'appareil : le deuxième reçoit une clé
+// à lui (sinon chaque onglet prendrait les messages de l'autre pour les siens).
+const deviceSockets = new Map(); // deviceId -> Set(socket.id)
 function keyOf(socket) {
     const u = socket.data.user;
-    return moderation.playerKey(u ? `u:${u.userId}` : socket.data.deviceId ? `d:${socket.data.deviceId}` : `s:${socket.id}`);
+    if (u) return moderation.playerKey(`u:${u.userId}`);
+    const d = socket.data.deviceId;
+    if (!d) return moderation.playerKey(`s:${socket.id}`);
+    return moderation.playerKey(socket.data.deviceShared ? `d:${d}#${socket.id}` : `d:${d}`);
+}
+function claimDevice(socket, id) {
+    if (socket.data.deviceId === id) return;
+    releaseDevice(socket);
+    const set = deviceSockets.get(id) || new Set();
+    socket.data.deviceShared = [...set].some((sid) => sid !== socket.id && io.sockets.sockets.get(sid));
+    set.add(socket.id);
+    deviceSockets.set(id, set);
+    socket.data.deviceId = id;
+}
+function releaseDevice(socket) {
+    const id = socket.data.deviceId;
+    const set = id && deviceSockets.get(id);
+    if (!set) return;
+    set.delete(socket.id);
+    if (!set.size) deviceSockets.delete(id);
 }
 // Deux joueurs dont l'un a bloqué l'autre ne voient plus les messages ni les réactions de l'autre
 function blockedBetween(a, b) {
@@ -478,7 +500,8 @@ io.on('connection', (socket) => {
     // client_info : à la connexion (et après connexion à un compte) ; la liste envoyée est fusionnée
     // avec celle du compte. set_blocked : remplace la liste (après un déblocage).
     async function applyBlocked(list, replace) {
-        let blocked = moderation.cleanBlocked(list);
+        const me = keyOf(socket);
+        let blocked = moderation.cleanBlocked(list).filter((b) => b.key !== me); // on ne se bloque pas soi-même
         const u = socket.data.user;
         if (u) {
             if (!replace) {
@@ -494,7 +517,7 @@ io.on('connection', (socket) => {
     socket.on('client_info', async (data, callback) => {
         try {
             const id = String(data?.deviceId || '');
-            if (/^[a-zA-Z0-9-]{8,64}$/.test(id)) socket.data.deviceId = id;
+            if (/^[a-zA-Z0-9-]{8,64}$/.test(id)) claimDevice(socket, id);
             const blocked = await applyBlocked(data?.blocked, false);
             callback && callback({ success: true, key: keyOf(socket), blocked });
         } catch (e) {
@@ -518,7 +541,7 @@ io.on('connection', (socket) => {
             const m = recentMessages.get(String(data?.messageId || ''));
             const reason = moderation.REASONS.includes(data?.reason) ? data.reason : null;
             if (!m || !reason) return reply({ success: false, message: 'Message introuvable (trop ancien ?).' });
-            if (m.key === keyOf(socket)) return reply({ success: false, message: 'Tu ne peux pas signaler ton propre message.' });
+            if (m.sid === socket.id || m.key === keyOf(socket)) return reply({ success: false, message: 'Tu ne peux pas signaler ton propre message.' });
             if (++reportsSent > 30) return reply({ success: false, message: 'Trop de signalements envoyés.' });
             const reporterRoom = rooms[m.roomId];
             const reporter = reporterRoom && [...reporterRoom.activePlayers, ...reporterRoom.spectators].find((p) => p.id === socket.id);
@@ -801,8 +824,9 @@ io.on('connection', (socket) => {
             message: text,
             timestamp: Date.now(),
             from: keyOf(socket),
+            sid: socket.id, // l'appli reconnaît ses propres messages par la connexion, pas par la clé
         };
-        rememberMessage({ id: msg.id, roomId: room.id, key: msg.from, userId: socket.data.user?.userId, name: player.name, message: text, at: msg.timestamp });
+        rememberMessage({ id: msg.id, roomId: room.id, key: msg.from, sid: socket.id, userId: socket.data.user?.userId, name: player.name, message: text, at: msg.timestamp });
         emitToRoomFrom(room, socket, 'chat_message', msg);
     });
 
@@ -829,6 +853,7 @@ io.on('connection', (socket) => {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
         Object.keys(rooms).forEach((roomId) => removePlayer(roomId, socket.id));
+        releaseDevice(socket);
     });
 });
 

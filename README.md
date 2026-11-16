@@ -169,6 +169,7 @@ Un seul texte, dans [src/legal/legal.json](src/legal/legal.json), sert à la foi
 - **Filtre** ([server/moderation.js](server/moderation.js)) : les insultes les plus courantes (français, darija en lettres latines, arabe) sont refusées, avec un message clair pour l'expéditeur. Pas de sanction automatique pour un mot.
 - **Lire les signalements** (V1, sans interface d'administration) : sur Render, onglet Shell du service, `node scripts/reports.js` (liste) ; `node scripts/reports.js --delete <id>` une fois traité. Ils sont supprimés automatiquement après 6 mois (table `reports` en PostgreSQL, `server/data/reports.json` en local).
 - Les messages rapides, les messages personnalisés et les réactions emoji marchent comme avant.
+- Sur ordinateur : toute la ligne d'un message dans « Derniers messages » est cliquable ; une bulle reçue pendant que l'onglet est en arrière-plan reste affichée jusqu'au retour sur l'onglet. Deux onglets d'un même navigateur comptent comme deux joueurs (le deuxième reçoit une identité temporaire : un blocage contre lui dure tant que cet onglet reste ouvert). Entre deux appareils ou deux comptes, le blocage est permanent.
 
 ## Suppression de compte
 

@@ -31,6 +31,18 @@ export function changeGameHandler(roomId, state) {
     });
 }
 
+// Web : si l'onglet est en arrière-plan quand un message arrive, la bulle reste jusqu'au retour
+// sur l'onglet (puis ses 3,5 s habituelles), sinon on ne la verrait jamais.
+function whenVisible(fn) {
+    if (typeof document === 'undefined' || !document.hidden) { fn(); return; }
+    const onVis = () => {
+        if (document.hidden) return;
+        document.removeEventListener('visibilitychange', onVis);
+        fn();
+    };
+    document.addEventListener('visibilitychange', onVis);
+}
+
 export const QUICK_MESSAGES = ['L3eb a zmagri !', 'Zid Jouj !', 'Hezz !', 'Zrebti 3lina...', 'Wry9a wa7da 😉', 'Saaaaaaaafi 😡'];
 export const REACTIONS = ['😂', '😡', '😱', '👏'];
 
@@ -49,7 +61,7 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                 logMessage(data);
                 audioService.playSound('pop');
                 setChatMessages((prev) => [...prev.slice(-3), data]);
-                setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500);
+                whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500));
             }),
             socketService.onPlayerReaction(({ playerIndex, reactionType }) => {
                 audioService.playSound('pop', { rate: 1.15 });
@@ -165,16 +177,22 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
                     <View style={styles.recentBox}>
                         <Text style={styles.recentTitle}>Derniers messages · ⋯ pour signaler ou bloquer</Text>
                         {recent.map((m) => (
-                            <View key={m.id} style={styles.recentRow}>
+                            <Pressable
+                                key={m.id}
+                                style={({ hovered }) => [styles.recentRow, !isMine(m) && hovered && styles.recentRowHover]}
+                                disabled={isMine(m)}
+                                onPress={() => { onClose(); openMessageMenu(m); }}
+                                accessibilityLabel={`Signaler ou bloquer ${m.playerName}`}
+                            >
                                 <Text style={styles.recentText} numberOfLines={1}>
-                                    <Text style={styles.recentName}>{m.playerName} : </Text>{m.message}
+                                    <Text style={styles.recentName}>{isMine(m) ? 'Toi' : m.playerName} : </Text>{m.message}
                                 </Text>
                                 {!isMine(m) && (
-                                    <Pressable hitSlop={10} onPress={() => { onClose(); openMessageMenu(m); }} style={styles.recentMore} accessibilityLabel={`Signaler ou bloquer ${m.playerName}`}>
+                                    <View style={styles.recentMore}>
                                         <Text style={styles.recentMoreText}>⋯</Text>
-                                    </Pressable>
+                                    </View>
                                 )}
-                            </View>
+                            </Pressable>
                         ))}
                     </View>
                 )}
@@ -281,7 +299,8 @@ const styles = StyleSheet.create({
     chatMore: { color: '#8A6D3B', fontWeight: '900' },
     recentBox: { marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
     recentTitle: { color: theme.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 },
-    recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
+    recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, paddingHorizontal: 4, borderRadius: 8, cursor: 'pointer' },
+    recentRowHover: { backgroundColor: 'rgba(212,175,55,0.12)' },
     recentText: { flex: 1, color: theme.text, fontSize: 13 },
     recentName: { color: theme.goldLight, fontWeight: '900' },
     recentMore: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(212,175,55,0.18)' },

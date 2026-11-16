@@ -75,7 +75,14 @@ function pushBlocked() {
 }
 
 export const isBlockedKey = (key) => !!key && state.blocked.some((b) => b.key === key);
-export const isMine = (msg) => !!msg?.from && msg.from === state.myKey;
+// Mes messages : reconnus par ma connexion (deux onglets d'un même navigateur restent deux joueurs)
+export const isMine = (msg) => {
+    if (!msg) return false;
+    if (msg.sid) return msg.sid === socketService.socket?.id;
+    return !!msg.from && msg.from === state.myKey;
+};
+// Même compte connecté ailleurs : on ne peut pas se bloquer soi-même
+const isMyKey = (key) => !!key && key === state.myKey;
 export const shouldHide = (msg) => !!msg && (state.hidden.has(msg.id) || isBlockedKey(msg.from));
 
 // Nouveau message reçu (appelé par le chat de la partie)
@@ -86,7 +93,7 @@ export function logMessage(msg) {
 }
 
 export function blockPlayer(key, name) {
-    if (!key || isBlockedKey(key)) return;
+    if (!key || isBlockedKey(key) || isMyKey(key)) return;
     state.blocked = [...state.blocked, { key, name: String(name || 'Joueur').slice(0, 24), at: Date.now() }];
     state.log = state.log.filter((m) => m.from !== key);
     pushBlocked();
@@ -145,7 +152,7 @@ function confirmBlock(msg) {
 export function openMessageMenu(msg) {
     if (!msg || isMine(msg)) return;
     const buttons = [{ text: '🚩 Signaler', onPress: () => reportMenu(msg) }];
-    if (msg.from) buttons.push({ text: `🚫 Bloquer ${msg.playerName}`, style: 'destructive', onPress: () => confirmBlock(msg) });
+    if (msg.from && !isMyKey(msg.from)) buttons.push({ text: `🚫 Bloquer ${msg.playerName}`, style: 'destructive', onPress: () => confirmBlock(msg) });
     buttons.push({ text: 'Annuler', style: 'cancel' });
     dialog.alert(`Message de ${msg.playerName}`, `« ${msg.message} »`, buttons);
 }

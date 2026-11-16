@@ -145,3 +145,26 @@ test('stockage des signalements : purge après 6 mois (mémoire et PostgreSQL)',
     assert.deepEqual((await pg.listReports()).map((r) => r.id), ['recent']);
     assert.equal(await pg.deleteReport('recent'), true);
 });
+
+test('deux onglets du même navigateur (même appareil) : deux joueurs distincts, signalement et blocage possibles', async () => {
+    const [a, b] = [client(), client()];
+    await Promise.all([a, b].map(connected));
+    const ka = (await emitAck(a, 'client_info', { deviceId: 'meme-appareil-0001', blocked: [] })).key;
+    const kb = (await emitAck(b, 'client_info', { deviceId: 'meme-appareil-0001', blocked: [] })).key;
+    assert.notEqual(ka, kb, 'clés différentes');
+    const { roomId } = await emitAck(a, 'create_room', { playerName: 'Onglet1', gameType: 'hezz2' });
+    await emitAck(b, 'join_room', { roomId, playerName: 'Onglet2' });
+    const gotA = collect(a, 'chat_message');
+    b.emit('send_chat', { roomId, message: 'depuis l onglet 2' });
+    await sleep(200);
+    assert.equal(gotA.length, 1);
+    assert.equal(gotA[0].sid, b.id, 'expéditeur reconnaissable');
+    assert.equal((await emitAck(a, 'report_chat', { messageId: gotA[0].id, reason: 'spam' })).success, true);
+    // On ne peut pas se bloquer soi-même : sa propre clé est retirée de la liste
+    const r = await emitAck(a, 'set_blocked', { blocked: [{ key: ka, name: 'moi', at: 1 }, { key: kb, name: 'Onglet2', at: 1 }] });
+    assert.deepEqual(r.blocked.map((x) => x.key), [kb]);
+    b.emit('send_chat', { roomId, message: 'bloqué ?' });
+    await sleep(200);
+    assert.equal(gotA.length, 1, 'plus rien de l onglet 2');
+    [a, b].forEach((s) => s.close());
+});
