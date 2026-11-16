@@ -31,6 +31,7 @@ import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
+import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 
@@ -348,6 +349,8 @@ export default function KdoubScreen({ route, navigation }) {
     ]);
 
     const myHand = me >= 0 ? state?.hands?.[me] || [] : [];
+    // Aide : les cartes de la valeur annoncée ne s'allument qu'après 5 s sans jouer
+    const showHints = useHintDelay(isMyTurn, `${state?.turn}-${myHand.length}-${state?.expected}`);
     const toggle = (id) => {
         setSelected((cur) => {
             if (cur.includes(id)) return cur.filter((x) => x !== id);
@@ -568,7 +571,7 @@ export default function KdoubScreen({ route, navigation }) {
                                         arcY={arcY}
                                         isMyTurn={false}
                                         isPlayable={isMyTurn}
-                                        glow={isMyTurn && card.value === announceValue}
+                                        glow={showHints && isMyTurn && card.value === announceValue}
                                         toggleMode
                                         selected={selected.includes(card.id)}
                                         onSelect={() => toggle(card.id)}

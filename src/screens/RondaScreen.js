@@ -29,6 +29,7 @@ import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
+import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 import { GoldBurst } from '../components/Flights';
@@ -582,6 +583,8 @@ export default function RondaScreen({ route, navigation }) {
     };
 
     const myHand = me >= 0 ? state?.hands?.[me] || [] : [];
+    // Aide : les cartes qui mangent ne s'allument qu'après 5 s sans jouer
+    const showHints = useHintDelay(isMyTurn, `${state?.turn}-${myHand.length}-${state?.table?.length}-${state?.dealIndex}`);
     const playCard = (idx) => {
         if (!isMyTurn) return;
         setSelectedId(null);
@@ -879,7 +882,7 @@ export default function RondaScreen({ route, navigation }) {
                                         arcY={arcY}
                                         isMyTurn={isMyTurn}
                                         isPlayable={isMyTurn}
-                                        glow={capturable.has(card.id)}
+                                        glow={showHints && capturable.has(card.id)}
                                         selectMode
                                         selected={selectedId === card.id}
                                         onSelect={() => setSelectedId(card.id)}

@@ -23,6 +23,7 @@ import { dialog } from '../components/Dialog';
 import TableBackground from '../components/TableBackground';
 import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
 import socketService from '../network/socketService';
+import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
@@ -410,6 +411,8 @@ export default function GameScreen({ route, navigation }) {
 
     // --- Main du joueur : tri par famille puis valeur, en gardant l'index serveur ---
     const myHand = !isSpectator ? gameState?.hands?.[localPlayerIndex] || [] : [];
+    // Aide : les cartes jouables ne s'allument qu'après 5 s sans jouer
+    const showHints = useHintDelay(isMyTurn, `${gameState?.turn}-${myHand.length}-${gameState?.drawPenalty}-${gameState?.pendingAction?.type}`);
     const handLayout = useMemo(() => {
         const sorted = myHand
             .map((card, idx) => ({ card, idx }))
@@ -556,6 +559,7 @@ export default function GameScreen({ route, navigation }) {
                                         arcY={arcY}
                                         isMyTurn={isMyTurn}
                                         isPlayable={isMyTurn && canPlayCardLocal(card, gameState)}
+                                        glow={showHints && isMyTurn && canPlayCardLocal(card, gameState)}
                                         onPlay={() => handlePlayerPlayCard(idx)}
                                         onRefuse={() => showToast(refuseReason(card, gameState), '#FCA5A5')}
                                         isInitialDeal={isInitialDeal}
