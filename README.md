@@ -198,6 +198,15 @@ Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?tes
 
 Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichage de l'éventail sur un grand écran comme sur un téléphone.
 
+## Inviter par lien (plus de code à taper)
+
+1. **Créer un salon privé** : le salon affiche « INVITE TES AMIS » avec le lien (`https://jebengere3.fun/salon/XXXXX`), un bouton **Copier le lien** et un bouton **Partager** (partage du téléphone : WhatsApp, SMS… ; sur ordinateur sans partage, le lien est copié).
+2. **L'ami clique sur le lien** : le jeu s'ouvre et le fait entrer directement dans le salon. S'il n'a pas encore de pseudo, une fenêtre le lui demande, puis il rejoint. L'adresse revient ensuite sur l'accueil (recharger la page ne le fait pas rejoindre une deuxième fois).
+3. **Salon complet ou partie commencée** : il entre en **spectateur** et voit la partie en cours. Jusqu'à 6 spectateurs en plus des joueurs. Un spectateur ne joue pas et n'écrit pas dans le chat, mais peut envoyer des réactions emoji (« 👀 Nom : 👏 » chez les joueurs).
+4. **Un joueur quitte en pleine partie** : une annonce s'affiche chez tout le monde (« X a quitté la partie : un bot prend sa place ») ; à 2 joueurs, c'est une victoire par forfait.
+
+Le code reste l'identifiant interne du salon. Un ancien lien ou un code seul marche toujours : accueil → **« 🔗 J'ai un lien d'invitation »**, coller le lien ou le code (majuscules ou minuscules). Sur le web, `/salon/*` est réécrit vers l'appli dans `vercel.json`. Dans l'appli mobile, les liens `jebengere3://salon/XXXXX` sont compris ; pour qu'un lien `https://` ouvre directement l'appli installée (liens universels iOS et liens d'application Android), il faudra publier les fichiers d'association du domaine une fois les comptes stores créés. D'ici là, le lien ouvre le site.
+
 ## Salons privés : jeu, bots et équipes
 - **Changer de jeu sans quitter le salon** : l'hôte choisit le jeu dans le salon (« JEU DU SALON » : Hezz2, Ronda, Kdoub, Sota Ghamla). En fin de partie, le bouton « 🎲 Changer de jeu » ramène tout le monde au salon, avec le même code. S'il y a trop de joueurs pour le nouveau jeu, les bots partent d'abord, puis les derniers arrivés passent spectateurs ; s'il y a de la place, les spectateurs entrent en jeu. Pas disponible en matchmaking ni contre les bots.
 - L'hôte peut **ajouter un bot** avant le lancement (bouton « 🤖 ＋ Ajouter un bot ») et le retirer (✕). Exemple : 3 amis en Ronda + 1 bot pour jouer en 2 contre 2, ou 2 amis contre 2 bots.

@@ -588,7 +588,7 @@ export default function GameScreen({ route, navigation }) {
                 />
             )}
 
-            <ChatSheet visible={showChatMenu} onClose={() => setShowChatMenu(false)} onSend={handleSendChat} />
+            <ChatSheet visible={showChatMenu} onClose={() => setShowChatMenu(false)} onSend={handleSendChat} spectator={isSpectator} onReact={handleSendReaction} />
 
             {showEnd && gameState.mancheTerminee && (
                 <EndRoundOverlay

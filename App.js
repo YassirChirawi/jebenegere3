@@ -23,6 +23,7 @@ import { loadCosmetics, setCurrentGame } from './src/utils/cosmetics';
 import { initChatModeration } from './src/utils/chatModeration';
 import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen';
 import StartCountdown from './src/components/StartCountdown';
+import PlayerLeftBanner from './src/components/PlayerLeftBanner';
 import socketService from './src/network/socketService';
 
 const Stack = createNativeStackNavigator();
@@ -49,6 +50,7 @@ function GameRouter(props) {
     <View style={{ flex: 1 }}>
       <Screen {...props} />
       <StartCountdown initialState={props.route?.params?.initialGameState} gameType={type} />
+      <PlayerLeftBanner />
     </View>
   );
 }

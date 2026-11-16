@@ -8,6 +8,7 @@ import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
+import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -73,6 +74,20 @@ export default function LobbyScreen({ route, navigation }) {
             });
         };
         addNext(fillBots);
+    };
+
+    const [copied, setCopied] = useState(false);
+    const copyLink = async () => {
+        const ok = await copyInvite(roomId);
+        if (ok) { setCopied(true); audioService.playSound('pop'); setTimeout(() => setCopied(false), 2500); }
+        else dialog.alert('Copie impossible', `Copie ce lien à la main :
+${inviteUrl(roomId)}`);
+    };
+    const shareLink = async () => {
+        const r = await shareInvite(roomId, gameInfo(room?.gameType || initialRoom?.gameType).label);
+        if (r === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
+        else if (r === 'failed') dialog.alert('Partage impossible', `Envoie ce lien à tes amis :
+${inviteUrl(roomId)}`);
     };
 
     const handleLeave = () => {
@@ -145,9 +160,13 @@ export default function LobbyScreen({ route, navigation }) {
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
-                    <Text style={styles.codeLabel}>CODE DU SALON</Text>
-                    <Text style={styles.code} selectable>{roomId}</Text>
-                    <Text style={styles.codeHint}>Partage ce code à tes amis pour qu'ils te rejoignent</Text>
+                    <Text style={styles.codeLabel}>INVITE TES AMIS</Text>
+                    <Text style={styles.link} selectable numberOfLines={1}>{inviteUrl(roomId).replace(/^https?:\/\//, '')}</Text>
+                    <View style={styles.inviteBtns}>
+                        <GameButton small title={copied ? 'Lien copié ✓' : 'Copier le lien'} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
+                        <GameButton small title="Partager" icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
+                    </View>
+                    <Text style={styles.codeHint}>Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.</Text>
                 </Animated.View>
 
                 {lobbyGames && (
@@ -316,6 +335,8 @@ const styles = StyleSheet.create({
         textShadowColor: 'rgba(212,175,55,0.6)',
         textShadowRadius: 14,
     },
+    link: { color: theme.goldLight, fontSize: 15, fontWeight: '800', marginTop: 6, marginBottom: 10, paddingHorizontal: 12 },
+    inviteBtns: { flexDirection: 'row', gap: 10, paddingHorizontal: 14, alignSelf: 'stretch', marginBottom: 10 },
     codeHint: {
         color: theme.text,
         fontSize: 12,

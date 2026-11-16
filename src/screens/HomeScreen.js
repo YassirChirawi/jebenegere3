@@ -19,6 +19,8 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import InstallAppButton from '../components/InstallAppButton';
+import InviteJoinSheet from '../components/InviteJoinSheet';
+import { initialInvite, clearInviteFromUrl, onInviteLink } from '../utils/invite';
 import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { CardFace, CardBack } from '../components/Card';
@@ -95,7 +97,11 @@ function ServerLoader() {
 
 export default function HomeScreen({ navigation }) {
     const [name, setName] = useState('');
-    const [roomIdInput, setRoomIdInput] = useState('');
+    const [nameReady, setNameReady] = useState(false); // pseudo enregistré relu
+    // Invitation : code reçu par un lien, fenêtre « rejoindre » (pseudo / lien collé)
+    const [inviteCode, setInviteCode] = useState(null);
+    const [showInvite, setShowInvite] = useState(false);
+    const [joining, setJoining] = useState(false);
     const [showRules, setShowRules] = useState(false);
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
     const [game, setGame] = useState('hezz2');
@@ -153,9 +159,15 @@ export default function HomeScreen({ navigation }) {
                 const seen = await AsyncStorage.getItem('rulesSeen');
                 if (!seen) setShowRules(true);
             } catch (e) { /* ignore */ }
+            setNameReady(true);
+            // Ouvert depuis un lien d'invitation (…/salon/CODE)
+            const code = await initialInvite();
+            if (code) { setInviteCode(code); clearInviteFromUrl(); }
         })();
+        const offLink = onInviteLink((code) => setInviteCode(code));
 
         return () => {
+            offLink();
             offConnect();
             offDisconnect();
             offInfo();
@@ -223,23 +235,43 @@ export default function HomeScreen({ navigation }) {
         });
     };
 
-    const handleJoinRoom = () => {
-        if (!requireName()) return;
-        const roomCode = roomIdInput.trim().toUpperCase();
-        if (!roomCode) {
-            audioService.playSound('error');
-            dialog.alert('Code manquant', 'Entre le code du salon de ton ami.');
-            return;
-        }
+    // Rejoindre un salon par son code (venu d'un lien d'invitation ou d'un ancien code collé)
+    const joinByCode = (roomCode, playerName = name.trim()) => {
+        if (!playerName) { setShowInvite(true); return; }
+        setName(playerName);
+        AsyncStorage.setItem('playerName', playerName).catch(() => {});
         enterFullscreen();
-        socketService.joinRoom(roomCode, name.trim(), (response) => {
+        setJoining(true);
+        socketService.joinRoom(roomCode, playerName, (response) => {
+            setJoining(false);
             if (response?.success) {
-                navigation.navigate('Lobby', { roomId: roomCode, playerName: name.trim(), isHost: false, initialRoom: response.roomData });
+                setShowInvite(false);
+                setInviteCode(null);
+                setShowRules(false); // pas de fenêtre des règles par-dessus la partie rejointe (📜 en jeu)
+                const roomId = response.roomId || roomCode;
+                if (response.gameState) {
+                    // Partie déjà commencée : on la regarde en spectateur
+                    navigation.navigate('Game', { roomId, playerName, initialGameState: response.gameState, isHost: false });
+                } else {
+                    navigation.navigate('Lobby', { roomId, playerName, isHost: false, initialRoom: response.roomData });
+                }
             } else {
-                dialog.alert('Impossible de rejoindre', response?.message || 'Salon introuvable.');
+                audioService.playSound('error');
+                setInviteCode(null);
+                setShowInvite(false);
+                dialog.alert('Impossible de rejoindre', response?.message === 'Salon introuvable'
+                    ? "Ce salon n'existe plus (la partie est peut-être terminée). Demande un nouveau lien à ton ami."
+                    : response?.message || 'Salon introuvable.');
             }
         });
     };
+
+    // Arrivée par un lien : on rejoint dès que le serveur est joignable (pseudo demandé s'il manque)
+    useEffect(() => {
+        if (!inviteCode || !nameReady || !isConnected || joining) return;
+        if (name.trim()) joinByCode(inviteCode);
+        else setShowInvite(true);
+    }, [inviteCode, nameReady, isConnected]);
 
     const handleCreateBotRoom = (count) => {
         if (!requireName() || !requireGameSupport()) return;
@@ -452,20 +484,7 @@ export default function HomeScreen({ navigation }) {
 
                                 <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
 
-                                <OrnamentDivider label="REJOINDRE UN AMI" />
 
-                                <View style={styles.joinRow}>
-                                    <TextInput
-                                        style={[styles.input, styles.codeInput]}
-                                        placeholder="CODE"
-                                        placeholderTextColor={theme.textDim}
-                                        value={roomIdInput}
-                                        onChangeText={(t) => setRoomIdInput(t.toUpperCase())}
-                                        autoCapitalize="characters"
-                                        maxLength={5}
-                                    />
-                                    <GameButton small title={isConnected ? 'REJOINDRE' : '⏳'} variant="outline" onPress={handleJoinRoom} disabled={!isConnected} />
-                                </View>
                             </>
                         )}
                     </Animated.View>
@@ -473,6 +492,11 @@ export default function HomeScreen({ navigation }) {
                     <PressableScale onPress={() => setShowRules(true)} style={styles.rulesLink}>
                         <Text style={styles.rulesLinkText}>📜 Lire les règles</Text>
                     </PressableScale>
+                    {isConnected && (
+                        <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.inviteLink}>
+                            <Text style={styles.inviteLinkText}>🔗 J'ai un lien d'invitation</Text>
+                        </PressableScale>
+                    )}
                     <InstallAppButton />
                     <View style={styles.legalRow}>
                         <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>Confidentialité</Text>
@@ -482,7 +506,16 @@ export default function HomeScreen({ navigation }) {
                 </ScrollView>
             )}
 
-            <RulesModal visible={showRules} onClose={closeRules} gameType={game} />
+            <RulesModal visible={showRules && !inviteCode} onClose={closeRules} gameType={game} />
+            <InviteJoinSheet
+                visible={showInvite}
+                code={inviteCode}
+                name={name}
+                onChangeName={setName}
+                busy={joining}
+                onJoin={(code, n) => joinByCode(code, n)}
+                onClose={() => { setShowInvite(false); setInviteCode(null); }}
+            />
         </ImageBackground>
     );
 }
@@ -796,6 +829,8 @@ const styles = StyleSheet.create({
         marginTop: 6,
         textAlign: 'center',
     },
+    inviteLink: { alignSelf: 'center', marginTop: 14, paddingVertical: 8, paddingHorizontal: 16, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(212,175,55,0.5)', backgroundColor: 'rgba(18,8,11,0.6)' },
+    inviteLinkText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16, marginBottom: 8 },
     legalLink: { color: 'rgba(243,233,220,0.75)', fontSize: 12, textDecorationLine: 'underline' },
     legalDot: { color: 'rgba(243,233,220,0.5)', fontSize: 12 },

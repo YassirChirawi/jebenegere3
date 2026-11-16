@@ -455,7 +455,7 @@ export default function SotaScreen({ route, navigation }) {
             <TurnBanner banner={banner} />
             {reveal && <SotaReveal reveal={reveal} />}
 
-            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} />
+            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} spectator={me < 0} onReact={sendReaction} />
 
             {showEnd && state.phase === 'over' && (
                 <RankingEndOverlay

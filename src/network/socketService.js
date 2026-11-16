@@ -230,6 +230,7 @@ class SocketService {
     onActionRejected(callback) { return this._listen('action_rejected', callback); }
     onBackToLobby(callback) { return this._listen('back_to_lobby', callback); }
     onChatRejected(callback) { return this._listen('chat_rejected', callback); }
+    onPlayerLeft(callback) { return this._listen('player_left', callback); }
 
     offAll() {
         if (this.socket) {

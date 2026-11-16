@@ -586,7 +586,7 @@ export default function KdoubScreen({ route, navigation }) {
 
             {reveal && <Reveal key={reveal.id} reveal={reveal} nameOf={nameOf} />}
 
-            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} />
+            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} spectator={me < 0} onReact={sendReaction} />
 
             {showEnd && state.phase === 'over' && state.ranking && (
                 <RankingEndOverlay

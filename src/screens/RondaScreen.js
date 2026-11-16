@@ -928,7 +928,7 @@ export default function RondaScreen({ route, navigation }) {
                 </Animated.View>
             )}
 
-            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} />
+            <ChatSheet visible={showChat} onClose={() => setShowChat(false)} onSend={sendChat} spectator={me < 0} onReact={sendReaction} />
 
             {showEnd && state.mancheTerminee && state.summary && (
                 <RondaEndOverlay

@@ -95,6 +95,7 @@ const rooms = {};
 // Files de matchmaking par jeu et par taille : clé "ronda:2", "hezz2:4"...
 const matchmakingQueues = {};
 const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
+const MAX_SPECTATORS = 6; // spectateurs d'un salon, en plus des joueurs
 const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
 // Compte à rebours avant le premier coup (le temps de s'installer / tourner l'écran).
 // Désactivé par défaut pendant les tests automatiques (node --test).
@@ -103,7 +104,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -455,6 +456,7 @@ function removePlayer(roomId, socketId) {
                 const winner = room.activePlayers.findIndex((p) => !p.isBot);
                 forfeitState = engine.forfeit(room.gameState, activeIdx, winner);
             }
+            io.to(roomId).emit('player_left', { name: leaver.name, seat: activeIdx, forfeit: !!forfeitState, replacedByBot: !forfeitState });
         } else {
             room.activePlayers.splice(activeIdx, 1);
         }
@@ -620,7 +622,9 @@ io.on('connection', (socket) => {
     });
 
     socket.on('join_room', (data, callback) => {
-        const { roomId, playerName } = data || {};
+        const { playerName } = data || {};
+        // Code tapé ou collé (minuscules, espaces) : on le normalise
+        const roomId = String(data?.roomId || '').trim().toUpperCase();
         const room = rooms[roomId];
         if (!room) {
             callback && callback({ success: false, message: 'Salon introuvable' });
@@ -629,22 +633,37 @@ io.on('connection', (socket) => {
         const engine = getEngine(room.gameType);
         const newPlayer = playerOf(socket, playerName);
         const inGame = room.gameState && !engine.isOver(room.gameState);
+        const already = room.activePlayers.some((p) => p.id === socket.id) || room.spectators.some((p) => p.id === socket.id);
+        if (already) {
+            // Lien ouvert deux fois : pas de doublon, on renvoie simplement le salon
+            const spectator = room.spectators.some((p) => p.id === socket.id);
+            callback && callback({ success: true, roomId, roomData: publicRoom(room), spectator, gameState: spectator && inGame ? stateFor(room, -1) : undefined });
+            return;
+        }
 
         const botSeat = !inGame ? room.activePlayers.map((p) => !!p.isBot).lastIndexOf(true) : -1;
         if (!inGame && room.activePlayers.length < engine.maxPlayers) {
             room.activePlayers.push(newPlayer);
         } else if (botSeat !== -1) {
             room.activePlayers[botSeat] = newPlayer; // salon complet avec un bot : l'humain prend sa place
-        } else if (room.spectators.length < 2) {
+        } else if (room.spectators.length < MAX_SPECTATORS) {
             room.spectators.push(newPlayer);
         } else {
-            callback && callback({ success: false, message: 'Le salon est plein.' });
+            callback && callback({ success: false, message: 'Le salon est plein (joueurs et spectateurs).' });
             return;
         }
         socket.join(roomId);
         console.log(`${newPlayer.name} a rejoint la room ${roomId}`);
         broadcastRoomUpdate(roomId);
-        callback && callback({ success: true, roomData: publicRoom(room) });
+        const spectator = room.spectators.some((p) => p.id === socket.id);
+        // Spectateur arrivé en pleine partie : il reçoit la partie en cours pour la regarder tout de suite
+        callback && callback({
+            success: true,
+            roomId,
+            roomData: publicRoom(room),
+            spectator,
+            gameState: spectator && inGame ? stateFor(room, -1) : undefined,
+        });
     });
 
     // --- SALON PRIVÉ : bots et places (hôte seulement, avant le lancement) ---
@@ -809,8 +828,14 @@ io.on('connection', (socket) => {
     socket.on('send_chat', (data) => {
         const room = rooms[data?.roomId];
         if (!room) return;
-        const player = room.activePlayers.find((p) => p.id === socket.id) || room.spectators.find((p) => p.id === socket.id);
-        if (!player) return;
+        const player = room.activePlayers.find((p) => p.id === socket.id);
+        if (!player) {
+            // Les spectateurs regardent sans écrire : réactions emoji seulement
+            if (room.spectators.some((p) => p.id === socket.id)) {
+                socket.emit('chat_rejected', { message: 'Les spectateurs ne peuvent pas écrire dans le chat : réactions emoji seulement.' });
+            }
+            return;
+        }
         const text = String(data.message || '').slice(0, 120).trim();
         if (!text) return;
         // Insulte courante : message refusé, l'expéditeur est prévenu (pas de sanction pour un mot)
@@ -834,9 +859,13 @@ io.on('connection', (socket) => {
         const room = rooms[data?.roomId];
         if (!room) return;
         const playerIndex = playerIndexOf(room, socket.id);
+        const reactionType = String(data.reactionType || '').slice(0, 8);
         if (playerIndex !== -1) {
-            emitToRoomFrom(room, socket, 'player_reaction_broadcast', { playerIndex, reactionType: data.reactionType });
+            emitToRoomFrom(room, socket, 'player_reaction_broadcast', { playerIndex, reactionType });
+            return;
         }
+        const spectator = room.spectators.find((p) => p.id === socket.id);
+        if (spectator) emitToRoomFrom(room, socket, 'player_reaction_broadcast', { playerIndex: -1, spectatorName: spectator.name, reactionType });
     });
 
     // --- DÉCONNEXION ---

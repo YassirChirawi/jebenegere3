@@ -64,6 +64,10 @@
     {
       "source": "/terms",
       "destination": "/terms/index.html"
+    },
+    {
+      "source": "/salon/:code",
+      "destination": "/index.html"
     }
   ]
 }

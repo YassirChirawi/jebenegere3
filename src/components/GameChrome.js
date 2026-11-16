@@ -65,8 +65,14 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                 setChatMessages((prev) => [...prev.slice(-3), { ...data, quiet }]);
                 whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500));
             }),
-            socketService.onPlayerReaction(({ playerIndex, reactionType }) => {
+            socketService.onPlayerReaction(({ playerIndex, reactionType, spectatorName }) => {
                 audioService.playSound('pop', { rate: 1.15 });
+                if (playerIndex === -1) {
+                    const id = `spec-${Date.now()}-${Math.random()}`;
+                    setChatMessages((prev) => [...prev.slice(-3), { id, system: true, playerName: `👀 ${spectatorName || 'Spectateur'}`, message: reactionType }]);
+                    whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== id)), 3000));
+                    return;
+                }
                 setActiveReactions((prev) => ({ ...prev, [playerIndex]: reactionType }));
                 setTimeout(() => {
                     setActiveReactions((prev) => {
@@ -132,13 +138,13 @@ export function ChatBubbles({ messages, top = 130 }) {
                     <Pressable
                         style={styles.chatBubble}
                         onPress={() => openMessageMenu(msg)}
-                        disabled={isMine(msg)}
+                        disabled={isMine(msg) || msg.system}
                         accessibilityLabel={`Message de ${msg.playerName}. Toucher pour signaler ou bloquer.`}
                     >
                         <Text style={styles.chatText}>
                             <Text style={styles.chatName}>{msg.playerName} : </Text>
                             {msg.message}
-                            {!isMine(msg) ? <Text style={styles.chatMore}>  ⋯</Text> : null}
+                            {!isMine(msg) && !msg.system ? <Text style={styles.chatMore}>  ⋯</Text> : null}
                         </Text>
                     </Pressable>
                 </Animated.View>
@@ -159,7 +165,7 @@ export function ReactionBar({ onSend, land }) {
     );
 }
 
-export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESSAGES }) {
+export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESSAGES, spectator = false, onReact }) {
     const [customMsg, setCustomMsg] = useState('');
     const mod = useChatModeration();
     if (!visible) return null;
@@ -198,6 +204,15 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
                         ))}
                     </View>
                 )}
+                {spectator ? (
+                    <>
+                        <Text style={styles.sheetTitle}>👀 Tu es spectateur</Text>
+                        <Text style={styles.spectatorNote}>Les spectateurs ne peuvent pas écrire, mais peuvent réagir :</Text>
+                        <View style={{ alignItems: 'center', marginTop: 10 }}>
+                            <ReactionBar onSend={(e) => { onReact && onReact(e); onClose(); }} />
+                        </View>
+                    </>
+                ) : (<>
                 <Text style={styles.sheetTitle}>💬 Message rapide</Text>
                 <View style={styles.customRow}>
                     <TextInput
@@ -220,6 +235,7 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
                         </PressableScale>
                     ))}
                 </View>
+                </>)}
             </Animated.View>
         </Animated.View>
     );
@@ -299,6 +315,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     chatMore: { color: '#8A6D3B', fontWeight: '900' },
+    spectatorNote: { color: theme.text, fontSize: 13, textAlign: 'center', marginTop: 4 },
     chatBubbleWrap: { maxWidth: '100%', flexShrink: 0 },
     recentBox: { marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
     recentTitle: { color: theme.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 },
