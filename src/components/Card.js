@@ -2,11 +2,12 @@ import React from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import { useCosmetics, backPalette } from '../utils/cosmetics';
 
+// Faces des 40 cartes (planches générées par scripts/build-card-sheets.py)
 const images = [
-    require('../../assets/Galleria_01.jpg'),
-    require('../../assets/Galleria_02.jpg'),
-    require('../../assets/Galleria_03.jpg'),
-    require('../../assets/Galleria_04.jpg'),
+    require('../../assets/cards/deck_0.jpg'),
+    require('../../assets/cards/deck_1.jpg'),
+    require('../../assets/cards/deck_2.jpg'),
+    require('../../assets/cards/deck_3.jpg'),
 ];
 
 const suitOrder = { Oros: 0, Bastos: 1, Espadas: 2, Copas: 3 };

@@ -17,15 +17,18 @@ Légende :
 | **`plus_two.mp3`** (son du « +2 » en Hezz2) | Oui (`plus_two`) | Extrait de 3 s de la chanson de Khalid Aouni « Zid jouj ya moul rouge » (créé par `extract_clip.js`) | Extrait d'une chanson commerciale : droits de l'artiste et de son label, même pour 3 secondes. | Enregistrer soi-même « Zid jouj ! » (voix de Yassir ou d'un ami), ou utiliser le son synthétique `penalty.wav` déjà dans le jeu. |
 | **`خالد العوني زيد جوج يا مول الروج زيد جوج.mp3`** | Non (source de `plus_two.mp3`) | Chanson complète de Khalid Aouni | Œuvre protégée, présente en entier dans le dépôt. | Retirer du dépôt (et de l'historique Git si le dépôt est public). |
 | **`نوض القلاوي نوض nod al9lawi nod  Moroccan Memes Sound Effect.mp3`** | Non | Son « mème » tiré d'une vidéo | Droits de l'auteur de la vidéo inconnus. | Retirer du dépôt ; si on veut un son de ce genre, l'enregistrer soi-même. |
-| **`Galleria_01.jpg` à `Galleria_04.jpg`** (les 40 faces de cartes) | Oui ([Card.js](src/components/Card.js)) | Scans d'un jeu de cartes espagnoles imprimé ; on lit la mention d'éditeur « MAROC CARTES 61002 » sur certaines cartes | Le dessin traditionnel (modèle Fournier de 1889) est ancien, mais un scan d'un jeu imprimé reproduit le travail d'un éditeur précis, avec sa mention. Risque de réclamation, et refus possible en relecture Apple. | Jeux espagnols du domaine public ou sous licence libre sur Wikimedia Commons (catégorie « Spanish playing cards » : vérifier la licence de chaque fichier, CC0 ou domaine public de préférence), ou redessiner les cartes (SVG). |
+| **`Galleria_01.jpg` à `Galleria_04.jpg`** (anciennes faces de cartes) | **Non, plus depuis le 16 nov 2026** (remplacées par `assets/cards/`, voir plus bas) | Scans d'un jeu de cartes espagnoles imprimé ; on lit la mention d'éditeur « MAROC CARTES 61002 » sur certaines cartes | Le dessin traditionnel (modèle Fournier de 1889) est ancien, mais un scan d'un jeu imprimé reproduit le travail d'un éditeur précis, avec sa mention. Risque de réclamation, et refus possible en relecture Apple. | Jeux espagnols du domaine public ou sous licence libre sur Wikimedia Commons (catégorie « Spanish playing cards » : vérifier la licence de chaque fichier, CC0 ou domaine public de préférence), ou redessiner les cartes (SVG). |
 | **`icon.png`**, et ce qui en est tiré : `assets/brand/*` (icône des stores, icône Android, splash) et `public/icons/*` | Oui (icône, splash, PWA) | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes 12, 11 et 10 du même jeu scanné | Même problème que les faces de cartes, plus la licence Canva à vérifier. L'icône est ce qui se voit le plus sur les stores. | Refaire l'icône avec les nouvelles cartes libres ou un dessin original, puis régénérer `assets/brand/` et `public/icons/`. |
 
 ## 🟡 À vérifier
 
+> **Nouvelles faces de cartes (16 nov 2026)** : `assets/cards/deck_0.jpg` à `deck_3.jpg`, découpées par [scripts/build-card-sheets.py](scripts/build-card-sheets.py) dans la planche de 40 cartes fournie par Yassir (style espagnol traditionnel, sans mention d'éditeur). Utilisées par [Card.js](src/components/Card.js).
+> **À confirmer par Yassir : d'où vient cette planche ?** Si elle a été générée par une IA, garder une trace de l'outil et vérifier que ses conditions autorisent un usage commercial ; si elle vient d'un site, retrouver sa licence. Une fois confirmé, passer en 🟢.
+
 | Fichier | Utilisé | Source probable | À faire |
 |---|---|---|---|
 | `Yellow and White Illustrative Ramadan Greeting Instagram Post.png` (fond des menus) | Oui (accueil, salon, profil, classement) | Modèle Canva (nom de modèle Canva, format Instagram) | Vérifier que le modèle et ses éléments sont « Free » (pas « Pro ») et que la licence Canva couvre un fond d'appli. Garder si c'est le cas. |
-| `table.png` (fond de table des parties) | Oui ([TableBackground.js](src/components/TableBackground.js)) | Inconnue (dans le dépôt depuis le premier commit) | Retrouver la source (photo, image générée par IA, banque d'images). Sinon, la remplacer par un fond dessiné (comme la table marocaine SVG de la Ronda). |
+| `table.png` (fond de table des parties) | Oui ([TableBackground.js](src/components/TableBackground.js)) | Inconnue (dans le dépôt depuis le premier commit) | Retrouver la source. **On y voit aussi des cartes de l'ancien jeu scanné** (en haut de l'écran en portrait). Sinon, la remplacer par un fond dessiné (comme la table marocaine SVG de la Ronda). |
 | `menthe-poivree-removebg-preview.png` (feuille de menthe des joueurs actifs) | Oui | Image trouvée en ligne, fond retiré avec remove.bg | Source inconnue : la remplacer par un petit dessin SVG ou l'emoji 🌿, ou retrouver une image libre. |
 | `favicon.png` (icône de l'onglet du site) | Oui (app.json, web) | Icône par défaut d'Expo (licence MIT) | Libre, mais remplacer par l'icône Jeben Gere3 pour la cohérence. |
 
@@ -58,7 +61,7 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 
 ## Avant d'envoyer aux stores
 
-1. Remplacer la musique, `plus_two.mp3`, les faces de cartes et l'icône (tableau rouge).
+1. Remplacer la musique, `plus_two.mp3` et l'icône (tableau rouge) ; confirmer la source de la nouvelle planche de cartes.
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
 3. Ajouter le crédit DiceBear / Adventurer.
 4. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.
