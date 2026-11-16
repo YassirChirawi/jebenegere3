@@ -1,26 +1,53 @@
 {
   "expo": {
-    "name": "hezz2-game",
-    "slug": "hezz2-game",
+    "name": "Jeben Gere3",
+    "slug": "jeben-gere3",
+    "scheme": "jebengere3",
     "version": "1.0.0",
+    "description": "Hezz2, Ronda, Kdoub et Sota Ghamla : les jeux de cartes marocains, en ligne avec tes amis ou contre des bots.",
     "orientation": "default",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/brand/icon-1024.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
+    "backgroundColor": "#1C0F13",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/brand/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#1C0F13"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "fun.jebengere3.app",
+      "supportsTablet": true,
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "fun.jebengere3.app",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
+        "foregroundImage": "./assets/brand/adaptive-foreground.png",
         "backgroundColor": "#1C0F13"
       },
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "blockedPermissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-av",
+        {
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "extra": {
+      "privacyPolicyUrl": "https://jebengere3.fun/privacy",
+      "termsUrl": "https://jebengere3.fun/terms"
     },
     "web": {
       "favicon": "./assets/favicon.png",

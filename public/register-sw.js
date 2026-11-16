@@ -2,6 +2,15 @@
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () { /* pas bloquant */ });
+    // Première visite : le code a été chargé avant que le service worker soit actif ;
+    // on le met en cache tout de suite pour que l'appli s'ouvre aussi hors ligne.
+    navigator.serviceWorker.ready.then(function () {
+      if (!window.caches) return;
+      var urls = Array.prototype.slice.call(document.scripts)
+        .map(function (s) { return s.src; })
+        .filter(function (u) { return u && u.indexOf(location.origin + '/_expo/static/') === 0; });
+      if (urls.length) caches.open('jg3-v1-static').then(function (c) { return c.addAll(urls); }).catch(function () {});
+    });
   });
 }
 

@@ -115,6 +115,26 @@ Le site est une **appli installable** : icône sur l'écran d'accueil, plein éc
 - **Plein écran sur téléphone** ([src/utils/fullscreen.js](src/utils/fullscreen.js)) : au lancement d'une partie (ou au premier toucher en jeu), la barre du navigateur disparaît. **La Ronda passe en paysage** : les 4 joueurs autour d'une table marocaine dessinée (cadre en cèdre et clous en laiton, bande de zellige, tapis rouge — [src/components/MoroccanTable.js](src/components/MoroccanTable.js)). La table prend toute la place libre entre les joueurs et les cartes posées prennent la plus grande taille qui tient (une ou deux rangées) ; les boutons « RONDA ! » et « Il est rondé ? » sont à gauche, au-dessus de « Toi », pour ne pas cacher la table. Le score, les cartes ramassées et la distribution tiennent dans une petite barre en haut à droite ; le tour (avec le chrono) et les réactions sont en bas à droite. La table garde ainsi toute la largeur. Sur Android, c'est automatique. Sur iPhone, Safari ne le permet pas : le plein écran passe par l'appli installée, et la Ronda propose de tourner le téléphone.
 - [vercel.json](vercel.json) : en-têtes de sécurité du site (HTTPS forcé, CSP, anti-iframe…). **Si le jeu charge un jour une ressource d'un autre domaine** (nouveau serveur, images externes), il faut l'ajouter dans la `Content-Security-Policy`, sinon le navigateur la bloque.
 
+## Applis mobiles : build iOS et Android (EAS)
+
+Identifiants : **`fun.jebengere3.app`** sur iOS (bundleIdentifier) et sur Android (package). Nom affiché : **Jeben Gere3**. Les icônes et le splash propres aux stores sont dans `assets/brand/` (icône carrée 1024 sans transparence, premier plan de l'icône adaptative Android, splash). Le micro, le stockage et la superposition d'écran sont retirés des permissions Android ; seuls Internet et la vibration restent.
+
+Profils de [eas.json](eas.json) :
+- `development` : APK de debug (Android) ou build simulateur (iOS) ;
+- `preview` : APK installable directement sur un téléphone Android, ou build iOS en distribution interne (TestFlight non nécessaire) ;
+- `production` : AAB pour Google Play et build App Store ; le numéro de build augmente tout seul (`autoIncrement`, version gérée par EAS).
+
+Procédure :
+1. `npm install -g eas-cli`, puis `eas login` (compte Expo gratuit).
+2. `eas init` : relie le projet à un projet Expo (ajoute `extra.eas.projectId` dans app.json, à commiter).
+3. `npx expo-doctor` : doit afficher 18/18.
+4. Android de test : `eas build --profile preview --platform android`, puis installer l'APK reçu par lien.
+5. iOS de test : `eas device:create` (enregistre l'iPhone), puis `eas build --profile preview --platform ios` (compte Apple Developer requis).
+6. Production : `eas build --profile production --platform all`.
+7. Envoi aux stores : `eas submit --platform android` et `eas submit --platform ios` (voir « Publication » plus bas).
+
+Aucun secret n'est dans le dépôt : les certificats et clés de signature sont créés et gardés par EAS lors du premier build.
+
 ## Mode test (web)
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.

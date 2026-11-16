@@ -3,7 +3,7 @@
  * - Code et sons/images (/_expo/static, /assets) : noms uniques à chaque build, donc cache d'abord.
  * - Tout ce qui va vers un autre domaine (serveur de jeu, avatars) n'est jamais touché.
  */
-const VERSION = 'jg3-v1';
+const VERSION = 'jg3-v1'; // garder le même nom dans register-sw.js (cache du code)
 const PAGES = `${VERSION}-pages`;
 const STATIC = `${VERSION}-static`;
 
