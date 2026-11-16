@@ -474,6 +474,11 @@ export default function HomeScreen({ navigation }) {
                         <Text style={styles.rulesLinkText}>📜 Lire les règles</Text>
                     </PressableScale>
                     <InstallAppButton />
+                    <View style={styles.legalRow}>
+                        <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>Confidentialité</Text>
+                        <Text style={styles.legalDot}>·</Text>
+                        <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>Conditions d'utilisation</Text>
+                    </View>
                 </ScrollView>
             )}
 
@@ -791,6 +796,9 @@ const styles = StyleSheet.create({
         marginTop: 6,
         textAlign: 'center',
     },
+    legalRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, marginTop: 16, marginBottom: 8 },
+    legalLink: { color: 'rgba(243,233,220,0.75)', fontSize: 12, textDecorationLine: 'underline' },
+    legalDot: { color: 'rgba(243,233,220,0.5)', fontSize: 12 },
     rulesLink: {
         marginTop: 18,
         paddingVertical: 10,

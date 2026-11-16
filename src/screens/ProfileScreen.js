@@ -298,13 +298,26 @@ export default function ProfileScreen({ navigation }) {
                         ))
                     )}
                 </Section>
+
+                {/* Confidentialité et conditions (accessibles sans compte) */}
+                <Section title="📄 Confidentialité et conditions" delay={300}>
+                    <View style={styles.legalBtns}>
+                        <GameButton small title="Confidentialité" variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'privacy' })} style={{ flex: 1 }} />
+                        <GameButton small title="Conditions" variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} style={{ flex: 1 }} />
+                    </View>
+                </Section>
             </ScrollView>
-            <CustomizeSheet visible={customize} onClose={() => setCustomize(false)} />
+            <CustomizeSheet
+                visible={customize}
+                onClose={() => setCustomize(false)}
+                onOpenLegal={(doc) => { setCustomize(false); navigation.navigate('Legal', { doc }); }}
+            />
         </ImageBackground>
     );
 }
 
 const styles = StyleSheet.create({
+    legalBtns: { flexDirection: 'row', gap: 10 },
     container: { flex: 1, backgroundColor: theme.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },

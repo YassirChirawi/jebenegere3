@@ -1,0 +1,123 @@
+{
+  "contactEmail": "",
+  "contactMissing": "Adresse email de contact : à compléter avant la publication sur les stores.",
+  "privacy": {
+    "path": "/privacy",
+    "title": "Politique de confidentialité",
+    "updated": "16 novembre 2026",
+    "intro": "Jeben Gere3 est un jeu de cartes marocain (Hezz2, Ronda, Kdoub, Sota Ghamla). On collecte le moins de données possible : juste ce qu'il faut pour jouer en ligne et garder ta progression.",
+    "sections": [
+      {
+        "h": "Ce qu'on collecte",
+        "items": [
+          "Si tu crées un compte : ton pseudo et ton mot de passe. Le mot de passe n'est jamais stocké en clair : seule une empreinte (hachage scrypt) est gardée, impossible à retransformer en mot de passe.",
+          "Ta progression liée au compte : XP, rang, titres, statistiques par jeu (parties jouées, victoires, défaites, séries), historique de tes 30 dernières parties (jeu, résultat, adversaires, date), défis du jour, saisons, dos de cartes et tapis débloqués, avatar et titre choisis.",
+          "Ta liste de joueurs bloqués (voir « Chat »).",
+          "Les jetons de connexion de tes appareils (sous forme d'empreinte), pour rester connecté."
+        ]
+      },
+      {
+        "h": "Ce qu'on ne collecte pas",
+        "items": [
+          "Pas d'email, pas de numéro de téléphone, pas de nom réel.",
+          "Pas de localisation, pas d'accès à la caméra, au micro, aux contacts ni aux photos.",
+          "Pas de publicité, pas de traceur publicitaire, pas de revente de données."
+        ]
+      },
+      {
+        "h": "Le chat en partie",
+        "items": [
+          "Les messages du chat (messages rapides et réactions emoji) sont transmis en direct aux joueurs de la partie et ne sont pas enregistrés.",
+          "Exception : quand un joueur signale un message, le serveur garde le signalement (message, pseudo de l'auteur, date, raison) pour pouvoir le traiter. Il est supprimé après traitement, et au plus tard au bout de 6 mois.",
+          "Un filtre automatique refuse les insultes les plus courantes."
+        ]
+      },
+      {
+        "h": "Sans compte",
+        "items": [
+          "Tu peux jouer sans compte. Ton pseudo, tes réglages (son, vibrations, dos de cartes) et tes statistiques sont alors gardés uniquement sur ton appareil."
+        ]
+      },
+      {
+        "h": "Où sont stockées les données",
+        "items": [
+          "Les comptes sont stockés sur notre serveur de jeu, hébergé par Render (render.com), dans une base de données PostgreSQL.",
+          "Le site et l'appli web sont hébergés par Vercel (vercel.com).",
+          "Les avatars dessinés sont générés par le service DiceBear (dicebear.com) à partir de ton pseudo : ce service reçoit donc ton pseudo pour afficher l'image.",
+          "Ton adresse IP est utilisée temporairement, en mémoire, pour limiter les abus (trop de messages, trop d'essais de mot de passe). Elle n'est pas enregistrée dans ton compte. Les hébergeurs gardent des journaux techniques pendant une durée limitée."
+        ]
+      },
+      {
+        "h": "Combien de temps",
+        "items": [
+          "Ton compte et ta progression sont gardés tant que ton compte existe.",
+          "Quand tu supprimes ton compte, tout est effacé immédiatement et définitivement : pseudo, XP, rang, stats, historique, défis, titres, dos et tapis débloqués, liste des joueurs bloqués. On n'en garde aucune copie."
+        ]
+      },
+      {
+        "h": "Supprimer ton compte",
+        "items": [
+          "Dans l'appli : Profil → « Supprimer mon compte », puis confirmer. La suppression est immédiate.",
+          "Sur le site : même chemin, sur https://jebengere3.fun."
+        ]
+      },
+      {
+        "h": "Tes droits",
+        "items": [
+          "Tu peux consulter tes données dans ton profil, les modifier (avatar, titre) et les supprimer à tout moment.",
+          "Pour toute question sur tes données, écris-nous (adresse ci-dessous)."
+        ]
+      }
+    ]
+  },
+  "terms": {
+    "path": "/terms",
+    "title": "Conditions d'utilisation",
+    "updated": "16 novembre 2026",
+    "intro": "En jouant à Jeben Gere3, tu acceptes ces règles simples. Elles sont là pour que tout le monde passe un bon moment.",
+    "sections": [
+      {
+        "h": "Âge minimum",
+        "items": [
+          "Jeben Gere3 est réservé aux joueurs de 12 ans et plus, parce que le jeu contient un chat entre joueurs."
+        ]
+      },
+      {
+        "h": "Respect des autres joueurs",
+        "items": [
+          "Pas d'insultes, de menaces, de harcèlement, de propos racistes, sexistes ou haineux.",
+          "Pas de spam ni de publicité dans le chat.",
+          "Pas de pseudo insultant ou qui se fait passer pour quelqu'un d'autre."
+        ]
+      },
+      {
+        "h": "Pas de triche",
+        "items": [
+          "Pas de logiciel de triche, pas d'entente entre joueurs pour fausser une partie, pas d'exploitation de bug.",
+          "Pas de création de comptes multiples pour gonfler le classement."
+        ]
+      },
+      {
+        "h": "Signaler et bloquer",
+        "items": [
+          "Sur chaque message du chat, tu peux « Signaler » (insulte, spam, triche, autre) ou « Bloquer le joueur ». Un joueur bloqué ne voit plus tes messages et tu ne vois plus les siens.",
+          "Tu retrouves la liste de tes joueurs bloqués dans ton profil, avec un bouton « Débloquer »."
+        ]
+      },
+      {
+        "h": "En cas d'abus",
+        "items": [
+          "Les messages contenant des insultes courantes sont refusés automatiquement.",
+          "Les signalements sont examinés. En cas d'abus : d'abord un avertissement, puis un blocage du compte (chat ou accès au jeu) en cas de récidive ou d'abus grave."
+        ]
+      },
+      {
+        "h": "Le jeu",
+        "items": [
+          "Jeben Gere3 est gratuit, sans achat ni argent réel. L'XP, les rangs et les récompenses n'ont aucune valeur monétaire.",
+          "Le jeu peut évoluer (règles, récompenses, saisons) et peut être interrompu pour maintenance."
+        ]
+      }
+    ]
+  }
+}

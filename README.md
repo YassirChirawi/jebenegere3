@@ -135,6 +135,17 @@ Procédure :
 
 Aucun secret n'est dans le dépôt : les certificats et clés de signature sont créés et gardés par EAS lors du premier build.
 
+## Confidentialité et conditions d'utilisation
+
+- Politique de confidentialité : **https://jebengere3.fun/privacy**
+- Conditions d'utilisation : **https://jebengere3.fun/terms**
+
+Un seul texte, dans [src/legal/legal.json](src/legal/legal.json), sert à la fois :
+- à l'écran « Confidentialité / Conditions » de l'appli (liens en bas de l'accueil, dans le Profil et dans Personnaliser → Réglages), lisible sans compte et sans connexion ;
+- aux pages web statiques `public/privacy/index.html` et `public/terms/index.html` (HTML pur, sans JavaScript ni serveur de jeu), régénérées avec `node scripts/build-legal.js` après chaque modification du texte.
+
+⚠️ L'adresse email de contact est vide (`contactEmail`) : à remplir avant la publication sur les stores, puis relancer `node scripts/build-legal.js`.
+
 ## Mode test (web)
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.

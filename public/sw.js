@@ -30,13 +30,14 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(req)
         .then((res) => {
+          // Seule la page du jeu (/) sert de secours hors ligne ; /privacy et /terms ont leur propre copie
           if (res.ok) {
             const copy = res.clone();
-            caches.open(PAGES).then((c) => c.put('/', copy));
+            caches.open(PAGES).then((c) => c.put(url.pathname === '/' ? '/' : url.pathname, copy));
           }
           return res;
         })
-        .catch(() => caches.match('/', { cacheName: PAGES }))
+        .catch(() => caches.match(url.pathname, { cacheName: PAGES }).then((hit) => hit || caches.match('/', { cacheName: PAGES })))
     );
     return;
   }

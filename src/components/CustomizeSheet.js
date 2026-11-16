@@ -14,7 +14,7 @@ import {
  * Personnalisation : dos de cartes, tapis par jeu, vibrations.
  * Les éléments verrouillés indiquent le rang nécessaire.
  */
-export default function CustomizeSheet({ visible, onClose }) {
+export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
     const cos = useCosmetics();
     const [tab, setTab] = useState('backs');
     const [feltGame, setFeltGame] = useState('hezz2');
@@ -105,6 +105,12 @@ export default function CustomizeSheet({ visible, onClose }) {
                                 />
                             </View>
                         )}
+                        {tab === 'settings' && onOpenLegal && (
+                            <View style={styles.legalRow}>
+                                <Text style={styles.legalLink} onPress={() => onOpenLegal('privacy')}>📄 Confidentialité</Text>
+                                <Text style={styles.legalLink} onPress={() => onOpenLegal('terms')}>📄 Conditions d'utilisation</Text>
+                            </View>
+                        )}
                     </ScrollView>
                 </Animated.View>
             </Animated.View>
@@ -113,6 +119,8 @@ export default function CustomizeSheet({ visible, onClose }) {
 }
 
 const styles = StyleSheet.create({
+    legalRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 16, marginTop: 16, justifyContent: 'center' },
+    legalLink: { color: theme.goldLight, fontSize: 13, fontWeight: '800', textDecorationLine: 'underline' },
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.65)', justifyContent: 'center', alignItems: 'center', padding: 16 },
     sheet: { width: '100%', maxWidth: 440, backgroundColor: theme.panelSolid, borderRadius: 20, borderWidth: 1.5, borderColor: theme.gold, padding: 16 },
     header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
