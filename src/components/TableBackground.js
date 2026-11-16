@@ -5,17 +5,43 @@ import { theme } from './ui';
 import { useCosmetics, feltFor } from '../utils/cosmetics';
 
 // Ambiance par jeu : couleur de la vignette (bords de l'écran)
-const MOOD = { hezz2: '#2A1206', ronda: '#020817', kdoub: '#1F0204', sota: '#0E0220' };
-
-// Table avec les cartes du jeu actuel sur le coffret (généré par scripts/build-table-bg.py)
-const TABLE_BG = require('../../assets/table-bg.jpg');
-// Fond cadré sur le tapis de la table (on coupe la fontaine en haut de l'image)
-const TABLE_SRC = { w: 1211, h: 1536, feltTop: 400 };
-// Coffret de cartes décoratif (coordonnées dans l'image) : gardé dans ses couleurs d'origine
-const BOX = { x: 335, y: 495, w: 515, h: 220 };
+const MOOD = { hezz2: '#0B1A0E', ronda: '#1A0406', kdoub: '#1F0D04', sota: '#05030F' };
 
 /**
- * Table de jeu commune à tous les jeux : image cadrée sur le tapis + vignette.
+ * Une table par jeu (images générées par IA, préparées par scripts/build-tables.py), vues du dessus.
+ * Les tables ovales ont une version tournée pour les écrans plus hauts que larges.
+ * felt : zone du tapis (fractions de l'image en paysage), pour la teinte choisie dans Personnaliser.
+ *   rect : x0, y0, x1, y1 et r (arrondi, fraction du petit côté) ; circle : cx, cy, r (fraction de la largeur)
+ */
+const TABLES = {
+    hezz2: {
+        src: require('../../assets/tables/menthe.jpg'), w: 1254, h: 1254,
+        felt: { circle: true, cx: 0.496, cy: 0.488, r: 0.376 },
+    },
+    ronda: {
+        src: require('../../assets/tables/velours.jpg'), w: 1536, h: 1024,
+        portrait: require('../../assets/tables/velours-portrait.jpg'),
+        felt: { x0: 0.117, y0: 0.176, x1: 0.879, y1: 0.818, r: 0.18 },
+    },
+    kdoub: {
+        src: require('../../assets/tables/cuivre.jpg'), w: 1254, h: 1254,
+        felt: { circle: true, cx: 0.5, cy: 0.5, r: 0.365 },
+    },
+    sota: {
+        src: require('../../assets/tables/neon.jpg'), w: 1600, h: 900,
+        portrait: require('../../assets/tables/neon-portrait.jpg'),
+        felt: { x0: 0.096, y0: 0.117, x1: 0.906, y1: 0.882, r: 0.5 },
+    },
+};
+
+// Quart de tour dans le sens horaire : (x, y) -> (1 - y, x)
+function rotateFelt(f) {
+    if (f.circle) return { circle: true, cx: 1 - f.cy, cy: f.cx, r: f.r };
+    return { x0: 1 - f.y1, x1: 1 - f.y0, y0: f.x0, y1: f.x1, r: f.r };
+}
+
+/**
+ * Table de jeu commune à tous les jeux : image « cover » + teinte du tapis + vignette.
  * onSize reçoit la taille réelle du plateau (pour les mises en page portrait / paysage).
  */
 export default function TableBackground({ children, onSize, tint, game = 'hezz2', feltOverride }) {
@@ -23,14 +49,32 @@ export default function TableBackground({ children, onSize, tint, game = 'hezz2'
     const cos = useCosmetics();
     const felt = feltOverride || feltFor(game, cos);
     const mood = MOOD[game] || '#000';
+    const table = TABLES[game] || TABLES.hezz2;
+
     let img = null;
+    let zone = null;
     if (size) {
-        const visibleH = TABLE_SRC.h - TABLE_SRC.feltTop;
-        const scale = Math.max(size.h / visibleH, size.w / TABLE_SRC.w);
-        const w = TABLE_SRC.w * scale;
-        const h = TABLE_SRC.h * scale;
-        img = { width: w, height: h, left: (size.w - w) / 2, top: size.h - h, scale };
+        const portrait = size.h > size.w * 1.1 && !!table.portrait;
+        const iw = portrait ? table.h : table.w;
+        const ih = portrait ? table.w : table.h;
+        const scale = Math.max(size.w / iw, size.h / ih);
+        const w = iw * scale;
+        const h = ih * scale;
+        img = { source: portrait ? table.portrait : table.src, width: w, height: h, left: (size.w - w) / 2, top: (size.h - h) / 2 };
+        // Zone du tapis à l'écran (pour la teinte)
+        const f = portrait ? rotateFelt(table.felt) : table.felt;
+        if (f.circle) {
+            const r = f.r * w;
+            zone = { left: img.left + f.cx * w - r, top: img.top + f.cy * h - r, width: 2 * r, height: 2 * r, borderRadius: r };
+        } else {
+            const zw = (f.x1 - f.x0) * w;
+            const zh = (f.y1 - f.y0) * h;
+            zone = { left: img.left + f.x0 * w, top: img.top + f.y0 * h, width: zw, height: zh, borderRadius: f.r * Math.min(zw, zh) };
+        }
     }
+    // Tapis par défaut : la table telle quelle ; sinon, teinte appliquée au seul tapis
+    const tinted = felt && felt.id !== 'default';
+
     return (
         <View
             style={styles.container}
@@ -43,21 +87,17 @@ export default function TableBackground({ children, onSize, tint, game = 'hezz2'
             {/* L'image déborde volontairement : on la clippe dans son propre calque pour que
                 le plateau ne devienne jamais "défilable" sur le web */}
             <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
-                {img && <Image source={TABLE_BG} style={{ position: 'absolute', width: img.width, height: img.height, left: img.left, top: img.top }} resizeMode="stretch" />}
-                {/* Tapis du jeu : on recolore la table en gardant ses motifs (fusion "color") */}
-                {felt && <View style={[StyleSheet.absoluteFill, { backgroundColor: felt.color, opacity: felt.strength, mixBlendMode: 'color' }]} />}
-                {tint ? <View style={[StyleSheet.absoluteFill, { backgroundColor: tint }]} /> : null}
-                {img && felt && (
-                    <View style={{ position: 'absolute', overflow: 'hidden', left: img.left + BOX.x * img.scale, top: img.top + BOX.y * img.scale, width: BOX.w * img.scale, height: BOX.h * img.scale }}>
-                        <Image source={TABLE_BG} style={{ position: 'absolute', width: img.width, height: img.height, left: -BOX.x * img.scale, top: -BOX.y * img.scale }} resizeMode="stretch" />
-                    </View>
+                {img && <Image source={img.source} style={{ position: 'absolute', width: img.width, height: img.height, left: img.left, top: img.top }} resizeMode="stretch" />}
+                {tinted && zone && (
+                    <View style={{ position: 'absolute', ...zone, backgroundColor: felt.color, opacity: felt.strength, mixBlendMode: 'color' }} />
                 )}
+                {tint ? <View style={[StyleSheet.absoluteFill, { backgroundColor: tint }]} /> : null}
             </View>
             <Svg style={StyleSheet.absoluteFill} pointerEvents="none" width="100%" height="100%">
                 <Defs>
-                    <RadialGradient id="vignette" cx="50%" cy="55%" rx="75%" ry="65%">
-                        <Stop offset="0.45" stopColor="#000" stopOpacity="0" />
-                        <Stop offset="1" stopColor={mood} stopOpacity="0.8" />
+                    <RadialGradient id="vignette" cx="50%" cy="50%" rx="75%" ry="70%">
+                        <Stop offset="0.55" stopColor="#000" stopOpacity="0" />
+                        <Stop offset="1" stopColor={mood} stopOpacity="0.65" />
                     </RadialGradient>
                 </Defs>
                 <Rect x="0" y="0" width="100%" height="100%" fill="url(#vignette)" />

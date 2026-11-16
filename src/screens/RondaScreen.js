@@ -33,7 +33,7 @@ import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 import { GoldBurst } from '../components/Flights';
 import { isPhoneWeb } from '../utils/fullscreen';
-import MoroccanTable, { TABLE_INSET } from '../components/MoroccanTable';
+import { TABLE_INSET } from '../components/MoroccanTable'; // marges de la zone de table (la table elle-même est l'image de fond)
 
 const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -749,7 +749,6 @@ export default function RondaScreen({ route, navigation }) {
                         <View style={land ? styles.centerLand : styles.centerCol}>
                         <View style={land ? styles.tableColLand : styles.centerCol}>
                         <View style={[styles.tableZone, land && styles.tableZoneLand, land && { height: landZoneH, width: landZoneW }]}>
-                            {land && <MoroccanTable />}
                             {state.table.length === 0 ? (
                                 <Text style={styles.emptyTable}>Table vide</Text>
                             ) : (

@@ -178,6 +178,20 @@ Un seul texte, dans [src/legal/legal.json](src/legal/legal.json), sert à la foi
 - Appli : après la suppression, toutes les données de l'appareil sont effacées, le joueur est déconnecté et revient à l'accueil.
 - Serveur pas à jour : message clair (« la suppression du compte n'est pas disponible pour l'instant ; ton compte n'a pas été supprimé »), jamais d'écran vide.
 
+## Tables de jeu
+
+Une table par jeu, vue du dessus ([src/components/TableBackground.js](src/components/TableBackground.js)), images générées par IA et préparées par `python scripts/build-tables.py <dossier>` (`assets/tables/`) :
+
+| Jeu | Table |
+|---|---|
+| Hezz2 | ronde, tapis vert, thé à la menthe (`menthe.jpg`) |
+| Ronda | ovale, velours rouge et zellige (`velours.jpg`) |
+| Kdoub | plateau rond en cuivre, désert (`cuivre.jpg`) |
+| Sota Ghamla | ovale néon (`neon.jpg`) |
+| (en réserve) | ovale verte de tournoi (`tournoi.jpg`) |
+
+L'image couvre tout l'écran ; les tables ovales ont une version tournée d'un quart de tour quand l'écran est plus haut que large. La teinte de tapis choisie dans Personnaliser ne colore que le tapis (le tapis par défaut garde la table telle quelle). En Ronda paysage, les cartes se posent directement sur le velours.
+
 ## Mode test (web)
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.

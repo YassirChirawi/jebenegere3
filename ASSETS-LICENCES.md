@@ -22,13 +22,12 @@ Légende :
 
 ## 🟡 À vérifier
 
-> **Images générées par IA par Yassir (16 nov 2026)** : la planche des 40 cartes (→ `assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)) et l'affiche Sota / Caballo / Rey à Marrakech (→ `assets/brand/affiche.jpg`, icônes, splash, `public/icons/`, via [scripts/build-brand.py](scripts/build-brand.py)).
+> **Images générées par IA par Yassir (16 nov 2026)** : la planche des 40 cartes (→ `assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)), l'affiche Sota / Caballo / Rey à Marrakech (→ `assets/brand/affiche.jpg`, icônes, splash, `public/icons/`, via [scripts/build-brand.py](scripts/build-brand.py)) et les 5 tables de jeu (→ `assets/tables/`, via [scripts/build-tables.py](scripts/build-tables.py)).
 > Création du projet, sans scan ni mention d'éditeur. **Seul point à garder en tête** : noter le nom de l'outil d'IA utilisé et vérifier que ses conditions autorisent un usage commercial (c'est le cas de la plupart des offres payantes ; certaines offres gratuites l'interdisent). Une fois vérifié, ces images passent en 🟢.
 
 | Fichier | Utilisé | Source probable | À faire |
 |---|---|---|---|
 | `Yellow and White Illustrative Ramadan Greeting Instagram Post.png` (fond des menus) | Oui (accueil, salon, profil, classement) | Modèle Canva (nom de modèle Canva, format Instagram) | Vérifier que le modèle et ses éléments sont « Free » (pas « Pro ») et que la licence Canva couvre un fond d'appli. Garder si c'est le cas. |
-| `table.png` → `table-bg.jpg` (fond de table des parties) | Oui, `table-bg.jpg` ([TableBackground.js](src/components/TableBackground.js)) | Inconnue (dans le dépôt depuis le premier commit) | Les cartes de l'ancien jeu posées sur le coffret ont été remplacées par celles du nouveau jeu ([scripts/build-table-bg.py](scripts/build-table-bg.py)). Reste à retrouver la source de la scène elle-même (patio, tapis), ou la remplacer par une image générée par IA comme l'affiche. |
 | `menthe-poivree-removebg-preview.png` (feuille de menthe des joueurs actifs) | Oui | Image trouvée en ligne, fond retiré avec remove.bg | Source inconnue : la remplacer par un petit dessin SVG ou l'emoji 🌿, ou retrouver une image libre. |
 
 ## 🟢 Garder
@@ -57,7 +56,7 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 | `Jeu_de_ronda.jpg` | Source inconnue (peut-être Wikimedia : à vérifier si on veut la garder). |
 | `virtual_hand.png` | Source inconnue. |
 | `adaptive-icon.png`, `splash-icon.png`, `favicon.png` | Images par défaut d'Expo (MIT), remplacées par `assets/brand/`. |
-| `Galleria_01.jpg` à `Galleria_04.jpg`, `icon.png`, `table.png` | Anciennes cartes scannées, ancienne icône et ancien fond (remplacés) : 🔴 à retirer du dépôt. |
+| `Galleria_01.jpg` à `Galleria_04.jpg`, `icon.png`, `table.png`, `table-bg.jpg` | Anciennes cartes scannées, ancienne icône et anciens fonds de table (source inconnue, remplacés par `assets/tables/`) : 🔴 à retirer du dépôt. |
 
 ## Avant d'envoyer aux stores
 
