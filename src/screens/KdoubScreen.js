@@ -757,8 +757,8 @@ const styles = StyleSheet.create({
     mePillActive: { backgroundColor: theme.gold, borderColor: theme.goldLight },
     meName: { color: theme.cream, fontWeight: '900', fontSize: 13 },
     mint: { width: 28, height: 28, resizeMode: 'contain' },
-    hand: { height: 140, width: '100%' },
-    handLand: { height: 128 },
+    hand: { height: 140, width: '100%', marginBottom: 16 }, // marge sous l'éventail
+    handLand: { height: 128, marginBottom: 0 },
     spectatorBox: { alignItems: 'center', justifyContent: 'center', flex: 1 },
     spectatorText: { color: theme.goldLight, fontSize: 18, fontWeight: '900' },
     revealOverlay: {

@@ -565,8 +565,8 @@ const styles = StyleSheet.create({
     meName: { color: theme.cream, fontWeight: '900', fontSize: 12 },
     targetMe: { color: '#FCD34D', fontSize: 10, fontWeight: '900' },
     mint: { width: 28, height: 28, resizeMode: 'contain' },
-    hand: { height: 140, width: '100%' },
-    handLand: { height: 128 },
+    hand: { height: 140, width: '100%', marginBottom: 16 }, // marge sous l'éventail
+    handLand: { height: 128, marginBottom: 0 },
     outBox: { marginHorizontal: 20, marginTop: 30, backgroundColor: 'rgba(6,95,70,0.85)', borderRadius: 14, padding: 12, alignItems: 'center', borderWidth: 1.5, borderColor: theme.mint },
     outText: { color: '#ECFDF5', fontWeight: '800', textAlign: 'center' },
     spectatorBox: { alignItems: 'center', justifyContent: 'center', flex: 1 },

@@ -654,6 +654,7 @@ const styles = StyleSheet.create({
     },
     handLand: {
         height: 128,
+        marginBottom: 0,
     },
     topArea: {
         height: 118,
@@ -767,6 +768,7 @@ const styles = StyleSheet.create({
     hand: {
         height: 140,
         width: '100%',
+        marginBottom: 16, // marge : les cartes inclinées des bords de l'éventail ne touchent plus le bas
     },
     doneBox: {
         position: 'absolute',

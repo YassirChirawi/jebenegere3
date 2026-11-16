@@ -1382,9 +1382,11 @@ const styles = StyleSheet.create({
     hand: {
         height: 140,
         width: '100%',
+        marginBottom: 16, // marge : les cartes inclinées des bords de l'éventail ne touchent plus le bas
     },
     handLand: {
         height: 128,
+        marginBottom: 0,
     },
     spectatorBox: {
         alignItems: 'center',
