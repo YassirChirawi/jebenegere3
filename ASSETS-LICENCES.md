@@ -18,19 +18,18 @@ Légende :
 | **`خالد العوني زيد جوج يا مول الروج زيد جوج.mp3`** | Non (source de `plus_two.mp3`) | Chanson complète de Khalid Aouni | Œuvre protégée, présente en entier dans le dépôt. | Retirer du dépôt (et de l'historique Git si le dépôt est public). |
 | **`نوض القلاوي نوض nod al9lawi nod  Moroccan Memes Sound Effect.mp3`** | Non | Son « mème » tiré d'une vidéo | Droits de l'auteur de la vidéo inconnus. | Retirer du dépôt ; si on veut un son de ce genre, l'enregistrer soi-même. |
 | **`Galleria_01.jpg` à `Galleria_04.jpg`** (anciennes faces de cartes) | **Non, plus depuis le 16 nov 2026** (remplacées par `assets/cards/`, voir plus bas) | Scans d'un jeu de cartes espagnoles imprimé ; on lit la mention d'éditeur « MAROC CARTES 61002 » sur certaines cartes | Le dessin traditionnel (modèle Fournier de 1889) est ancien, mais un scan d'un jeu imprimé reproduit le travail d'un éditeur précis, avec sa mention. Risque de réclamation, et refus possible en relecture Apple. | Jeux espagnols du domaine public ou sous licence libre sur Wikimedia Commons (catégorie « Spanish playing cards » : vérifier la licence de chaque fichier, CC0 ou domaine public de préférence), ou redessiner les cartes (SVG). |
-| **`icon.png`**, et ce qui en est tiré : `assets/brand/*` (icône des stores, icône Android, splash) et `public/icons/*` | Oui (icône, splash, PWA) | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes 12, 11 et 10 du même jeu scanné | Même problème que les faces de cartes, plus la licence Canva à vérifier. L'icône est ce qui se voit le plus sur les stores. | Refaire l'icône avec les nouvelles cartes libres ou un dessin original, puis régénérer `assets/brand/` et `public/icons/`. |
+| **`icon.png`** (ancienne icône) | Non, sauf `public/index.html` qui ne s'en sert plus pour les icônes ; **plus utilisé par l'appli depuis le 16 nov 2026** | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes du jeu scanné | Remplacée par l'affiche générée par IA (voir plus bas). | Retirer du dépôt. |
 
 ## 🟡 À vérifier
 
-> **Nouvelles faces de cartes (16 nov 2026)** : `assets/cards/deck_0.jpg` à `deck_3.jpg`, découpées par [scripts/build-card-sheets.py](scripts/build-card-sheets.py) dans la planche de 40 cartes fournie par Yassir (style espagnol traditionnel, sans mention d'éditeur). Utilisées par [Card.js](src/components/Card.js).
-> **À confirmer par Yassir : d'où vient cette planche ?** Si elle a été générée par une IA, garder une trace de l'outil et vérifier que ses conditions autorisent un usage commercial ; si elle vient d'un site, retrouver sa licence. Une fois confirmé, passer en 🟢.
+> **Images générées par IA par Yassir (16 nov 2026)** : la planche des 40 cartes (→ `assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)) et l'affiche Sota / Caballo / Rey à Marrakech (→ `assets/brand/affiche.jpg`, icônes, splash, `public/icons/`, via [scripts/build-brand.py](scripts/build-brand.py)).
+> Création du projet, sans scan ni mention d'éditeur. **Seul point à garder en tête** : noter le nom de l'outil d'IA utilisé et vérifier que ses conditions autorisent un usage commercial (c'est le cas de la plupart des offres payantes ; certaines offres gratuites l'interdisent). Une fois vérifié, ces images passent en 🟢.
 
 | Fichier | Utilisé | Source probable | À faire |
 |---|---|---|---|
 | `Yellow and White Illustrative Ramadan Greeting Instagram Post.png` (fond des menus) | Oui (accueil, salon, profil, classement) | Modèle Canva (nom de modèle Canva, format Instagram) | Vérifier que le modèle et ses éléments sont « Free » (pas « Pro ») et que la licence Canva couvre un fond d'appli. Garder si c'est le cas. |
-| `table.png` (fond de table des parties) | Oui ([TableBackground.js](src/components/TableBackground.js)) | Inconnue (dans le dépôt depuis le premier commit) | Retrouver la source. **On y voit aussi des cartes de l'ancien jeu scanné** (en haut de l'écran en portrait). Sinon, la remplacer par un fond dessiné (comme la table marocaine SVG de la Ronda). |
+| `table.png` → `table-bg.jpg` (fond de table des parties) | Oui, `table-bg.jpg` ([TableBackground.js](src/components/TableBackground.js)) | Inconnue (dans le dépôt depuis le premier commit) | Les cartes de l'ancien jeu posées sur le coffret ont été remplacées par celles du nouveau jeu ([scripts/build-table-bg.py](scripts/build-table-bg.py)). Reste à retrouver la source de la scène elle-même (patio, tapis), ou la remplacer par une image générée par IA comme l'affiche. |
 | `menthe-poivree-removebg-preview.png` (feuille de menthe des joueurs actifs) | Oui | Image trouvée en ligne, fond retiré avec remove.bg | Source inconnue : la remplacer par un petit dessin SVG ou l'emoji 🌿, ou retrouver une image libre. |
-| `favicon.png` (icône de l'onglet du site) | Oui (app.json, web) | Icône par défaut d'Expo (licence MIT) | Libre, mais remplacer par l'icône Jeben Gere3 pour la cohérence. |
 
 ## 🟢 Garder
 
@@ -57,11 +56,12 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 | `bajana-carte-n-7_0001-1024x381.webp` | Image d'un site web, source inconnue. |
 | `Jeu_de_ronda.jpg` | Source inconnue (peut-être Wikimedia : à vérifier si on veut la garder). |
 | `virtual_hand.png` | Source inconnue. |
-| `adaptive-icon.png`, `splash-icon.png` | Images par défaut d'Expo (MIT), remplacées par `assets/brand/`. |
+| `adaptive-icon.png`, `splash-icon.png`, `favicon.png` | Images par défaut d'Expo (MIT), remplacées par `assets/brand/`. |
+| `Galleria_01.jpg` à `Galleria_04.jpg`, `icon.png`, `table.png` | Anciennes cartes scannées, ancienne icône et ancien fond (remplacés) : 🔴 à retirer du dépôt. |
 
 ## Avant d'envoyer aux stores
 
-1. Remplacer la musique, `plus_two.mp3` et l'icône (tableau rouge) ; confirmer la source de la nouvelle planche de cartes.
+1. Remplacer la musique et `plus_two.mp3` (tableau rouge) ; noter l'outil d'IA utilisé pour les cartes et l'affiche.
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
 3. Ajouter le crédit DiceBear / Adventurer.
 4. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.

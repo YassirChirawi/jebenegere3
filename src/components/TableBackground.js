@@ -7,7 +7,8 @@ import { useCosmetics, feltFor } from '../utils/cosmetics';
 // Ambiance par jeu : couleur de la vignette (bords de l'écran)
 const MOOD = { hezz2: '#2A1206', ronda: '#020817', kdoub: '#1F0204', sota: '#0E0220' };
 
-const TABLE_BG = require('../../assets/table.png');
+// Table avec les cartes du jeu actuel sur le coffret (généré par scripts/build-table-bg.py)
+const TABLE_BG = require('../../assets/table-bg.jpg');
 // Fond cadré sur le tapis de la table (on coupe la fontaine en haut de l'image)
 const TABLE_SRC = { w: 1211, h: 1536, feltTop: 400 };
 // Coffret de cartes décoratif (coordonnées dans l'image) : gardé dans ses couleurs d'origine
