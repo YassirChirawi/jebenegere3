@@ -14,6 +14,9 @@ import SotaScreen from './src/screens/SotaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import LegalScreen from './src/screens/LegalScreen';
+import TournamentsScreen from './src/screens/TournamentsScreen';
+import TournamentScreen from './src/screens/TournamentScreen';
+import TournamentMatchSheet from './src/components/TournamentMatchSheet';
 import ProgressToaster from './src/components/ProgressToaster';
 import accountService from './src/network/accountService';
 import audioService from './src/network/audioService';
@@ -51,6 +54,7 @@ function GameRouter(props) {
       <Screen {...props} />
       <StartCountdown initialState={props.route?.params?.initialGameState} gameType={type} />
       <PlayerLeftBanner />
+      <TournamentMatchSheet navigation={props.navigation} roomId={roomId} />
     </View>
   );
 }
@@ -108,6 +112,8 @@ export default function App() {
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Classement', headerShown: false }} />
               <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Confidentialité', headerShown: false }} />
+              <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournois', headerShown: false }} />
+              <Stack.Screen name="Tournament" component={TournamentScreen} options={{ title: 'Tournoi', headerShown: false }} />
             </Stack.Navigator>
           </NavigationContainer>
           <DialogHost />

@@ -12,6 +12,7 @@ const NAME_RE = /^[\p{L}\p{N} _.'-]{3,16}$/u;
 const HISTORY_MAX = 30;
 const SESSIONS_MAX = 5;
 const IMPORT_XP_MAX = 3000;
+const TOURNAMENT_XP = 150; // bonus du champion de tournoi
 
 const sha = (s) => crypto.createHash('sha256').update(s).digest('hex');
 const scrypt = (password, salt) => new Promise((resolve, reject) => {
@@ -286,6 +287,18 @@ function createProgress(store) {
         });
     }
 
+    // Tournoi gagné : dos « Champion » (exclusif), titre « Moul chi » (compteur tournament_win) et XP
+    async function awardTournament(userId, game, now = Date.now()) {
+        const r = await award(userId, { game, xp: TOURNAMENT_XP, record: false, counters: { tournament_win: 1 } }, now);
+        if (!r) return null;
+        return withUser(userId, (u) => {
+            const reward = REWARDS.find((x) => x.id === 'back:tournoi');
+            const isNew = !u.unlocks.includes(reward.id);
+            if (isNew) u.unlocks.push(reward.id);
+            return { ...r, reward: isNew ? { id: reward.id, label: reward.label, kind: reward.kind } : null, profile: profileOf(u, now) };
+        });
+    }
+
     // Abandon en cours de partie : compté comme une défaite, sans XP
     async function recordAbandon(userId, game, opponents, now = Date.now()) {
         return award(userId, { game, xp: 0, record: true, won: false, result: 'Abandon 🏳️', opponents, counters: {}, hezz2Khasser: true }, now);
@@ -337,7 +350,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, recordAbandon, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

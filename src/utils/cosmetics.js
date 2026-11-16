@@ -30,7 +30,8 @@ export const BACKS = {
     cuivre: { label: 'Cuivre martelé', unlock: 'challenge', bg: '#7C3A12', frame: '#94481A', border: '#FCD9B6', line: 'rgba(252, 217, 182, 0.65)', lattice: 'rgba(252, 217, 182, 0.3)', medal: '#4A2008', medalBorder: '#F59E0B', star: '#FCD9B6' },
     rose: { label: 'Rose de Kelaa', unlock: 'challenge', bg: '#9D174D', frame: '#B01E5A', border: '#FBCFE8', line: 'rgba(251, 207, 232, 0.7)', lattice: 'rgba(251, 207, 232, 0.3)', medal: '#5B0B2C', medalBorder: '#F9A8D4', star: '#FDE68A' },
     saison: { label: 'Saison (top 10)', unlock: 'season', bg: '#1E1B4B', frame: '#2E2A6B', border: '#FDE68A', line: 'rgba(253, 230, 138, 0.85)', lattice: 'rgba(253, 230, 138, 0.35)', medal: '#B45309', medalBorder: '#FDE68A', star: '#FFFBEB' },
-    tournoi: { label: 'Champion de tournoi', unlock: 'tournament', bg: '#111111', frame: '#1C1C1C', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.3)', medal: '#D4AF37', medalBorder: '#FFF7D6', star: '#111111' },
+    // Dos « Champion » : rouge et or, couronne au centre (réservé aux vainqueurs de tournoi)
+    tournoi: { label: 'Champion', unlock: 'tournament', bg: '#8E0E1C', frame: '#A3132A', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.32)', medal: '#5E0A12', medalBorder: '#FFE08A', star: '#F5D77A', crown: true },
 };
 
 // Dos "couleurs du jeu"

@@ -58,7 +58,7 @@ const REWARDS = [
     { id: 'felt:kdoub:braise', kind: 'felt', game: 'kdoub', label: 'Braise', source: 'challenge' },
     { id: 'felt:sota:lavande', kind: 'felt', game: 'sota', label: 'Lavande', source: 'challenge' },
     { id: 'back:saison', kind: 'back', label: 'Saison (exclusif top 10)', source: 'season' },
-    { id: 'back:tournoi', kind: 'back', label: 'Champion de tournoi', source: 'tournament' },
+    { id: 'back:tournoi', kind: 'back', label: 'Champion (rouge et or, couronne)', source: 'tournament' },
 ];
 
 // ----------------------------------------------------------------------------

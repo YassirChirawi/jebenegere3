@@ -7,6 +7,7 @@ const { getEngine, normalizeType, engines } = require('./engines');
 const { createStore } = require('./progress/store');
 const { createProgress } = require('./progress/progress');
 const { tallyEvents, gameResults } = require('./progress/results');
+const { createTournaments } = require('./tournaments');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
 const moderation = require('./moderation');
 
@@ -104,7 +105,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -191,7 +192,8 @@ function stateFor(room, viewerIndex) {
     const engine = getEngine(room.gameType);
     const base = engine.viewFor ? engine.viewFor(room.gameState, viewerIndex) : room.gameState;
     const startIn = room.startsAt ? Math.max(0, room.startsAt - Date.now()) : 0;
-    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId, isPrivate: !!room.isPrivate, startIn };
+    const tournament = room.tournament ? { id: room.tournament.id, name: room.tournament.name, label: room.tournament.label } : undefined;
+    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId, isPrivate: !!room.isPrivate, startIn, roomId: room.id, tournament };
 }
 
 function emitState(roomId, event = 'game_state_update') {
@@ -265,8 +267,10 @@ function commitState(roomId, prev, next) {
     room.gameState = next;
     room.version = (room.version || 0) + 1;
     tallyEvents(room, next.events);
+    if (room.tournament) tournaments.onState(room, prev, next);
 
-    if (engine.isOver(next) && !engine.isOver(prev)) awardProgress(room, next);
+    const justOver = engine.isOver(next) && !engine.isOver(prev);
+    if (justOver) awardProgress(room, next);
 
     if (engine.isOver(next)) {
         if (room.timerInterval) clearInterval(room.timerInterval);
@@ -275,6 +279,7 @@ function commitState(roomId, prev, next) {
         room.seatsToSettle = true;
         emitState(roomId);
         broadcastRoomUpdate(roomId);
+        if (justOver && room.tournament) tournaments.onGameOver(room, next);
         return;
     }
 
@@ -480,8 +485,9 @@ function removePlayer(roomId, socketId) {
             room.isBotMatch = true;
             room.gameState.log && room.gameState.log.push(`🔌 ${leaver.name} a quitté la partie.`);
             const humansLeft = room.activePlayers.filter((p) => !p.isBot);
-            if (room.activePlayers.length === 2 && humansLeft.length === 1 && engine.forfeit) {
-                const winner = room.activePlayers.findIndex((p) => !p.isBot);
+            // Tournoi : tout abandon est un forfait ; sinon forfait seulement à 2 joueurs
+            if (engine.forfeit && (room.tournament || (room.activePlayers.length === 2 && humansLeft.length === 1))) {
+                const winner = room.activePlayers.findIndex((p, k) => !p.isBot && k % 2 !== activeIdx % 2);
                 forfeitState = engine.forfeit(room.gameState, activeIdx, winner);
             }
             io.to(roomId).emit('player_left', { name: leaver.name, seat: activeIdx, forfeit: !!forfeitState, replacedByBot: !forfeitState });
@@ -510,8 +516,15 @@ function removePlayer(roomId, socketId) {
     }
 }
 
+// === TOURNOIS ===
+const tournaments = createTournaments({
+    io, rooms, store, progress, getEngine, startGame, makeBots, playerOf, generateRoomCode,
+    isOffensive: moderation.isOffensive,
+});
+
 io.on('connection', (socket) => {
     limitSocket(socket);
+    tournaments.attach(socket);
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
     socket.emit('server_info', serverInfo());
 
@@ -913,6 +926,7 @@ io.on('connection', (socket) => {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
         Object.keys(rooms).forEach((roomId) => removePlayer(roomId, socket.id));
+        tournaments.onDisconnect(socket);
         releaseDevice(socket);
     });
 });
@@ -928,6 +942,7 @@ function start(port = process.env.PORT || 3000) {
 
 function stop() {
     clearInterval(matchmakingTimer);
+    tournaments.stop();
     store.flushNow && store.flushNow();
     Object.values(rooms).forEach((r) => { if (r.timerInterval) clearInterval(r.timerInterval); clearTimeout(r.countdownTimer); });
     io.close();
@@ -936,4 +951,4 @@ function stop() {
 
 if (require.main === module) start();
 
-module.exports = { rooms, start, stop, SERVER_VERSION, progress, store, _commitState: (roomId, prev, next) => commitState(roomId, prev, next) };
+module.exports = { rooms, start, stop, SERVER_VERSION, progress, store, tournaments, _commitState: (roomId, prev, next) => commitState(roomId, prev, next) };

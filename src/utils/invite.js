@@ -14,6 +14,31 @@ const web = Platform.OS === 'web' && typeof window !== 'undefined';
 const base = () => (web && /^https?:/.test(window.location.origin) ? window.location.origin : SITE_URL);
 
 export const inviteUrl = (code) => `${base()}/salon/${encodeURIComponent(code)}`;
+export const tournamentUrl = (code) => `${base()}/tournoi/${encodeURIComponent(code)}`;
+
+/** Code de tournoi à partir d'un lien (…/tournoi/CODE, jebengere3://tournoi/CODE). */
+export function parseTournament(text) {
+    const m = String(text || '').match(/tournoi[/=]([A-Za-z0-9]{6})\b/i);
+    return m ? m[1].toUpperCase() : null;
+}
+
+export async function initialTournament() {
+    if (web) return parseTournament(window.location.pathname + window.location.search);
+    try {
+        return parseTournament(await Linking.getInitialURL());
+    } catch (e) {
+        return null;
+    }
+}
+
+export function onTournamentLink(callback) {
+    if (web) return () => {};
+    const sub = Linking.addEventListener('url', ({ url }) => {
+        const code = parseTournament(url);
+        if (code) callback(code);
+    });
+    return () => sub.remove();
+}
 
 /** Code de salon à partir d'un lien (…/salon/CODE, ?salon=CODE, jebengere3://salon/CODE) ou d'un code seul. */
 export function parseInvite(text) {
@@ -37,7 +62,7 @@ export async function initialInvite() {
 
 /** Une fois l'invitation prise en compte, on remet l'adresse sur l'accueil (pas de re-connexion au rechargement). */
 export function clearInviteFromUrl() {
-    if (web && /\/salon\//.test(window.location.pathname)) window.history.replaceState(null, '', '/');
+    if (web && /\/(salon|tournoi)\//.test(window.location.pathname)) window.history.replaceState(null, '', '/');
 }
 
 /** Lien reçu alors que l'appli est déjà ouverte (mobile). */
@@ -50,8 +75,7 @@ export function onInviteLink(callback) {
     return () => sub.remove();
 }
 
-export async function copyInvite(code) {
-    const url = inviteUrl(code);
+export async function copyInvite(code, url = inviteUrl(code)) {
     try {
         if (web && navigator.clipboard?.writeText) await navigator.clipboard.writeText(url);
         else await Clipboard.setStringAsync(url);
@@ -62,16 +86,16 @@ export async function copyInvite(code) {
 }
 
 /** Partage du téléphone (WhatsApp, SMS…) ; sur ordinateur sans partage : copie du lien. Renvoie 'shared' | 'copied' | 'failed'. */
-export async function shareInvite(code, gameLabel) {
-    const url = inviteUrl(code);
-    const message = `Viens jouer au ${gameLabel} avec moi sur Jeben Gere3 : ${url}`;
+export async function shareInvite(code, gameLabel, opts = {}) {
+    const url = opts.url || inviteUrl(code);
+    const message = opts.message || `Viens jouer au ${gameLabel} avec moi sur Jeben Gere3 : ${url}`;
     try {
         if (web) {
             if (navigator.share) {
                 await navigator.share({ title: 'Jeben Gere3', text: message, url });
                 return 'shared';
             }
-            return (await copyInvite(code)) ? 'copied' : 'failed';
+            return (await copyInvite(code, url)) ? 'copied' : 'failed';
         }
         await Share.share({ message });
         return 'shared';

@@ -68,6 +68,10 @@
     {
       "source": "/salon/:code",
       "destination": "/index.html"
+    },
+    {
+      "source": "/tournoi/:code",
+      "destination": "/index.html"
     }
   ]
 }

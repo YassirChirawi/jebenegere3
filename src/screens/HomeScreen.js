@@ -20,7 +20,8 @@ import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import InstallAppButton from '../components/InstallAppButton';
 import InviteJoinSheet from '../components/InviteJoinSheet';
-import { initialInvite, clearInviteFromUrl, onInviteLink } from '../utils/invite';
+import { initialInvite, clearInviteFromUrl, onInviteLink, initialTournament, onTournamentLink } from '../utils/invite';
+import { remember as rememberTournament, claimPendingRewards, GAME_LABEL } from '../utils/tournaments';
 import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { CardFace, CardBack } from '../components/Card';
@@ -102,6 +103,7 @@ export default function HomeScreen({ navigation }) {
     const [inviteCode, setInviteCode] = useState(null);
     const [showInvite, setShowInvite] = useState(false);
     const [joining, setJoining] = useState(false);
+    const [lastChampion, setLastChampion] = useState(null); // palmarès : dernier tournoi gagné
     const [showRules, setShowRules] = useState(false);
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
     const [game, setGame] = useState('hezz2');
@@ -163,11 +165,21 @@ export default function HomeScreen({ navigation }) {
             // Ouvert depuis un lien d'invitation (…/salon/CODE)
             const code = await initialInvite();
             if (code) { setInviteCode(code); clearInviteFromUrl(); }
+            // … ou d'un lien d'inscription à un tournoi (…/tournoi/CODE)
+            const tid = await initialTournament();
+            if (tid) { clearInviteFromUrl(); setShowRules(false); navigation.navigate('Tournament', { id: tid }); }
         })();
         const offLink = onInviteLink((code) => setInviteCode(code));
+        const offTLink = onTournamentLink((tid) => navigation.navigate('Tournament', { id: tid }));
+        // Tournoi gagné sans compte : la récompense sera réclamée dès la connexion à un compte
+        const offWon = socketService.onTournamentWon((d) => rememberTournament(d.id, { won: true, pendingClaim: !!d.needsAccount }));
+        const offAuthed = socketService.onAuthed(() => claimPendingRewards());
 
         return () => {
             offLink();
+            offTLink();
+            offWon();
+            offAuthed && offAuthed();
             offConnect();
             offDisconnect();
             offInfo();
@@ -175,6 +187,12 @@ export default function HomeScreen({ navigation }) {
             stopSearchUi();
         };
     }, []);
+
+    // Palmarès : dernier champion de tournoi, affiché sous le bouton Tournois
+    useEffect(() => {
+        if (!isConnected || !serverInfo?.features?.includes('tournaments')) return;
+        socketService.tournamentPalmares((r) => setLastChampion(r?.success && r.list.length ? r.list[0] : null));
+    }, [isConnected, serverInfo]);
 
     // Pendant le réveil du serveur gratuit (Render), on affiche le temps écoulé : l'accueil reste utilisable
     useEffect(() => {
@@ -484,6 +502,16 @@ export default function HomeScreen({ navigation }) {
 
                                 <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
 
+                                <GameButton title="TOURNOIS" icon="🏆" variant="red" onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                {lastChampion && (
+                                    <PressableScale onPress={() => navigation.navigate('Tournaments')} style={styles.championChip}>
+                                        <Text style={styles.championChipText} numberOfLines={1}>
+                                            👑 Dernier champion : {lastChampion.champion}
+                                            <Text style={{ color: theme.textDim, fontWeight: '700' }}>{'  '}{lastChampion.name} · {GAME_LABEL[lastChampion.gameType]}</Text>
+                                        </Text>
+                                    </PressableScale>
+                                )}
+
 
                             </>
                         )}
@@ -571,6 +599,8 @@ function SearchSpinner() {
 }
 
 const styles = StyleSheet.create({
+    championChip: { marginTop: 8, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 12, backgroundColor: 'rgba(142,14,28,0.55)', borderWidth: 1, borderColor: 'rgba(245,215,122,0.45)' },
+    championChipText: { color: theme.goldLight, fontWeight: '800', fontSize: 12 },
     container: {
         flex: 1,
     },

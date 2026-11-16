@@ -232,6 +232,33 @@ class SocketService {
     onChatRejected(callback) { return this._listen('chat_rejected', callback); }
     onPlayerLeft(callback) { return this._listen('player_left', callback); }
 
+    // --- TOURNOIS ---
+    tournamentCreate(data, callback) {
+        this._afterAuth(() => this._emitAck('tournament_create', data, callback, 8000, 'Le serveur ne répond pas.'));
+    }
+    tournamentWatch(id, ticket, hostToken, callback) {
+        this._afterAuth(() => this._emitAck('tournament_watch', { id, ticket, hostToken }, callback, 8000, 'Le serveur ne répond pas.'));
+    }
+    tournamentUnwatch(id) { this.socket?.emit('tournament_unwatch', { id }); }
+    tournamentRegister(id, name, ticket, callback) {
+        this._afterAuth(() => this._emitAck('tournament_register', { id, name, ticket }, callback, 8000, 'Le serveur ne répond pas.'));
+    }
+    tournamentUnregister(id, ticket, callback) {
+        this._emitAck('tournament_unregister', { id, ticket }, callback, 8000, 'Le serveur ne répond pas.');
+    }
+    tournamentStartNow(id, hostToken, callback) {
+        this._emitAck('tournament_start_now', { id, hostToken }, callback, 8000, 'Le serveur ne répond pas.');
+    }
+    tournamentPalmares(callback) {
+        this._emitAck('tournament_palmares', {}, callback, 8000, 'Le serveur ne répond pas.');
+    }
+    tournamentClaim(id, ticket, callback) {
+        this._emitAck('tournament_claim', { id, ticket }, callback, 8000, 'Le serveur ne répond pas.');
+    }
+    onTournamentUpdate(callback) { return this._listen('tournament_update', callback); }
+    onTournamentMatchOver(callback) { return this._listen('tournament_match_over', callback); }
+    onTournamentWon(callback) { return this._listen('tournament_won', callback); }
+
     offAll() {
         if (this.socket) {
             this.socket.off('room_updated');

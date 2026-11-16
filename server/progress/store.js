@@ -8,6 +8,8 @@
  * Interface : get(id), getByName(name), save(user), all(), remove(id) (suppression définitive du compte)
  * Signalements du chat : addReport(report), listReports(), deleteReport(id)
  *   (purgés automatiquement au bout de REPORT_TTL_MS, 6 mois, comme annoncé dans /privacy)
+ * Tournois : saveTournament(t), listTournaments(), deleteTournament(id)
+ *   (pseudos et tableau seulement, aucune donnée personnelle)
  */
 const fs = require('fs');
 const path = require('path');
@@ -16,8 +18,9 @@ const lower = (s) => String(s || '').trim().toLowerCase();
 const REPORT_TTL_MS = 183 * 24 * 3600 * 1000;
 const fresh = (r, now = Date.now()) => r && now - r.at < REPORT_TTL_MS;
 
-function memoryStore(initial = [], initialReports = []) {
+function memoryStore(initial = [], initialReports = [], initialTournaments = []) {
     const byId = new Map(initial.map((u) => [u.id, u]));
+    const tournaments = new Map(initialTournaments.map((t) => [t.id, t]));
     let reports = initialReports.filter((r) => fresh(r));
     return {
         kind: 'memory',
@@ -33,8 +36,12 @@ function memoryStore(initial = [], initialReports = []) {
         async addReport(r) { reports = [...reports.filter((x) => fresh(x)), r]; return r; },
         async listReports() { reports = reports.filter((x) => fresh(x)); return [...reports]; },
         async deleteReport(id) { const n = reports.length; reports = reports.filter((x) => x.id !== id); return reports.length < n; },
+        async saveTournament(t) { tournaments.set(t.id, JSON.parse(JSON.stringify(t))); return t; },
+        async listTournaments() { return [...tournaments.values()].map((t) => JSON.parse(JSON.stringify(t))); },
+        async deleteTournament(id) { return tournaments.delete(id); },
         _map: byId,
         _reports: () => reports,
+        _tournaments: () => [...tournaments.values()],
     };
 }
 
@@ -44,7 +51,10 @@ function fileStore(file) {
     const reportsFile = path.join(path.dirname(file), 'reports.json');
     let reportsData = [];
     try { reportsData = JSON.parse(fs.readFileSync(reportsFile, 'utf8')); } catch (e) { reportsData = []; }
-    const mem = memoryStore(data, reportsData);
+    const tournamentsFile = path.join(path.dirname(file), 'tournaments.json');
+    let tournamentsData = [];
+    try { tournamentsData = JSON.parse(fs.readFileSync(tournamentsFile, 'utf8')); } catch (e) { tournamentsData = []; }
+    const mem = memoryStore(data, reportsData, tournamentsData);
     const writeJson = (target, value) => {
         try {
             fs.mkdirSync(path.dirname(target), { recursive: true });
@@ -85,6 +95,8 @@ function fileStore(file) {
         async addReport(r) { await mem.addReport(r); writeJson(reportsFile, mem._reports()); return r; },
         async listReports() { const list = await mem.listReports(); writeJson(reportsFile, list); return list; },
         async deleteReport(id) { const ok = await mem.deleteReport(id); writeJson(reportsFile, mem._reports()); return ok; },
+        async saveTournament(t) { await mem.saveTournament(t); writeJson(tournamentsFile, mem._tournaments()); return t; },
+        async deleteTournament(id) { const ok = await mem.deleteTournament(id); writeJson(tournamentsFile, mem._tournaments()); return ok; },
         flushNow() { if (timer) { clearTimeout(timer); flush(); } },
     };
 }
@@ -105,6 +117,11 @@ function pgStore(url, PoolImpl) {
             id TEXT PRIMARY KEY,
             at BIGINT NOT NULL,
             data JSONB NOT NULL
+        );
+        CREATE TABLE IF NOT EXISTS tournaments (
+            id TEXT PRIMARY KEY,
+            data JSONB NOT NULL,
+            updated_at TIMESTAMPTZ DEFAULT now()
         )`);
     const purge = () => pool.query('DELETE FROM reports WHERE at < $1', [Date.now() - REPORT_TTL_MS]);
     return {
@@ -153,6 +170,25 @@ function pgStore(url, PoolImpl) {
         async deleteReport(id) {
             await ready;
             const r = await pool.query('DELETE FROM reports WHERE id = $1', [id]);
+            return r.rowCount > 0;
+        },
+        async saveTournament(t) {
+            await ready;
+            await pool.query(
+                `INSERT INTO tournaments (id, data, updated_at) VALUES ($1, $2, now())
+                 ON CONFLICT (id) DO UPDATE SET data = EXCLUDED.data, updated_at = now()`,
+                [t.id, t],
+            );
+            return t;
+        },
+        async listTournaments() {
+            await ready;
+            const r = await pool.query('SELECT data FROM tournaments');
+            return r.rows.map((x) => x.data);
+        },
+        async deleteTournament(id) {
+            await ready;
+            const r = await pool.query('DELETE FROM tournaments WHERE id = $1', [id]);
             return r.rowCount > 0;
         },
         close() { return pool.end(); },

@@ -1,6 +1,23 @@
 import React from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
+import Svg, { Path, Circle } from 'react-native-svg';
 import { useCosmetics, backPalette } from '../utils/cosmetics';
+
+// Couronne du dos « Champion » (vectorielle : nette à toutes les tailles, aucun fichier à charger)
+function Crown({ size, color, jewel }) {
+    return (
+        <Svg width={size} height={size * 0.8} viewBox="0 0 40 32">
+            <Path d="M4 26 L2 8 L12 16 L20 3 L28 16 L38 8 L36 26 Z" fill={color} />
+            <Path d="M4 28 H36 V31 H4 Z" fill={color} />
+            <Circle cx="2" cy="8" r="2.4" fill={color} />
+            <Circle cx="20" cy="3" r="2.6" fill={color} />
+            <Circle cx="38" cy="8" r="2.4" fill={color} />
+            <Circle cx="20" cy="19" r="3" fill={jewel} />
+            <Circle cx="11" cy="21" r="2" fill={jewel} />
+            <Circle cx="29" cy="21" r="2" fill={jewel} />
+        </Svg>
+    );
+}
 
 // Faces des 40 cartes (planches générées par scripts/build-card-sheets.py)
 const images = [
@@ -86,8 +103,14 @@ export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style, pale
                     </View>
                 )}
                 <View style={[styles.medal, { width: medal, height: medal, borderRadius: medal / 2, backgroundColor: pal.medal, borderColor: pal.medalBorder }]}>
-                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star }]} />
-                    <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star, transform: [{ rotate: '45deg' }] }]} />
+                    {pal.crown && !tiny ? (
+                        <Crown size={medal * 0.68} color={pal.star} jewel={pal.bg} />
+                    ) : (
+                        <>
+                            <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star }]} />
+                            <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star, transform: [{ rotate: '45deg' }] }]} />
+                        </>
+                    )}
                 </View>
             </View>
         </View>

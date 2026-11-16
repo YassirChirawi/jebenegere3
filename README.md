@@ -207,6 +207,24 @@ Avec `?test=big`, la main commence avec **20 cartes**, pour vérifier l'affichag
 
 Le code reste l'identifiant interne du salon. Un ancien lien ou un code seul marche toujours : accueil → **« 🔗 J'ai un lien d'invitation »**, coller le lien ou le code (majuscules ou minuscules). Sur le web, `/salon/*` est réécrit vers l'appli dans `vercel.json`. Dans l'appli mobile, les liens `jebengere3://salon/XXXXX` sont compris ; pour qu'un lien `https://` ouvre directement l'appli installée (liens universels iOS et liens d'application Android), il faudra publier les fichiers d'association du domaine une fois les comptes stores créés. D'ici là, le lien ouvre le site.
 
+## Tournois (élimination directe)
+
+Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir le **palmarès** des champions. Le dernier champion est aussi affiché sur l'accueil, sous le bouton.
+
+1. **Créer** : nom, jeu (**Hezz2** ou **Ronda** en V1 ; Ronda en **1 contre 1** ou **2 contre 2**), **4 ou 8 joueurs**, jour (aujourd'hui + 6 jours) et heure (par quart d'heure). Le créateur devient l'organisateur.
+2. **Inviter** : le tournoi a son lien `https://jebengere3.fun/tournoi/CODE` (boutons **Copier le lien** et **Partager**). Ouvrir le lien mène à la page du tournoi : on choisit son pseudo et on touche **JE M'INSCRIS** (désinscription possible tant que le tournoi n'a pas commencé). Pas de compte nécessaire.
+3. **Page du tournoi** : jeu, date et compte à rebours, inscrits (pseudos seulement), **tableau** (quarts, demi-finales, finale), puis le **champion**. Toucher un match terminé affiche ses coups clés.
+4. **Début** : à l'heure prévue (ou plus tôt avec **Lancer maintenant**, réservé à l'organisateur, dès 2 inscrits, 3 en 2 contre 2), le tableau est tiré au sort. S'il manque des joueurs, une place vide fait passer l'adversaire au tour suivant ; en 2 contre 2, un nombre impair d'inscrits donne un bot comme coéquipier.
+5. **Matchs, tour par tour** : il faut **garder la page du tournoi ouverte**. Le match se lance tout seul dès que les deux adversaires sont là. Un joueur absent au bout de **3 minutes** perd par **forfait** (personne : vainqueur tiré au sort). Quitter la partie en cours = forfait. Le tour suivant commence quand tous les matchs du tour sont finis.
+   - Hezz2 : une manche en 1 contre 1, le Khasser est éliminé.
+   - Ronda : la partie se joue jusqu'au score final, les manches s'enchaînent toutes seules. En 2 contre 2, les coéquipiers sont assis en face l'un de l'autre.
+6. **Fin d'un match** : une fenêtre affiche le vainqueur, le score (Ronda) et les **coups clés** (Ronda : Darba, Hbel, B'achra, Missa ; Hezz2 : grosses pioches, dernière carte ; abandons et forfaits), puis **Retour au tournoi**.
+7. **Champion** : dos de cartes exclusif **« Champion »** (rouge et or, couronne au centre, à choisir dans Profil → Style), titre **« Moul chi »** et 150 XP. Il faut un compte pour garder la récompense : un champion sans compte la reçoit automatiquement dès qu'il se connecte à un compte **depuis le même appareil**.
+
+**Côté serveur** (`server/tournaments.js`) : un tournoi est un tableau de matchs, chaque match se joue dans une salle normale (sans Rejouer ni hôte). On ne garde que les pseudos, le tableau et les coups clés ; chaque inscrit reçoit un ticket secret gardé sur son appareil (le serveur n'en garde que l'empreinte). Les tournois sont sauvegardés (table `tournaments` en PostgreSQL, sinon `server/data/tournaments.json`) et reprennent après un redémarrage de Render : un match coupé par le redémarrage est relancé. Le serveur gratuit s'endort sans visite : à l'heure du tournoi, la première personne qui ouvre la page le réveille, et le tournoi démarre alors.
+
+**Plus tard** : Kdoub et Sota en tournoi (coups clés KDOUB et Sota finale), replay des matchs.
+
 ## Salons privés : jeu, bots et équipes
 - **Changer de jeu sans quitter le salon** : l'hôte choisit le jeu dans le salon (« JEU DU SALON » : Hezz2, Ronda, Kdoub, Sota Ghamla). En fin de partie, le bouton « 🎲 Changer de jeu » ramène tout le monde au salon, avec le même code. S'il y a trop de joueurs pour le nouveau jeu, les bots partent d'abord, puis les derniers arrivés passent spectateurs ; s'il y a de la place, les spectateurs entrent en jeu. Pas disponible en matchmaking ni contre les bots.
 - L'hôte peut **ajouter un bot** avant le lancement (bouton « 🤖 ＋ Ajouter un bot ») et le retirer (✕). Exemple : 3 amis en Ronda + 1 bot pour jouer en 2 contre 2, ou 2 amis contre 2 bots.

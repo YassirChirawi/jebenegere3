@@ -34,6 +34,8 @@ export default function ProgressToaster() {
             items.push({ icon: '🎯', title: 'Défi relevé !', text: `${c.label} · +${c.xp} XP`, color: theme.mint });
             if (c.reward) items.push({ icon: '🎁', title: c.reward.kind === 'back' ? 'Nouveau dos de cartes' : 'Nouveau tapis', text: `${c.reward.label} · à choisir dans Profil → Style`, color: theme.goldLight, sound: 'victory' });
         });
+        // Tournoi gagné : dos « Champion »
+        if (p.reward) items.unshift({ icon: '👑', title: 'Champion du tournoi !', text: `Dos « ${p.reward.label} » · à choisir dans Profil → Style`, color: theme.goldLight, sound: 'victory', haptic: 'double' });
         (p.titles || []).forEach((t) => items.push({ icon: '🏷️', title: 'Nouveau titre !', text: `« ${t.label} » · à afficher depuis ton Profil`, color: '#C4B5FD', sound: 'announce' }));
         if (p.profile && p.xpGained) {
             const before = rankFor(p.profile.xp - p.xpGained);
