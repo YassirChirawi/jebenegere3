@@ -321,6 +321,13 @@ function createProgress(store) {
         return withUser(fresh.id, (u) => profileOf(u, now));
     }
 
+    // Suppression définitive du compte (après les écritures en cours de ce joueur)
+    async function deleteAccount(userId) {
+        await (locks.get(userId) || Promise.resolve());
+        locks.delete(userId);
+        return store.remove(userId);
+    }
+
     // Joueurs bloqués (chat) : suivent le compte d'un appareil à l'autre
     async function getBlocked(userId) {
         const u = await store.get(userId);
@@ -330,7 +337,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, recordAbandon, profile, leaderboard, getBlocked, setBlocked, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, recordAbandon, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

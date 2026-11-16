@@ -43,6 +43,8 @@ export function DialogHost() {
     };
 
     const cancelBtn = current.buttons.find((b) => b.style === 'cancel');
+    // Plus de deux boutons ou un libellé long : boutons empilés (pas de texte coupé)
+    const stacked = current.buttons.length > 2 || current.buttons.some((b) => String(b.text).length > 14);
 
     return (
         <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(150)} style={styles.overlay}>
@@ -52,7 +54,7 @@ export function DialogHost() {
                 <View style={styles.cornerBR} />
                 <Text style={styles.title}>{current.title}</Text>
                 {current.message ? <Text style={styles.message}>{current.message}</Text> : null}
-                <View style={[styles.row, current.buttons.length > 2 && styles.column]}>
+                <View style={[styles.row, stacked && styles.column]}>
                     {current.buttons.map((b, i) => (
                         <GameButton
                             key={i}
@@ -60,7 +62,7 @@ export function DialogHost() {
                             title={b.text}
                             variant={b.style === 'destructive' ? 'red' : b.style === 'cancel' ? 'outline' : 'gold'}
                             onPress={() => close(b)}
-                            style={current.buttons.length > 2 ? { alignSelf: 'stretch' } : { flex: 1 }}
+                            style={stacked ? { alignSelf: 'stretch' } : { flex: 1 }}
                         />
                     ))}
                 </View>

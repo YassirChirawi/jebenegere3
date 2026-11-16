@@ -155,6 +155,13 @@ Un seul texte, dans [src/legal/legal.json](src/legal/legal.json), sert à la foi
 - **Lire les signalements** (V1, sans interface d'administration) : sur Render, onglet Shell du service, `node scripts/reports.js` (liste) ; `node scripts/reports.js --delete <id>` une fois traité. Ils sont supprimés automatiquement après 6 mois (table `reports` en PostgreSQL, `server/data/reports.json` en local).
 - Les messages rapides, les messages personnalisés et les réactions emoji marchent comme avant.
 
+## Suppression de compte
+
+- Profil → section Compte → **« Supprimer mon compte »** (bouton rouge, visible dès qu'on est connecté). Une confirmation explique ce qui est effacé : pseudo, XP, rang, stats, historique, défis, titres, dos et tapis débloqués, liste des joueurs bloqués.
+- Serveur : `DELETE /api/me` (jeton du joueur) supprime la ligne de la table `players` (PostgreSQL) ou l'entrée du fichier local, réécrit tout de suite. Aucune copie gardée ; le pseudo redevient libre. Les moteurs de jeu ne sont pas touchés.
+- Appli : après la suppression, toutes les données de l'appareil sont effacées, le joueur est déconnecté et revient à l'accueil.
+- Serveur pas à jour : message clair (« la suppression du compte n'est pas disponible pour l'instant ; ton compte n'a pas été supprimé »), jamais d'écran vide.
+
 ## Mode test (web)
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.

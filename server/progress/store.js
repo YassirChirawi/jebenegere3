@@ -5,7 +5,7 @@
  * - Sinon : fichier JSON (DATA_FILE, par défaut server/data/players.json), pratique en local.
  * - STORE=memory : en mémoire (tests).
  *
- * Interface : get(id), getByName(name), save(user), all()
+ * Interface : get(id), getByName(name), save(user), all(), remove(id) (suppression définitive du compte)
  * Signalements du chat : addReport(report), listReports(), deleteReport(id)
  *   (purgés automatiquement au bout de REPORT_TTL_MS, 6 mois, comme annoncé dans /privacy)
  */
@@ -28,6 +28,7 @@ function memoryStore(initial = [], initialReports = []) {
             return null;
         },
         async save(user) { byId.set(user.id, user); return user; },
+        async remove(id) { return byId.delete(id); },
         async all() { return [...byId.values()]; },
         async addReport(r) { reports = [...reports.filter((x) => fresh(x)), r]; return r; },
         async listReports() { reports = reports.filter((x) => fresh(x)); return [...reports]; },
@@ -74,6 +75,13 @@ function fileStore(file) {
             if (!timer) timer = setTimeout(flush, 300);
             return user;
         },
+        // Suppression : le fichier est réécrit tout de suite, sans le compte (aucune copie gardée)
+        async remove(id) {
+            const ok = await mem.remove(id);
+            if (timer) { clearTimeout(timer); timer = null; }
+            flush();
+            return ok;
+        },
         async addReport(r) { await mem.addReport(r); writeJson(reportsFile, mem._reports()); return r; },
         async listReports() { const list = await mem.listReports(); writeJson(reportsFile, list); return list; },
         async deleteReport(id) { const ok = await mem.deleteReport(id); writeJson(reportsFile, mem._reports()); return ok; },
@@ -119,6 +127,11 @@ function pgStore(url, PoolImpl) {
                 [user.id, user.nameLower, user],
             );
             return user;
+        },
+        async remove(id) {
+            await ready;
+            const r = await pool.query('DELETE FROM players WHERE id = $1', [id]);
+            return r.rowCount > 0;
         },
         async all() {
             await ready;

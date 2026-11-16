@@ -26,7 +26,7 @@ function isAllowedOrigin(origin) {
 
 const corsOptions = {
     origin: (origin, cb) => cb(null, isAllowedOrigin(origin)),
-    methods: ['GET', 'POST'],
+    methods: ['GET', 'POST', 'DELETE'],
 };
 
 function securityHeaders(_req, res, next) {

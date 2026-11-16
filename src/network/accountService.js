@@ -6,7 +6,11 @@
 import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import socketService, { SOCKET_URL } from './socketService';
-import { setUnlocks } from '../utils/cosmetics';
+import { Platform } from 'react-native';
+import { setUnlocks, loadCosmetics } from '../utils/cosmetics';
+import { clearBlocked } from '../utils/chatModeration';
+
+const OUTDATED = "Le serveur du jeu n'est pas encore à jour : la suppression du compte n'est pas disponible pour l'instant. Ton compte n'a pas été supprimé, réessaie plus tard.";
 
 const BASE = SOCKET_URL.replace(/\/+$/, '');
 
@@ -117,6 +121,34 @@ const accountService = {
             authSocket(); // titre / avatar à jour dans les prochains salons
         }
         return r;
+    },
+
+    /**
+     * Supprime définitivement le compte sur le serveur, puis efface toutes les données de l'appareil
+     * (pseudo, XP, stats, historique, dos et tapis, joueurs bloqués, réglages) et déconnecte.
+     */
+    async deleteAccount() {
+        if (!state.token) return { error: "Tu n'es pas connecté à un compte." };
+        if (socketService.serverInfo && !socketService.supports('account_delete')) return { error: OUTDATED };
+        const r = await request('/api/me', { method: 'DELETE' });
+        if (r.status === 404 || (r.error && /pas à jour/.test(r.error))) return { error: OUTDATED };
+        if (r.status === 401) return { error: 'Ta session a expiré : reconnecte-toi, puis recommence la suppression.' };
+        if (!r.success) return { error: r.error || 'Erreur du serveur, ton compte n\'a pas été supprimé. Réessaie.' };
+        await accountService.wipeLocal();
+        return { success: true };
+    },
+
+    // Efface tout ce que l'appli garde sur l'appareil
+    async wipeLocal() {
+        await AsyncStorage.clear().catch(() => {});
+        set({ token: null, profile: null, loading: false, error: null });
+        authSocket();
+        await clearBlocked();
+        await loadCosmetics().catch(() => {});
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            // Repart d'une page propre (états en mémoire remis à zéro)
+            setTimeout(() => window.location.replace('/'), 300);
+        }
     },
 
     leaderboard(game = 'all') {

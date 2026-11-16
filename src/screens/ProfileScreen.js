@@ -142,6 +142,33 @@ export default function ProfileScreen({ navigation }) {
         await accountService.update({ title: profile.title === t.id ? null : t.id });
     };
 
+    const [deleting, setDeleting] = useState(false);
+    const deleteAccount = () => {
+        dialog.alert(
+            'Supprimer ton compte ?',
+            "La suppression est définitive. Elle efface ton pseudo, ton XP, ton rang, tes stats, ton historique, tes défis, tes titres, les dos et tapis débloqués et ta liste de joueurs bloqués. Rien ne pourra être récupéré.",
+            [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: 'Supprimer définitivement',
+                    style: 'destructive',
+                    onPress: async () => {
+                        setDeleting(true);
+                        const r = await accountService.deleteAccount();
+                        setDeleting(false);
+                        if (r.error) {
+                            audioService.playSound('error');
+                            dialog.alert('Suppression impossible', r.error);
+                            return;
+                        }
+                        dialog.alert('Compte supprimé', 'Toutes tes données ont été effacées. À bientôt peut-être !');
+                        navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+                    },
+                },
+            ],
+        );
+    };
+
     const logout = () => {
         dialog.alert('Se déconnecter ?', 'Ta progression reste sauvegardée sur le serveur.', [
             { text: 'Annuler', style: 'cancel' },
@@ -204,6 +231,12 @@ export default function ProfileScreen({ navigation }) {
                         <View style={styles.rowBetween}>
                             <Text style={styles.text}>Connecté en tant que <Text style={{ color: theme.goldLight, fontWeight: '900' }}>{profile.name}</Text>. Ta progression est sauvegardée sur le serveur.</Text>
                             <GameButton small title="Déconnexion" variant="outline" onPress={logout} />
+                        </View>
+                    ) : null}
+                    {profile ? (
+                        <View style={styles.deleteBox}>
+                            <GameButton small title={deleting ? 'Suppression…' : 'Supprimer mon compte'} icon="🗑️" variant="red" onPress={deleteAccount} disabled={deleting} />
+                            <Text style={styles.deleteHint}>Efface définitivement ton compte et toutes ses données.</Text>
                         </View>
                     ) : account.loading && account.token ? (
                         <ActivityIndicator color={theme.gold} />
@@ -332,6 +365,8 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     legalBtns: { flexDirection: 'row', gap: 10 },
+    deleteBox: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(248,113,113,0.3)', alignItems: 'flex-start', gap: 6 },
+    deleteHint: { color: '#FCA5A5', fontSize: 11 },
     blockedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
     container: { flex: 1, backgroundColor: theme.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },

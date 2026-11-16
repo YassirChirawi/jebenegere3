@@ -57,6 +57,19 @@ app.post('/api/me', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (user) res.json({ profile: await progress.updateMe(user, req.body || {}) });
 }));
+// Suppression du compte : pseudo, mot de passe, XP, stats, historique, défis, titres, déblocages,
+// joueurs bloqués… tout est effacé (table players ou fichier local). Les sockets du joueur
+// redeviennent anonymes.
+app.delete('/api/me', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    await progress.deleteAccount(user.id);
+    for (const s of io.sockets.sockets.values()) {
+        if (s.data.user?.userId === user.id) { s.data.user = null; s.data.blocked = new Set(); }
+    }
+    console.log('[comptes] compte supprimé');
+    res.json({ success: true });
+}));
 app.get('/api/leaderboard', api(async (req, res) => {
     const user = await progress.userFromToken(bearer(req));
     res.json(await progress.leaderboard(String(req.query.game || 'all'), user));
@@ -90,7 +103,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete'] };
 }
 
 // === MODÉRATION DU CHAT ===
