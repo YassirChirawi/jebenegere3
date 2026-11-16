@@ -60,7 +60,9 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                 if (shouldHide(data)) return; // joueur bloqué ou message signalé
                 logMessage(data);
                 audioService.playSound('pop');
-                setChatMessages((prev) => [...prev.slice(-3), data]);
+                // Onglet en arrière-plan : la bulle s'affichera sans animation (les animations y sont suspendues)
+                const quiet = typeof document !== 'undefined' && !!document.hidden;
+                setChatMessages((prev) => [...prev.slice(-3), { ...data, quiet }]);
                 whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500));
             }),
             socketService.onPlayerReaction(({ playerIndex, reactionType }) => {
@@ -123,9 +125,9 @@ export function ChatBubbles({ messages, top = 130 }) {
             {visible.map((msg) => (
                 <Animated.View
                     key={msg.id}
-                    entering={ZoomIn.springify().damping(12)}
+                    entering={msg.quiet ? undefined : ZoomIn.springify().damping(12)}
                     exiting={FadeOut}
-                    layout={LinearTransition.springify()}
+                    style={styles.chatBubbleWrap}
                 >
                     <Pressable
                         style={styles.chatBubble}
@@ -297,6 +299,7 @@ const styles = StyleSheet.create({
         fontWeight: '900',
     },
     chatMore: { color: '#8A6D3B', fontWeight: '900' },
+    chatBubbleWrap: { maxWidth: '100%', flexShrink: 0 },
     recentBox: { marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
     recentTitle: { color: theme.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 },
     recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5, paddingHorizontal: 4, borderRadius: 8, cursor: 'pointer' },
