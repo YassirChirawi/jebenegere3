@@ -39,6 +39,7 @@ function blankUser(name) {
         seasons: {},
         seasonDone: {},
         badges: [],
+        blocked: [], // joueurs bloqués dans le chat : [{ key, name, at }]
     };
 }
 
@@ -320,7 +321,16 @@ function createProgress(store) {
         return withUser(fresh.id, (u) => profileOf(u, now));
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, recordAbandon, profile, leaderboard, store };
+    // Joueurs bloqués (chat) : suivent le compte d'un appareil à l'autre
+    async function getBlocked(userId) {
+        const u = await store.get(userId);
+        return (u && u.blocked) || [];
+    }
+    async function setBlocked(userId, list) {
+        return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
+    }
+
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, recordAbandon, profile, leaderboard, getBlocked, setBlocked, store };
 }
 
 module.exports = { createProgress };

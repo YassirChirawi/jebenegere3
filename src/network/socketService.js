@@ -64,13 +64,22 @@ class SocketService {
             return;
         }
         this.authReady = new Promise((resolve) => {
-            this.socket.timeout(4000).emit('auth', { token: this.authToken }, () => resolve());
+            this.socket.timeout(4000).emit('auth', { token: this.authToken }, () => {
+                resolve();
+                (this.authListeners || []).forEach((fn) => fn());
+            });
         });
     }
 
     // Les actions qui créent un joueur attendent que le compte soit reconnu par le serveur
     _afterAuth(fn) {
         (this.authReady || Promise.resolve()).then(fn);
+    }
+
+    // Appelé après chaque (ré)authentification auprès du serveur (connexion, déconnexion d'un compte)
+    onAuthed(callback) {
+        this.authListeners = [...(this.authListeners || []), callback];
+        return () => { this.authListeners = (this.authListeners || []).filter((f) => f !== callback); };
     }
 
     onProgress(callback) {
@@ -220,6 +229,7 @@ class SocketService {
     onPlayerReaction(callback) { return this._listen('player_reaction_broadcast', callback); }
     onActionRejected(callback) { return this._listen('action_rejected', callback); }
     onBackToLobby(callback) { return this._listen('back_to_lobby', callback); }
+    onChatRejected(callback) { return this._listen('chat_rejected', callback); }
 
     offAll() {
         if (this.socket) {

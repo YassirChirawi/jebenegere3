@@ -6,6 +6,7 @@ import { IconButton, PressableScale, theme } from './ui';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { dialog } from './Dialog';
+import { logMessage, shouldHide, isMine, openMessageMenu, useChatModeration } from '../utils/chatModeration';
 
 // Rejouer : le serveur répond toujours (succès ou raison du refus), jamais de clic sans effet
 export function requestReplay(roomId) {
@@ -44,6 +45,8 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
     useEffect(() => {
         const unsubs = [
             socketService.onChatMessage((data) => {
+                if (shouldHide(data)) return; // joueur bloqué ou message signalé
+                logMessage(data);
                 audioService.playSound('pop');
                 setChatMessages((prev) => [...prev.slice(-3), data]);
                 setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== data.id)), 3500);
@@ -58,6 +61,10 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                         return next;
                     });
                 }, 2500);
+            }),
+            socketService.onChatRejected((r) => {
+                audioService.playSound('error');
+                dialog.alert('Message refusé', r?.message || "Ce message n'a pas été envoyé.");
             }),
         ];
         return () => unsubs.forEach((u) => u && u());
@@ -95,21 +102,31 @@ export function TopBar({ roomId, land, isMuted, onQuit, onChat, onMute, onRules,
     );
 }
 
+// Bulles du chat : toucher la bulle d'un autre joueur ouvre « Signaler / Bloquer »
 export function ChatBubbles({ messages, top = 130 }) {
+    const mod = useChatModeration();
+    const visible = messages.filter((m) => !mod.hidden.has(m.id) && !mod.blocked.some((b) => b.key === m.from));
     return (
-        <View style={[styles.chatOverlay, { top }]} pointerEvents="none">
-            {messages.map((msg) => (
+        <View style={[styles.chatOverlay, { top }]} pointerEvents="box-none">
+            {visible.map((msg) => (
                 <Animated.View
                     key={msg.id}
-                    style={styles.chatBubble}
                     entering={ZoomIn.springify().damping(12)}
                     exiting={FadeOut}
                     layout={LinearTransition.springify()}
                 >
-                    <Text style={styles.chatText}>
-                        <Text style={styles.chatName}>{msg.playerName} : </Text>
-                        {msg.message}
-                    </Text>
+                    <Pressable
+                        style={styles.chatBubble}
+                        onPress={() => openMessageMenu(msg)}
+                        disabled={isMine(msg)}
+                        accessibilityLabel={`Message de ${msg.playerName}. Toucher pour signaler ou bloquer.`}
+                    >
+                        <Text style={styles.chatText}>
+                            <Text style={styles.chatName}>{msg.playerName} : </Text>
+                            {msg.message}
+                            {!isMine(msg) ? <Text style={styles.chatMore}>  ⋯</Text> : null}
+                        </Text>
+                    </Pressable>
                 </Animated.View>
             ))}
         </View>
@@ -130,7 +147,9 @@ export function ReactionBar({ onSend, land }) {
 
 export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESSAGES }) {
     const [customMsg, setCustomMsg] = useState('');
+    const mod = useChatModeration();
     if (!visible) return null;
+    const recent = mod.log.slice(-6).reverse();
     const submit = () => {
         if (customMsg.trim()) {
             onSend(customMsg.trim());
@@ -142,6 +161,23 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
             <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
             <Animated.View entering={SlideInDown.springify().damping(16)} style={styles.sheet}>
                 <View style={styles.sheetHandle} />
+                {recent.length > 0 && (
+                    <View style={styles.recentBox}>
+                        <Text style={styles.recentTitle}>Derniers messages · ⋯ pour signaler ou bloquer</Text>
+                        {recent.map((m) => (
+                            <View key={m.id} style={styles.recentRow}>
+                                <Text style={styles.recentText} numberOfLines={1}>
+                                    <Text style={styles.recentName}>{m.playerName} : </Text>{m.message}
+                                </Text>
+                                {!isMine(m) && (
+                                    <Pressable hitSlop={10} onPress={() => { onClose(); openMessageMenu(m); }} style={styles.recentMore} accessibilityLabel={`Signaler ou bloquer ${m.playerName}`}>
+                                        <Text style={styles.recentMoreText}>⋯</Text>
+                                    </Pressable>
+                                )}
+                            </View>
+                        ))}
+                    </View>
+                )}
                 <Text style={styles.sheetTitle}>💬 Message rapide</Text>
                 <View style={styles.customRow}>
                     <TextInput
@@ -242,6 +278,14 @@ const styles = StyleSheet.create({
         color: '#B91C1C',
         fontWeight: '900',
     },
+    chatMore: { color: '#8A6D3B', fontWeight: '900' },
+    recentBox: { marginBottom: 12, padding: 10, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
+    recentTitle: { color: theme.textDim, fontSize: 10, fontWeight: '800', letterSpacing: 0.5, marginBottom: 6 },
+    recentRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 3 },
+    recentText: { flex: 1, color: theme.text, fontSize: 13 },
+    recentName: { color: theme.goldLight, fontWeight: '900' },
+    recentMore: { paddingHorizontal: 10, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(212,175,55,0.18)' },
+    recentMoreText: { color: theme.goldLight, fontWeight: '900', fontSize: 16 },
     reactionBar: {
         flexDirection: 'row',
         gap: 6,

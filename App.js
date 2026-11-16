@@ -20,6 +20,7 @@ import audioService from './src/network/audioService';
 import { DialogHost } from './src/components/Dialog';
 import { theme } from './src/components/ui';
 import { loadCosmetics, setCurrentGame } from './src/utils/cosmetics';
+import { initChatModeration } from './src/utils/chatModeration';
 import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen';
 import StartCountdown from './src/components/StartCountdown';
 import socketService from './src/network/socketService';
@@ -67,6 +68,7 @@ export default function App() {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
     audioService.ready.then(() => audioService.startMusic('menu'));
     loadCosmetics().then(() => accountService.init());
+    initChatModeration();
 
     const subscription = AppState.addEventListener('change', (next) => {
       if (appState.current.match(/inactive|background/) && next === 'active') {

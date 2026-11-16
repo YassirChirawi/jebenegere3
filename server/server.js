@@ -1,5 +1,6 @@
 const express = require('express');
 const http = require('http');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const { getEngine, normalizeType, engines } = require('./engines');
@@ -7,6 +8,7 @@ const { createStore } = require('./progress/store');
 const { createProgress } = require('./progress/progress');
 const { tallyEvents, gameResults } = require('./progress/results');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
+const moderation = require('./moderation');
 
 // Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
 const SERVER_VERSION = 3;
@@ -88,7 +90,33 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation'] };
+}
+
+// === MODÉRATION DU CHAT ===
+// Clé anonyme d'un joueur : son compte s'il est connecté, sinon son appareil (envoyé par le client)
+function keyOf(socket) {
+    const u = socket.data.user;
+    return moderation.playerKey(u ? `u:${u.userId}` : socket.data.deviceId ? `d:${socket.data.deviceId}` : `s:${socket.id}`);
+}
+// Deux joueurs dont l'un a bloqué l'autre ne voient plus les messages ni les réactions de l'autre
+function blockedBetween(a, b) {
+    if (!a || !b || a === b) return false;
+    return !!(a.data.blocked?.has(keyOf(b)) || b.data.blocked?.has(keyOf(a)));
+}
+// Envoie à chaque joueur humain (et spectateur) de la room, sauf blocage avec l'expéditeur
+function emitToRoomFrom(room, sender, event, payload) {
+    [...room.activePlayers, ...room.spectators].forEach((p) => {
+        const s = io.sockets.sockets.get(p.id);
+        if (s && !blockedBetween(s, sender)) s.emit(event, payload);
+    });
+}
+// Derniers messages (pour retrouver le contenu exact d'un message signalé)
+const recentMessages = new Map();
+const RECENT_MAX = 2000;
+function rememberMessage(m) {
+    recentMessages.set(m.id, m);
+    if (recentMessages.size > RECENT_MAX) recentMessages.delete(recentMessages.keys().next().value);
 }
 
 // Joueur d'une room : le pseudo du compte remplace le nom saisi quand le joueur est connecté
@@ -427,9 +455,79 @@ io.on('connection', (socket) => {
         try {
             const user = data?.token ? await progress.userFromToken(data.token) : null;
             socket.data.user = user ? progress.publicInfo(user) : null;
-            callback && callback({ success: !!user || !data?.token, user: socket.data.user });
+            callback && callback({ success: !!user || !data?.token, user: socket.data.user, key: keyOf(socket) });
         } catch (e) {
             callback && callback({ success: false });
+        }
+    });
+
+    // --- MODÉRATION : identité de l'appareil et joueurs bloqués ---
+    // client_info : à la connexion (et après connexion à un compte) ; la liste envoyée est fusionnée
+    // avec celle du compte. set_blocked : remplace la liste (après un déblocage).
+    async function applyBlocked(list, replace) {
+        let blocked = moderation.cleanBlocked(list);
+        const u = socket.data.user;
+        if (u) {
+            if (!replace) {
+                const saved = await progress.getBlocked(u.userId);
+                const keys = new Set(blocked.map((b) => b.key));
+                blocked = [...blocked, ...saved.filter((b) => !keys.has(b.key))].slice(0, 500);
+            }
+            await progress.setBlocked(u.userId, blocked);
+        }
+        socket.data.blocked = new Set(blocked.map((b) => b.key));
+        return blocked;
+    }
+    socket.on('client_info', async (data, callback) => {
+        try {
+            const id = String(data?.deviceId || '');
+            if (/^[a-zA-Z0-9-]{8,64}$/.test(id)) socket.data.deviceId = id;
+            const blocked = await applyBlocked(data?.blocked, false);
+            callback && callback({ success: true, key: keyOf(socket), blocked });
+        } catch (e) {
+            callback && callback({ success: false });
+        }
+    });
+    socket.on('set_blocked', async (data, callback) => {
+        try {
+            const blocked = await applyBlocked(data?.blocked, true);
+            callback && callback({ success: true, blocked });
+        } catch (e) {
+            callback && callback({ success: false });
+        }
+    });
+
+    // Signalement d'un message : gardé pour être traité (au plus 6 mois), voir server/scripts/reports.js
+    let reportsSent = 0;
+    socket.on('report_chat', async (data, callback) => {
+        const reply = (r) => callback && callback(r);
+        try {
+            const m = recentMessages.get(String(data?.messageId || ''));
+            const reason = moderation.REASONS.includes(data?.reason) ? data.reason : null;
+            if (!m || !reason) return reply({ success: false, message: 'Message introuvable (trop ancien ?).' });
+            if (m.key === keyOf(socket)) return reply({ success: false, message: 'Tu ne peux pas signaler ton propre message.' });
+            if (++reportsSent > 30) return reply({ success: false, message: 'Trop de signalements envoyés.' });
+            const reporterRoom = rooms[m.roomId];
+            const reporter = reporterRoom && [...reporterRoom.activePlayers, ...reporterRoom.spectators].find((p) => p.id === socket.id);
+            await store.addReport({
+                id: crypto.randomUUID(),
+                at: Date.now(),
+                reason,
+                messageId: m.id,
+                message: m.message,
+                messageAt: m.at,
+                authorName: m.name,
+                authorKey: m.key,
+                authorUserId: m.userId || null,
+                roomId: m.roomId,
+                reporterName: reporter?.name || socket.data.user?.name || null,
+                reporterKey: keyOf(socket),
+            });
+            console.log(`[MODÉRATION] signalement (${reason}) contre ${m.name}`);
+            reply({ success: true });
+        } catch (e) {
+            console.error('[report_chat]', e);
+            reply({ success: false, message: 'Erreur serveur, réessaie.' });
         }
     });
 
@@ -677,12 +775,22 @@ io.on('connection', (socket) => {
         if (!room) return;
         const player = room.activePlayers.find((p) => p.id === socket.id) || room.spectators.find((p) => p.id === socket.id);
         if (!player) return;
-        io.to(room.id).emit('chat_message', {
-            id: Math.random().toString(36).substr(2, 9),
+        const text = String(data.message || '').slice(0, 120).trim();
+        if (!text) return;
+        // Insulte courante : message refusé, l'expéditeur est prévenu (pas de sanction pour un mot)
+        if (moderation.isOffensive(text)) {
+            socket.emit('chat_rejected', { message: 'Message refusé : pas d\'insultes dans le chat 🙏' });
+            return;
+        }
+        const msg = {
+            id: crypto.randomUUID(),
             playerName: player.name,
-            message: String(data.message || '').slice(0, 120),
+            message: text,
             timestamp: Date.now(),
-        });
+            from: keyOf(socket),
+        };
+        rememberMessage({ id: msg.id, roomId: room.id, key: msg.from, userId: socket.data.user?.userId, name: player.name, message: text, at: msg.timestamp });
+        emitToRoomFrom(room, socket, 'chat_message', msg);
     });
 
     socket.on('player_reaction', (data) => {
@@ -690,7 +798,7 @@ io.on('connection', (socket) => {
         if (!room) return;
         const playerIndex = playerIndexOf(room, socket.id);
         if (playerIndex !== -1) {
-            io.to(room.id).emit('player_reaction_broadcast', { playerIndex, reactionType: data.reactionType });
+            emitToRoomFrom(room, socket, 'player_reaction_broadcast', { playerIndex, reactionType: data.reactionType });
         }
     });
 

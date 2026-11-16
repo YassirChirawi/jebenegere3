@@ -11,6 +11,7 @@ import { GameButton, PressableScale, theme, haptic } from '../components/ui';
 import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { dialog } from '../components/Dialog';
+import { useChatModeration, unblockPlayer } from '../utils/chatModeration';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -114,6 +115,7 @@ export default function ProfileScreen({ navigation }) {
     const profile = account.profile;
     const [local, setLocal] = useState({ name: 'Joueur', xp: 0, perGame: {}, history: [] });
     const [customize, setCustomize] = useState(false);
+    const mod = useChatModeration();
     const [pickAvatar, setPickAvatar] = useState(false);
 
     const loadLocal = async () => {
@@ -299,6 +301,18 @@ export default function ProfileScreen({ navigation }) {
                     )}
                 </Section>
 
+                {/* Joueurs bloqués dans le chat */}
+                <Section title="🚫 Joueurs bloqués" delay={280}>
+                    {mod.blocked.length === 0 ? (
+                        <Text style={styles.dim}>Personne. Pour bloquer un joueur, touche un de ses messages dans le chat.</Text>
+                    ) : mod.blocked.map((b) => (
+                        <View key={b.key} style={styles.blockedRow}>
+                            <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{b.name || 'Joueur'}</Text>
+                            <GameButton small title="Débloquer" variant="outline" onPress={() => unblockPlayer(b.key)} />
+                        </View>
+                    ))}
+                </Section>
+
                 {/* Confidentialité et conditions (accessibles sans compte) */}
                 <Section title="📄 Confidentialité et conditions" delay={300}>
                     <View style={styles.legalBtns}>
@@ -318,6 +332,7 @@ export default function ProfileScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     legalBtns: { flexDirection: 'row', gap: 10 },
+    blockedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
     container: { flex: 1, backgroundColor: theme.bg },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },

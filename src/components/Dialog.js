@@ -52,7 +52,7 @@ export function DialogHost() {
                 <View style={styles.cornerBR} />
                 <Text style={styles.title}>{current.title}</Text>
                 {current.message ? <Text style={styles.message}>{current.message}</Text> : null}
-                <View style={styles.row}>
+                <View style={[styles.row, current.buttons.length > 2 && styles.column]}>
                     {current.buttons.map((b, i) => (
                         <GameButton
                             key={i}
@@ -60,7 +60,7 @@ export function DialogHost() {
                             title={b.text}
                             variant={b.style === 'destructive' ? 'red' : b.style === 'cancel' ? 'outline' : 'gold'}
                             onPress={() => close(b)}
-                            style={{ flex: 1 }}
+                            style={current.buttons.length > 2 ? { alignSelf: 'stretch' } : { flex: 1 }}
                         />
                     ))}
                 </View>
@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
         lineHeight: 21,
         marginBottom: 6,
     },
+    column: { flexDirection: 'column', alignItems: 'stretch' },
     row: {
         flexDirection: 'row',
         gap: 10,

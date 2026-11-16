@@ -146,6 +146,15 @@ Un seul texte, dans [src/legal/legal.json](src/legal/legal.json), sert à la foi
 
 ⚠️ L'adresse email de contact est vide (`contactEmail`) : à remplir avant la publication sur les stores, puis relancer `node scripts/build-legal.js`.
 
+## Modération du chat
+
+- **Signaler / Bloquer** : toucher la bulle d'un message (ou le bouton « ⋯ » dans la fenêtre du chat, qui garde les derniers messages) ouvre un menu.
+  - **Signaler** (insulte, spam, triche, autre) : le serveur enregistre le message, son auteur, la date et la raison ; le message est masqué pour celui qui signale.
+  - **Bloquer le joueur** : dans les deux sens, plus aucun message ni réaction entre les deux joueurs, dans la partie en cours et les suivantes. La liste est dans le Profil (« Joueurs bloqués », bouton Débloquer). Elle est gardée sur l'appareil et, pour un joueur connecté, dans son compte.
+- **Filtre** ([server/moderation.js](server/moderation.js)) : les insultes les plus courantes (français, darija en lettres latines, arabe) sont refusées, avec un message clair pour l'expéditeur. Pas de sanction automatique pour un mot.
+- **Lire les signalements** (V1, sans interface d'administration) : sur Render, onglet Shell du service, `node scripts/reports.js` (liste) ; `node scripts/reports.js --delete <id>` une fois traité. Ils sont supprimés automatiquement après 6 mois (table `reports` en PostgreSQL, `server/data/reports.json` en local).
+- Les messages rapides, les messages personnalisés et les réactions emoji marchent comme avant.
+
 ## Mode test (web)
 
 Ajouter `?test=1` à l'adresse du site, par exemple `https://jebengere3.fun/?test=1`. Les parties Hezz2 contre l'ordinateur commencent alors avec des **1, 2 et 7** en main, ce qui permet de vérifier les cartes spéciales en jeu réel.
