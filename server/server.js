@@ -161,7 +161,7 @@ function playerOf(socket, name) {
     const u = socket.data.user;
     return u
         ? { id: socket.id, name: u.name, userId: u.userId, avatar: u.avatar, title: u.title }
-        : { id: socket.id, name: name || `Joueur ${socket.id.substring(0, 4)}` };
+        : { id: socket.id, name: name || `Joueur ${socket.id.substring(0, 4)}`, avatar: socket.data.guestAvatar || 0 };
 }
 
 function generateRoomCode() {
@@ -533,6 +533,8 @@ io.on('connection', (socket) => {
         try {
             const user = data?.token ? await progress.userFromToken(data.token) : null;
             socket.data.user = user ? progress.publicInfo(user) : null;
+            // Portrait choisi sans compte (0 = tiré du pseudo, 1 à 12), gardé sur l'appareil et renvoyé à chaque connexion
+            socket.data.guestAvatar = Number.isInteger(data?.avatar) && data.avatar >= 0 && data.avatar <= 12 ? data.avatar : 0;
             callback && callback({ success: !!user || !data?.token, user: socket.data.user, key: keyOf(socket) });
         } catch (e) {
             callback && callback({ success: false });

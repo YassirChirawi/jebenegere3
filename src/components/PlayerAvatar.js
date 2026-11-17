@@ -24,11 +24,12 @@ export const AVATARS = [
     require('../../assets/avatars/avatar_10.webp'), require('../../assets/avatars/avatar_11.webp'),
 ];
 
-/** Portrait d'un joueur : tiré du pseudo (variant 0), ou décalé du choix fait dans le profil (variant 1 à 11). */
+/** Portrait d'un joueur : variant 1 à 12 = portrait choisi dans le Profil ; 0 = tiré du pseudo. */
 export function avatarIndex(name, variant = 0) {
+    if (variant >= 1) return (variant - 1) % AVATARS.length;
     let h = 0;
     for (const c of String(name || 'Joueur')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    return (h + (variant || 0)) % AVATARS.length;
+    return h % AVATARS.length;
 }
 
 export default function PlayerAvatar({ name, size = 40, active = false, mood, variant = 0 }) {

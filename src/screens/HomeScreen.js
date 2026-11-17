@@ -405,7 +405,7 @@ export default function HomeScreen({ navigation }) {
 
                         {/* Pseudo + rang */}
                         <View style={styles.nameRow}>
-                            <PlayerAvatar name={name || 'Joueur'} variant={profile?.avatar || 0} size={52} />
+                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={52} />
                             <View style={{ flex: 1, marginLeft: 12 }}>
                                 <Text style={styles.label}>{profile ? 'CONNECTÉ · TON COMPTE' : 'TON PSEUDO'}</Text>
                                 <TextInput

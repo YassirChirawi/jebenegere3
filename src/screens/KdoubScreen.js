@@ -549,7 +549,7 @@ export default function KdoubScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
@@ -596,6 +596,7 @@ export default function KdoubScreen({ route, navigation }) {
                     rows={state.ranking.map((r, k) => ({
                         player: r.player,
                         name: state.players[r.player]?.name,
+                        avatar: state.players[r.player]?.avatar,
                         isMe: r.player === me,
                         detail: k === 0 ? '0 carte 🏆' : plural(r.cards, 'carte'),
                     }))}

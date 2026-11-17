@@ -132,6 +132,7 @@ export default function ProfileScreen({ navigation }) {
     }, []));
 
     const name = profile?.name || local.name;
+    const myAvatar = profile ? (profile.avatar || 0) : (account.guestAvatar || 0);
     const xp = profile ? profile.xp : local.xp;
     const rank = getRankInfo(xp);
     const shownTitle = profile?.title ? profile.titles.find((t) => t.id === profile.title)?.label : null;
@@ -196,15 +197,16 @@ export default function ProfileScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 {/* Carte joueur */}
                 <Animated.View entering={FadeIn.duration(250)} style={styles.card}>
-                    <Pressable onPress={() => profile && setPickAvatar(!pickAvatar)}>
-                        <PlayerAvatar name={name} variant={profile?.avatar || 0} size={86} />
-                        {profile && <Text style={styles.editAvatar}>✏️</Text>}
+                    <Pressable onPress={() => setPickAvatar(!pickAvatar)} accessibilityLabel="Changer de portrait">
+                        <PlayerAvatar name={name} variant={myAvatar} size={86} />
+                        <Text style={styles.editAvatar}>✏️</Text>
                     </Pressable>
-                    {pickAvatar && profile && (
+                    {!pickAvatar && <Text style={styles.avatarHint}>Touche ton portrait pour en choisir un autre</Text>}
+                    {pickAvatar && (
                         <View style={styles.avatarGrid}>
                             {Array.from({ length: 12 }).map((_, i) => (
-                                <Pressable key={i} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.update({ avatar: i }); }} style={[styles.avatarChoice, (profile.avatar || 0) === i && styles.avatarChoiceOn]}>
-                                    <PlayerAvatar name={name} variant={i} size={40} />
+                                <Pressable key={i} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.setAvatar(i + 1); }} style={[styles.avatarChoice, myAvatar === i + 1 && styles.avatarChoiceOn]}>
+                                    <PlayerAvatar name={name} variant={i + 1} size={40} />
                                 </Pressable>
                             ))}
                         </View>
@@ -376,6 +378,7 @@ const styles = StyleSheet.create({
     scroll: { padding: 14, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
     card: { alignItems: 'center', backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 20, borderWidth: 1.5, borderColor: theme.gold, padding: 16, marginBottom: 12 },
     editAvatar: { position: 'absolute', right: -4, bottom: -2, fontSize: 16 },
+    avatarHint: { color: theme.textDim, fontSize: 12, marginTop: 6 },
     avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 10, gap: 6 },
     avatarChoice: { padding: 3, borderRadius: 24, borderWidth: 2, borderColor: 'transparent' },
     avatarChoiceOn: { borderColor: theme.gold },

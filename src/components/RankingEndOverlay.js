@@ -41,7 +41,7 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                                 style={[styles.row, r.isMe && styles.rowMe, r.loser && styles.rowLoser, compact && { paddingVertical: 3 }]}
                             >
                                 <Text style={styles.medal}>{r.loser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
-                                <PlayerAvatar name={r.name} size={28} />
+                                <PlayerAvatar name={r.name} variant={r.avatar || 0} size={28} />
                                 <Text style={[styles.name, r.isMe && { color: theme.goldLight }]} numberOfLines={1}>
                                     {r.isMe ? 'Toi' : r.name}
                                 </Text>

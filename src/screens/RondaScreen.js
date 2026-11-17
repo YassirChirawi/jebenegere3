@@ -858,7 +858,7 @@ export default function RondaScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
@@ -911,7 +911,7 @@ export default function RondaScreen({ route, navigation }) {
                             <View style={styles.targetRow}>
                                 {denounceTargets.map((t) => (
                                     <PressableScale key={t} onPress={() => setDenounceTarget(t)} style={[styles.targetBtn, denounceTarget === t && styles.targetBtnOn]}>
-                                        <PlayerAvatar name={state.players[t]?.name} size={28} />
+                                        <PlayerAvatar name={state.players[t]?.name} variant={state.players[t]?.avatar || 0} size={28} />
                                         <Text style={styles.targetName}>{nameOf(t)}</Text>
                                     </PressableScale>
                                 ))}

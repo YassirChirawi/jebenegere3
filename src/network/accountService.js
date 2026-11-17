@@ -14,7 +14,7 @@ const OUTDATED = "Le serveur du jeu n'est pas encore à jour : la suppression du
 
 const BASE = SOCKET_URL.replace(/\/+$/, '');
 
-let state = { token: null, profile: null, loading: true, error: null };
+let state = { token: null, profile: null, loading: true, error: null, guestAvatar: 0 };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
 const set = (patch) => {
@@ -59,8 +59,25 @@ function authSocket() {
 const accountService = {
     get state() { return state; },
 
+    /** Portrait du joueur : celui du compte, sinon celui choisi sur l'appareil. */
+    myAvatar() {
+        return state.profile ? (state.profile.avatar || 0) : (state.guestAvatar || 0);
+    },
+
+    /** Choix du portrait : enregistré dans le compte, ou sur l'appareil pour un invité. */
+    async setAvatar(i) {
+        if (state.profile) return accountService.update({ avatar: i });
+        set({ guestAvatar: i });
+        socketService.setGuestAvatar(i);
+        try { await AsyncStorage.setItem('guestAvatar', String(i)); } catch (e) { /* ignore */ }
+        return { success: true };
+    },
+
     async init() {
         try {
+            const guest = parseInt((await AsyncStorage.getItem('guestAvatar')) || '0', 10);
+            socketService.guestAvatar = Number.isInteger(guest) && guest >= 0 && guest <= 12 ? guest : 0;
+            set({ guestAvatar: socketService.guestAvatar });
             const token = await AsyncStorage.getItem('authToken');
             if (!token) { set({ loading: false }); authSocket(); return; }
             const cached = JSON.parse((await AsyncStorage.getItem('authProfile')) || 'null');

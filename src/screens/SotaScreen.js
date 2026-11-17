@@ -424,7 +424,7 @@ export default function SotaScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
@@ -469,8 +469,8 @@ export default function SotaScreen({ route, navigation }) {
                         </View>
                     ) : null}
                     rows={[
-                        ...state.outOrder.map((p, k) => ({ player: p, name: state.players[p]?.name, isMe: p === me, detail: k === 0 ? 'Sorti 1er 🏆' : `Sorti ${k + 1}e` })),
-                        ...(state.loser !== null ? [{ player: state.loser, name: state.players[state.loser]?.name, isMe: state.loser === me, detail: 'Ghamla (Sota)', loser: true }] : []),
+                        ...state.outOrder.map((p, k) => ({ player: p, name: state.players[p]?.name, avatar: state.players[p]?.avatar, isMe: p === me, detail: k === 0 ? 'Sorti 1er 🏆' : `Sorti ${k + 1}e` })),
+                        ...(state.loser !== null ? [{ player: state.loser, name: state.players[state.loser]?.name, avatar: state.players[state.loser]?.avatar, isMe: state.loser === me, detail: 'Ghamla (Sota)', loser: true }] : []),
                     ]}
                     won={me >= 0 && state.loser !== me}
                     lost={state.loser === me}

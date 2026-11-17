@@ -130,7 +130,7 @@ function createProgress(store) {
     async function updateMe(user, { title, avatar }) {
         return withUser(user.id, async (u) => {
             if (title === null || (typeof title === 'string' && u.titles.includes(title))) u.title = title;
-            if (Number.isInteger(avatar) && avatar >= 0 && avatar < 12) u.avatar = avatar;
+            if (Number.isInteger(avatar) && avatar >= 0 && avatar <= 12) u.avatar = avatar; // 0 = tiré du pseudo, 1 à 12 = portrait choisi
             return profileOf(u);
         });
     }

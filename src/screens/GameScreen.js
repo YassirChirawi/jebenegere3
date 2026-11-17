@@ -537,7 +537,7 @@ export default function GameScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Vous'} size={38} active={isMyTurn} mood={moods[localPlayerIndex]} />
+                                        <PlayerAvatar name={playerName || 'Vous'} variant={gameState.players?.[localPlayerIndex]?.avatar || 0} size={38} active={isMyTurn} mood={moods[localPlayerIndex]} />
                                         <ReactionBubble emoji={activeReactions[localPlayerIndex]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>

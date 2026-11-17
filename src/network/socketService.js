@@ -58,13 +58,19 @@ class SocketService {
         this._sendAuth();
     }
 
+    // Portrait choisi sans compte : envoyé avec l'authentification, donc visible des autres joueurs
+    setGuestAvatar(avatar) {
+        this.guestAvatar = avatar || 0;
+        this._sendAuth();
+    }
+
     _sendAuth() {
         if (!this.socket?.connected || (this.serverInfo && !this.supports('accounts'))) {
             this.authReady = Promise.resolve();
             return;
         }
         this.authReady = new Promise((resolve) => {
-            this.socket.timeout(4000).emit('auth', { token: this.authToken }, () => {
+            this.socket.timeout(4000).emit('auth', { token: this.authToken, avatar: this.guestAvatar || 0 }, () => {
                 resolve();
                 (this.authListeners || []).forEach((fn) => fn());
             });

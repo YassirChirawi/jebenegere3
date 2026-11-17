@@ -60,7 +60,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                                 style={[styles.row, isMe && styles.rowMe, isLoser && styles.rowLoser, compact && { paddingVertical: 3 }]}
                             >
                                 <Text style={styles.medal}>{isLoser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
-                                <PlayerAvatar name={players[pIdx]?.name} size={30} />
+                                <PlayerAvatar name={players[pIdx]?.name} variant={players[pIdx]?.avatar || 0} size={30} />
                                 <Text style={[styles.name, isMe && { color: theme.goldLight }]} numberOfLines={1}>
                                     {isMe ? 'Vous' : players[pIdx]?.name}
                                 </Text>
