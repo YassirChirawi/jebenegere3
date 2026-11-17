@@ -485,6 +485,9 @@ function createTournaments(deps) {
             if (isOffensive(name)) return reply(cb, { success: false, message: 'Ce pseudo n\'est pas accepté.' });
             if (t.entrants.length >= t.size) return reply(cb, { success: false, message: 'Le tournoi est complet.' });
             if (t.entrants.some((e) => lower(e.name) === lower(name))) return reply(cb, { success: false, message: 'Ce pseudo est déjà inscrit : choisis-en un autre.' });
+            // Pseudo d'un compte : réservé à ce compte
+            const owner = await store.getByName(name).catch(() => null);
+            if (owner && owner.id !== socket.data.user?.userId) return reply(cb, { success: false, message: 'Ce pseudo appartient à un compte. Connecte-toi à ce compte (Profil), ou choisis un autre pseudo.' });
             const ticket = token();
             const e = { id: crypto.randomBytes(5).toString('hex'), name, ticketHash: sha(ticket), lastSocket: socket.id };
             if (socket.data.user?.userId) e.userId = socket.data.user.userId;

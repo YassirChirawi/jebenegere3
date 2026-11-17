@@ -106,6 +106,12 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
   - en-têtes de sécurité, vraie IP du joueur derrière le proxy Render (limite d'essais de connexion) ;
   - anti-flood : au-delà de 25 messages par seconde, les messages sont ignorés ; au-delà de 120, la connexion est coupée.
 
+## Pseudos des joueurs et des bots
+
+- **Compte = pseudo + mot de passe.** Le pseudo est l'identifiant : unique (sans tenir compte des majuscules), 3 à 16 caractères. Connecté, on joue toujours sous le pseudo de son compte.
+- **Pseudo réservé** : un invité (sans compte) ne peut pas prendre le pseudo d'un compte existant, ni pour créer ou rejoindre un salon, ni en partie en ligne, ni pour s'inscrire à un tournoi. Message : « Ce pseudo appartient à un compte. Connecte-toi à ce compte (Profil), ou choisis un autre pseudo. »
+- **Bots** ([server/botNames.js](server/botNames.js)) : pseudos écrits comme ceux des joueurs (Hamza27, Salma_212, SoufianeK, Imane.casa, Simo10…), sans « Bot » devant, jamais deux fois le même à une table, avec un portrait assorti au prénom. En partie, rien ne les distingue des joueurs (plus d'icône 🤖). En partie en ligne, l'écran de recherche annonce « Adversaires trouvés ! » ; dans un salon privé, l'hôte voit toujours qui est un bot (il les ajoute et les retire lui-même).
+
 ## Joueurs en ligne
 
 Sur l'accueil, au-dessus de **JOUER EN LIGNE** : « 🟢 12 joueurs en ligne · 3 parties en cours » (connectés au serveur, et parties en cours avec au moins un humain ; les bots ne comptent pas). Dans le menu **Jouer en ligne**, une pastille verte sur une taille indique combien de joueurs attendent déjà une partie de ce jeu à cette taille : la choisir lance la partie tout de suite.

@@ -212,7 +212,7 @@ export default function HomeScreen({ navigation }) {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: response.roomId, playerName: name.trim(), isHost: true, initialRoom: response.roomData });
             } else {
-                dialog.alert('Erreur', 'Impossible de créer le salon.');
+                dialog.alert('Erreur', response?.message || 'Impossible de créer le salon.');
             }
         });
     };
@@ -287,10 +287,9 @@ export default function HomeScreen({ navigation }) {
         if (matchUnsub.current) matchUnsub.current();
         matchUnsub.current = socketService.onMatchFound((data) => {
             stopSearchUi();
-            const withBots = data.gameState?.players?.some((p) => p.isBot);
-            setSearchStatus(withBots ? 'bots' : 'found');
+            setSearchStatus('found');
             audioService.playSound('your_turn');
-            // On laisse voir "Adversaire trouvé" / "Bots ajoutés" un instant avant d'ouvrir la table
+            // On laisse voir "Adversaires trouvés" un instant avant d'ouvrir la table
             setTimeout(() => {
                 setIsSearching(false);
                 setSearchStatus(null);
@@ -458,10 +457,10 @@ export default function HomeScreen({ navigation }) {
                             <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
                                 <SearchSpinner />
                                 <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
-                                    {searchStatus === 'found' ? 'Adversaire trouvé !' : searchStatus === 'bots' ? 'Bots ajoutés pour compléter la table' : "Recherche d'adversaires…"}
+                                    {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
                                 </Text>
                                 <Text style={styles.searchSub}>Partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
-                                <Text style={styles.searchHint}>Des bots compléteront la table si l'attente est trop longue</Text>
+                                <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
                                 <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
                             </Animated.View>
                         ) : (

@@ -62,7 +62,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
             <View style={compact ? styles.compactInfo : styles.infoCol}>
             <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive]}>
                 <Text style={[styles.name, vertical && styles.nameVertical, active && styles.nameActive]} numberOfLines={1}>
-                    {isBot && !vertical ? '🤖 ' : ''}{player?.name || '...'}
+                    {player?.name || '...'}
                 </Text>
             </View>
 

@@ -97,7 +97,7 @@ const rooms = {};
 const matchmakingQueues = {};
 const MAX_QUEUE_WAIT_TIME = Number(process.env.MATCHMAKING_WAIT_MS) || 10000;
 const MAX_SPECTATORS = 6; // spectateurs d'un salon, en plus des joueurs
-const BOT_NAMES = ['Bot Hassan', 'Bot Fatima', 'Bot Yassine', 'Bot Karim', 'Bot Salma'];
+const { botName, botAvatar } = require('./botNames'); // pseudos et portraits des bots, comme ceux des joueurs
 // Compte à rebours avant le premier coup (le temps de s'installer / tourner l'écran).
 // Désactivé par défaut pendant les tests automatiques (node --test).
 const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
@@ -162,6 +162,15 @@ function playerOf(socket, name) {
     return u
         ? { id: socket.id, name: u.name, userId: u.userId, avatar: u.avatar, title: u.title }
         : { id: socket.id, name: name || `Joueur ${socket.id.substring(0, 4)}`, avatar: socket.data.guestAvatar || 0 };
+}
+
+// Pseudo unique : celui d'un compte ne peut pas être pris par un invité (le joueur connecté, lui,
+// joue toujours sous le pseudo de son compte, voir playerOf)
+const RESERVED_NAME_MSG = 'Ce pseudo appartient à un compte. Connecte-toi à ce compte (Profil), ou choisis un autre pseudo.';
+async function nameReserved(socket, name) {
+    const n = String(name || '').trim();
+    if (!n || socket.data.user) return false;
+    try { return !!(await store.getByName(n)); } catch (e) { return false; }
 }
 
 function generateRoomCode() {
@@ -329,9 +338,8 @@ function settleSeats(room, { keepCount = true } = {}) {
         if (room.spectators.length) {
             room.activePlayers[i] = room.spectators.shift();
         } else {
-            const used = new Set(room.activePlayers.map((x) => x.name));
-            const name = BOT_NAMES.find((n) => !used.has(n)) || `Bot ${i + 1}`;
-            room.activePlayers[i] = { id: p.id, name, isBot: true, wasReplaced: true };
+            const name = botName(room.activePlayers.map((x) => x.name));
+            room.activePlayers[i] = { id: p.id, name, avatar: botAvatar(name), isBot: true, wasReplaced: true };
         }
     });
     if (room.gameState && getEngine(room.gameType).rotateLoser) rotateLoser(room);
@@ -390,12 +398,14 @@ function scheduleBots(roomId) {
     });
 }
 
-function makeBots(roomId, count, startIndex = 0) {
-    return Array.from({ length: count }, (_, i) => ({
-        id: `bot_${roomId}_${startIndex + i}`,
-        name: BOT_NAMES[(startIndex + i) % BOT_NAMES.length],
-        isBot: true,
-    }));
+// used : pseudos déjà à la table (pour ne pas donner deux fois le même)
+function makeBots(roomId, count, startIndex = 0, used = []) {
+    const names = [...used];
+    return Array.from({ length: count }, (_, i) => {
+        const name = botName(names);
+        names.push(name);
+        return { id: `bot_${roomId}_${startIndex + i}`, name, avatar: botAvatar(name), isBot: true };
+    });
 }
 
 // === MATCHMAKING ===
@@ -443,7 +453,7 @@ function createMatchmakingRoom(gameType, targetSize, realPlayers) {
     const activePlayers = realPlayers.map((p) => p.player || { id: p.socketId, name: p.playerName });
     realPlayers.forEach((p) => io.sockets.sockets.get(p.socketId)?.join(roomId));
     const botCount = targetSize - activePlayers.length;
-    activePlayers.push(...makeBots(roomId, botCount));
+    activePlayers.push(...makeBots(roomId, botCount, 0, activePlayers.map((p) => p.name)));
 
     rooms[roomId] = {
         id: roomId,
@@ -638,8 +648,9 @@ io.on('connection', (socket) => {
     });
 
     // --- SALON PRIVÉ ---
-    socket.on('create_room', (data, callback) => {
+    socket.on('create_room', async (data, callback) => {
         const { playerName = 'Hôte', gameType } = data || {};
+        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
         const roomId = generateRoomCode();
         rooms[roomId] = {
             id: roomId,
@@ -656,8 +667,9 @@ io.on('connection', (socket) => {
     });
 
     // --- PARTIE CONTRE LES BOTS ---
-    socket.on('create_bot_room', (data, callback) => {
+    socket.on('create_bot_room', async (data, callback) => {
         const { playerName = 'Hôte', botCount = 4, gameType } = data || {};
+        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
         const type = normalizeType(gameType);
         const engine = getEngine(type);
         const size = engine.sizes.includes(botCount) ? botCount : engine.sizes[engine.sizes.length - 1];
@@ -666,7 +678,7 @@ io.on('connection', (socket) => {
             id: roomId,
             gameType: type,
             hostId: socket.id,
-            activePlayers: [playerOf(socket, playerName), ...makeBots(roomId, size - 1, 1)],
+            activePlayers: (() => { const me = playerOf(socket, playerName); return [me, ...makeBots(roomId, size - 1, 1, [me.name])]; })(),
             spectators: [],
             gameState: null,
             isBotMatch: true,
@@ -689,8 +701,9 @@ io.on('connection', (socket) => {
         launchGame(roomId);
     });
 
-    socket.on('join_room', (data, callback) => {
+    socket.on('join_room', async (data, callback) => {
         const { playerName } = data || {};
+        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
         // Code tapé ou collé (minuscules, espaces) : on le normalise
         const roomId = String(data?.roomId || '').trim().toUpperCase();
         const room = rooms[roomId];
@@ -746,9 +759,8 @@ io.on('connection', (socket) => {
         const room = lobbyOf(data);
         if (!room) return callback && callback({ success: false, message: "Seul l'hôte peut ajouter un bot avant la partie." });
         if (room.activePlayers.length >= getEngine(room.gameType).maxPlayers) return callback && callback({ success: false, message: 'Le salon est complet.' });
-        const used = new Set(room.activePlayers.map((p) => p.name));
-        const name = BOT_NAMES.find((n) => !used.has(n)) || `Bot ${room.activePlayers.length + 1}`;
-        room.activePlayers.push({ id: `bot_${room.id}_l${Date.now()}`, name, isBot: true });
+        const name = botName(room.activePlayers.map((p) => p.name));
+        room.activePlayers.push({ id: `bot_${room.id}_l${Date.now()}`, name, avatar: botAvatar(name), isBot: true });
         broadcastRoomUpdate(room.id);
         callback && callback({ success: true });
     });
@@ -816,8 +828,9 @@ io.on('connection', (socket) => {
     });
 
     // --- MATCHMAKING ---
-    socket.on('find_match', (data, callback) => {
+    socket.on('find_match', async (data, callback) => {
         const { playerName = 'Joueur Anonyme', targetSize = 4, gameType } = data || {};
+        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
         const type = normalizeType(gameType);
         if (!getEngine(type).sizes.includes(targetSize)) {
             callback && callback({ success: false, message: `Taille ${targetSize} invalide pour ce jeu.` });
