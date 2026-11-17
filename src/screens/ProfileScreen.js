@@ -202,7 +202,7 @@ export default function ProfileScreen({ navigation }) {
                     </Pressable>
                     {pickAvatar && profile && (
                         <View style={styles.avatarGrid}>
-                            {Array.from({ length: 8 }).map((_, i) => (
+                            {Array.from({ length: 12 }).map((_, i) => (
                                 <Pressable key={i} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.update({ avatar: i }); }} style={[styles.avatarChoice, (profile.avatar || 0) === i && styles.avatarChoiceOn]}>
                                     <PlayerAvatar name={name} variant={i} size={40} />
                                 </Pressable>

@@ -264,7 +264,7 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 - **Titres** : 7 titres. On choisit dans le Profil celui qui s'affiche, et il apparaît aussi dans les salons.
 - **Rangs** : les 5 rangs existants sont conservés. L'Boss va désormais jusqu'à 5 000 XP, puis viennent M3allem, Sultan dyal l'karta et L'Ostora.
 - **Saison de 4 semaines** : un classement général et un classement par jeu, avec le pseudo seulement. En fin de saison, le top 10 reçoit un dos exclusif et un badge.
-- **Avatars** : on peut choisir parmi 8 avatars.
+- **Avatars** : 12 portraits dessinés pour le jeu (`assets/avatars/`, découpés dans une planche par `python scripts/build-avatars.py <planche.png>`), inclus dans l'appli. Sans choix, le portrait est tiré du pseudo ; avec un compte, on choisit parmi les 12 dans le Profil.
 - Les définitions des rangs, défis, titres et récompenses sont regroupées dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
 
 ## Premium, phase 1 : visuel et animations

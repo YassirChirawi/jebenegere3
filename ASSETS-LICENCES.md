@@ -23,7 +23,6 @@ Légende :
 | Fichier | Utilisé | Source probable | À faire |
 |---|---|---|---|
 | `Yellow and White Illustrative Ramadan Greeting Instagram Post.png` (fond des menus) | Oui (accueil, salon, profil, classement) | Modèle Canva (nom de modèle Canva, format Instagram) | Vérifier que le modèle et ses éléments sont « Free » (pas « Pro ») et que la licence Canva couvre un fond d'appli. Garder si c'est le cas. |
-| `menthe-poivree-removebg-preview.png` (feuille de menthe des joueurs actifs) | Oui | Image trouvée en ligne, fond retiré avec remove.bg | Source inconnue : la remplacer par un petit dessin SVG ou l'emoji 🌿, ou retrouver une image libre. |
 
 ## 🟢 Garder
 
@@ -35,7 +34,8 @@ Légende :
 | `freesound_community-080205_life-lost-game-over-89697.mp3` | Oui (`game_over`) | Pixabay, compte « freesound_community » (sons repris de Freesound) | Licence Pixabay, même remarque. |
 | `freesound_community-tic-tac-27828.mp3` (tic-tac du chrono) | Oui | Pixabay, compte « freesound_community » | Licence Pixabay, même remarque. |
 | `freesound_community-flipcard-91468.mp3` | Non | Pixabay | Libre ; peut être retiré du dépôt (non utilisé). |
-| Avatars (images DiceBear, style « Adventurer », chargées depuis api.dicebear.com) | Oui ([PlayerAvatar.js](src/components/PlayerAvatar.js)) | Style « Adventurer » de Lisa Wischofsky, servi par DiceBear | **CC BY 4.0 : le crédit est obligatoire.** Ajouter une ligne « Avatars : Adventurer par Lisa Wischofsky (CC BY 4.0), via DiceBear » dans l'appli (par exemple sous les règles ou dans la page Conditions). |
+| 12 avatars (`assets/avatars/avatar_00.webp` à `avatar_11.webp`, via [scripts/build-avatars.py](scripts/build-avatars.py)) | Oui ([PlayerAvatar.js](src/components/PlayerAvatar.js)) | Planche de portraits fournie par Yassir, générée avec ChatGPT, offre payante (17 nov 2026) | Même licence que les cartes. Remplacent les avatars DiceBear : plus de crédit CC BY à afficher, plus d'appel à api.dicebear.com. |
+| Brin de menthe du joueur actif (`assets/menthe.png`, via [scripts/build-mint.py](scripts/build-mint.py)) | Oui | Image fournie par Yassir, générée avec ChatGPT, offre payante (17 nov 2026) | Même licence. Remplace `menthe-poivree-removebg-preview.png` (source inconnue, retirée du dépôt). |
 | Table marocaine de la Ronda, fonds SVG | Oui ([MoroccanTable.js](src/components/MoroccanTable.js)) | Dessinés en code pour le projet | Création du projet. |
 | Faces des 40 cartes (`assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)) | Oui | Générées par Yassir avec **ChatGPT, offre payante** (16 nov 2026) | Conditions d'OpenAI : les images générées appartiennent à l'utilisateur, usage commercial autorisé. Création du projet, sans scan ni mention d'éditeur. |
 | 5 tables de jeu (`assets/tables/`, via [scripts/build-tables.py](scripts/build-tables.py)) | Oui | ChatGPT, offre payante (16 nov 2026) | Même licence. |
@@ -61,5 +61,4 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 
 1. Remplacer la musique (tableau rouge). Le son « +2 » est fait (17 nov 2026) : l'extrait de la chanson de Khalid Aouni est remplacé par un son de synthèse (`plus_two` dans [scripts/generate-sfx.js](scripts/generate-sfx.js)), et la chanson, l'extrait et `extract_clip.js` sont retirés du dépôt (ils restent dans l'historique Git).
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
-3. Ajouter le crédit DiceBear / Adventurer.
-4. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.
+3. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.

@@ -14,16 +14,25 @@ import Animated, {
 // Réactions d'avatar : petit saut quand on joue, émotions sur les moments forts
 const MOOD_EMOJI = { lose: '😭', kdoub: '😤', khasser: '🤡', win: '😎', proud: '😎', shock: '😱' };
 
-const COLORS = [
-    '#EF4444', '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', '#6366f1', '#14b8a6'
+// 12 portraits dessinés pour le jeu (scripts/build-avatars.py), embarqués dans l'appli : rien n'est chargé d'un autre site
+export const AVATARS = [
+    require('../../assets/avatars/avatar_00.webp'), require('../../assets/avatars/avatar_01.webp'),
+    require('../../assets/avatars/avatar_02.webp'), require('../../assets/avatars/avatar_03.webp'),
+    require('../../assets/avatars/avatar_04.webp'), require('../../assets/avatars/avatar_05.webp'),
+    require('../../assets/avatars/avatar_06.webp'), require('../../assets/avatars/avatar_07.webp'),
+    require('../../assets/avatars/avatar_08.webp'), require('../../assets/avatars/avatar_09.webp'),
+    require('../../assets/avatars/avatar_10.webp'), require('../../assets/avatars/avatar_11.webp'),
 ];
 
+/** Portrait d'un joueur : tiré du pseudo (variant 0), ou décalé du choix fait dans le profil (variant 1 à 11). */
+export function avatarIndex(name, variant = 0) {
+    let h = 0;
+    for (const c of String(name || 'Joueur')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+    return (h + (variant || 0)) % AVATARS.length;
+}
+
 export default function PlayerAvatar({ name, size = 40, active = false, mood, variant = 0 }) {
-    const colorIndex = name?.length > 0 ? name.charCodeAt(0) % COLORS.length : 0;
-    const bgColor = COLORS[colorIndex];
-    // variant : avatar choisi dans le profil (0 = avatar d'origine, tiré du pseudo)
-    const seed = variant ? `${name || 'Player'}-${variant}` : (name || 'Player');
-    const avatarUrl = `https://api.dicebear.com/7.x/adventurer/png?seed=${encodeURIComponent(seed)}&backgroundColor=b6e3f4,c0aede,d1d4f9,ffdfbf,ffd5dc`;
+    const source = AVATARS[avatarIndex(name, variant)];
 
     // Pulse ring animation
     const pulseScale = useSharedValue(1);
@@ -96,12 +105,12 @@ export default function PlayerAvatar({ name, size = 40, active = false, mood, va
         <Animated.View style={moodStyle}>
         <View style={[
             styles.container,
-            { width: size, height: size, borderRadius: size / 2, backgroundColor: bgColor },
+            { width: size, height: size, borderRadius: size / 2 },
             active && styles.activeAvatar,
         ]}>
             <Image
-                source={{ uri: avatarUrl }}
-                style={{ width: size * 0.9, height: size * 0.9, borderRadius: (size * 0.9) / 2 }}
+                source={source}
+                style={{ width: size - 4, height: size - 4, borderRadius: (size - 4) / 2 }}
                 resizeMode="cover"
             />
             {/* Animated golden pulse ring */}
@@ -121,7 +130,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2,
-        borderColor: '#1C2E4A',
+        borderColor: '#B8892B',
+        backgroundColor: '#0B1A3A',
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.4,

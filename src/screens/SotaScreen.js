@@ -33,7 +33,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 
-const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
+const MINT = require('../../assets/menthe.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
 

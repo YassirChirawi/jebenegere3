@@ -27,7 +27,7 @@ import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
-const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
+const MINT = require('../../assets/menthe.png');
 
 const VALUE_NAMES = { 1: 'un 1', 2: 'un 2', 7: 'un 7', 10: 'une Sota', 11: 'un Cavalier', 12: 'un Roi' };
 const suitSort = { Oros: 0, Copas: 1, Espadas: 2, Bastos: 3 };

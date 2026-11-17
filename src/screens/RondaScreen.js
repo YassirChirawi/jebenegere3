@@ -36,7 +36,7 @@ import { GoldBurst } from '../components/Flights';
 import { isPhoneWeb } from '../utils/fullscreen';
 import { TABLE_INSET } from '../components/MoroccanTable'; // marges de la zone de table (la table elle-même est l'image de fond)
 
-const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
+const MINT = require('../../assets/menthe.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 const nextVal = (v) => ORDER[ORDER.indexOf(v) + 1] ?? null;
 const VALUE_LABEL = { 1: 'As', 10: 'Sota', 11: 'Cavalier', 12: 'Roi' };

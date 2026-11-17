@@ -15,7 +15,7 @@ import PlayerAvatar from './PlayerAvatar';
 import { CardBack } from './Card';
 import { theme } from './ui';
 
-const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
+const MINT = require('../../assets/menthe.png');
 const MAX_VISIBLE = 10;
 
 /**

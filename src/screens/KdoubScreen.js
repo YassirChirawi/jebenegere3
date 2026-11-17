@@ -35,7 +35,7 @@ import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 
-const MINT = require('../../assets/menthe-poivree-removebg-preview.png');
+const MINT = require('../../assets/menthe.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 const NAMES = { 1: 'As', 10: 'Sota', 11: 'Cavalier', 12: 'Roi' };
 const valueLabel = (v) => (NAMES[v] ? `${v} · ${NAMES[v]}` : `${v}`);

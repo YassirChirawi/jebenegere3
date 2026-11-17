@@ -4,7 +4,7 @@
   "privacy": {
     "path": "/privacy",
     "title": "Politique de confidentialité",
-    "updated": "16 novembre 2026",
+    "updated": "17 novembre 2026",
     "intro": "L'Carta est un jeu de cartes marocain (Hezz2, Ronda, Kdoub, Sota Ghamla). On collecte le moins de données possible : juste ce qu'il faut pour jouer en ligne et garder ta progression.",
     "sections": [
       {
@@ -43,7 +43,7 @@
         "items": [
           "Les comptes sont stockés sur notre serveur de jeu, hébergé par Render (render.com), dans une base de données PostgreSQL.",
           "Le site et l'appli web sont hébergés par Vercel (vercel.com).",
-          "Les avatars dessinés sont générés par le service DiceBear (dicebear.com) à partir de ton pseudo : ce service reçoit donc ton pseudo pour afficher l'image.",
+          "Les avatars sont des images incluses dans l'appli : ton pseudo n'est envoyé à aucun service extérieur pour les afficher.",
           "Ton adresse IP est utilisée temporairement, en mémoire, pour limiter les abus (trop de messages, trop d'essais de mot de passe). Elle n'est pas enregistrée dans ton compte. Les hébergeurs gardent des journaux techniques pendant une durée limitée."
         ]
       },
