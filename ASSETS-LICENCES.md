@@ -18,14 +18,9 @@ Légende :
 | **`خالد العوني زيد جوج يا مول الروج زيد جوج.mp3`** | Non (source de `plus_two.mp3`) | Chanson complète de Khalid Aouni | Œuvre protégée, présente en entier dans le dépôt. | Retirer du dépôt (et de l'historique Git si le dépôt est public). |
 | **`نوض القلاوي نوض nod al9lawi nod  Moroccan Memes Sound Effect.mp3`** | Non | Son « mème » tiré d'une vidéo | Droits de l'auteur de la vidéo inconnus. | Retirer du dépôt ; si on veut un son de ce genre, l'enregistrer soi-même. |
 | **`Galleria_01.jpg` à `Galleria_04.jpg`** (anciennes faces de cartes) | **Non, plus depuis le 16 nov 2026** (remplacées par `assets/cards/`, voir plus bas) | Scans d'un jeu de cartes espagnoles imprimé ; on lit la mention d'éditeur « MAROC CARTES 61002 » sur certaines cartes | Le dessin traditionnel (modèle Fournier de 1889) est ancien, mais un scan d'un jeu imprimé reproduit le travail d'un éditeur précis, avec sa mention. Risque de réclamation, et refus possible en relecture Apple. | Jeux espagnols du domaine public ou sous licence libre sur Wikimedia Commons (catégorie « Spanish playing cards » : vérifier la licence de chaque fichier, CC0 ou domaine public de préférence), ou redessiner les cartes (SVG). |
-| **`icon.png`** (ancienne icône) | Non, sauf `public/index.html` qui ne s'en sert plus pour les icônes ; **plus utilisé par l'appli depuis le 16 nov 2026** | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes du jeu scanné | Remplacée par le logo L'Carta (voir plus bas). | Retirer du dépôt. |
+| **`icon.png`** (ancienne icône) | Non, sauf `public/index.html` qui ne s'en sert plus pour les icônes ; **plus utilisé par l'appli depuis le 16 nov 2026** | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes du jeu scanné | Remplacée par le logo L'Carta (voir 🟢). | Retirer du dépôt. |
 
 ## 🟡 À vérifier
-
-> **Images générées par IA par Yassir (16 nov 2026)** : la planche des 40 cartes (→ `assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)), l'affiche Sota / Caballo / Rey à Marrakech (→ `assets/brand/affiche.jpg`, plus utilisée par l'appli depuis le 17 nov 2026) et les 5 tables de jeu (→ `assets/tables/`, via [scripts/build-tables.py](scripts/build-tables.py)).
-> **Logo « L'CARTA » fourni par Yassir (17 nov 2026)** : Rey, Sota et Caballo dans un cadre doré (→ `assets/brand/logo-source.png`, icônes, splash, `public/icons/`, logo de l'accueil, via [scripts/build-brand.py](scripts/build-brand.py)). Origine à noter (outil d'IA ?), mêmes vérifications que ci-dessous.
->
-> Création du projet, sans scan ni mention d'éditeur. **Seul point à garder en tête** : noter le nom de l'outil d'IA utilisé et vérifier que ses conditions autorisent un usage commercial (c'est le cas de la plupart des offres payantes ; certaines offres gratuites l'interdisent). Une fois vérifié, ces images passent en 🟢.
 
 | Fichier | Utilisé | Source probable | À faire |
 |---|---|---|---|
@@ -44,6 +39,10 @@ Légende :
 | `freesound_community-flipcard-91468.mp3` | Non | Pixabay | Libre ; peut être retiré du dépôt (non utilisé). |
 | Avatars (images DiceBear, style « Adventurer », chargées depuis api.dicebear.com) | Oui ([PlayerAvatar.js](src/components/PlayerAvatar.js)) | Style « Adventurer » de Lisa Wischofsky, servi par DiceBear | **CC BY 4.0 : le crédit est obligatoire.** Ajouter une ligne « Avatars : Adventurer par Lisa Wischofsky (CC BY 4.0), via DiceBear » dans l'appli (par exemple sous les règles ou dans la page Conditions). |
 | Table marocaine de la Ronda, fonds SVG | Oui ([MoroccanTable.js](src/components/MoroccanTable.js)) | Dessinés en code pour le projet | Création du projet. |
+| Faces des 40 cartes (`assets/cards/deck_0.jpg` à `deck_3.jpg`, via [scripts/build-card-sheets.py](scripts/build-card-sheets.py)) | Oui | Générées par Yassir avec **ChatGPT, offre payante** (16 nov 2026) | Conditions d'OpenAI : les images générées appartiennent à l'utilisateur, usage commercial autorisé. Création du projet, sans scan ni mention d'éditeur. |
+| 5 tables de jeu (`assets/tables/`, via [scripts/build-tables.py](scripts/build-tables.py)) | Oui | ChatGPT, offre payante (16 nov 2026) | Même licence. |
+| Logo « L'CARTA » (`assets/brand/logo-source.png` → icônes, splash, `public/icons/`, logo de l'accueil, via [scripts/build-brand.py](scripts/build-brand.py)) | Oui | ChatGPT, offre payante (17 nov 2026) | Même licence. |
+| Affiche Sota / Caballo / Rey à Marrakech (`assets/brand/affiche.jpg`) | Non, plus depuis le 17 nov 2026 | ChatGPT, offre payante (16 nov 2026) | Même licence ; peut être retirée du dépôt. |
 
 ## Non utilisés dans l'appli : à retirer du dépôt
 
@@ -62,7 +61,7 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 
 ## Avant d'envoyer aux stores
 
-1. Remplacer la musique et `plus_two.mp3` (tableau rouge) ; noter l'outil d'IA utilisé pour les cartes et l'affiche.
+1. Remplacer la musique et `plus_two.mp3` (tableau rouge).
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
 3. Ajouter le crédit DiceBear / Adventurer.
 4. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.

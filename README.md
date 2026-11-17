@@ -182,7 +182,7 @@ Adresse email de contact (`contactEmail`) : **yasschirawi11@gmail.com**, affich�
 
 ## Tables de jeu
 
-Une table par jeu, vue du dessus ([src/components/TableBackground.js](src/components/TableBackground.js)), images générées par IA et préparées par `python scripts/build-tables.py <dossier>` (`assets/tables/`) :
+Une table par jeu, vue du dessus ([src/components/TableBackground.js](src/components/TableBackground.js)), images générées par IA (ChatGPT, offre payante) et préparées par `python scripts/build-tables.py <dossier>` (`assets/tables/`) :
 
 | Jeu | Table |
 |---|---|
