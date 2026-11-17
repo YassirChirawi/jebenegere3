@@ -18,7 +18,7 @@ export default function InviteJoinSheet({ visible, code: linkCode, name, onChang
     const fromLink = !!linkCode;
     const submit = () => {
         const code = linkCode || parseInvite(pasted);
-        if (!code) { setError("Ce lien n'est pas un lien d'invitation Jeben Gere3."); return; }
+        if (!code) { setError("Ce lien n'est pas un lien d'invitation L'Carta."); return; }
         if (!name.trim()) { setError('Choisis un pseudo pour rejoindre la partie.'); return; }
         setError(null);
         onJoin(code, name.trim());

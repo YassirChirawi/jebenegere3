@@ -1,4 +1,6 @@
-# Jeben Gere3
+# L'Carta
+
+*(anciennement Jeben Gere3 : le domaine `jebengere3.fun`, le serveur `jebenegere3.onrender.com` et les identifiants `fun.jebengere3.app` gardent l'ancien nom.)*
 
 Jeux de cartes marocains avec le jeu espagnol de 40 cartes, à plusieurs en ligne, contre des bots ou entre amis dans un salon privé.
 
@@ -117,7 +119,7 @@ Le site est une **appli installable** : icône sur l'écran d'accueil, plein éc
 
 ## Applis mobiles : build iOS et Android (EAS)
 
-Identifiants : **`fun.jebengere3.app`** sur iOS (bundleIdentifier) et sur Android (package). Nom affiché : **Jeben Gere3**. Les icônes et le splash propres aux stores sont dans `assets/brand/` (icône carrée 1024 sans transparence, premier plan de l'icône adaptative Android, splash). Le micro, le stockage et la superposition d'écran sont retirés des permissions Android ; seuls Internet et la vibration restent.
+Identifiants : **`fun.jebengere3.app`** sur iOS (bundleIdentifier) et sur Android (package). Nom affiché : **L'Carta**. Logo, icônes et splash sont dans `assets/brand/`, tous générés depuis le logo carré `logo-source.png` par `python scripts/build-brand.py <logo.png>` : icône carrée 1024 sans transparence (iOS), premier plan de l'icône adaptative Android (logo réduit dans la zone sûre, fond bleu nuit `#020E28`), splash (logo détouré), favicon, icônes du site (`public/icons/`) et logo de l'accueil (`logo.webp`, ~95 Ko). Le micro, le stockage et la superposition d'écran sont retirés des permissions Android ; seuls Internet et la vibration restent.
 
 Profils de [eas.json](eas.json) :
 - `development` : APK de debug (Android) ou build simulateur (iOS) ;

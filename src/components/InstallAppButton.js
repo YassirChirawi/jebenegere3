@@ -48,7 +48,7 @@ export default function InstallAppButton({ style }) {
             return;
         }
         dialog.alert(
-            "Installer Jeben Gere3",
+            "Installer L'Carta",
             "Sur iPhone, dans Safari :\n\n1. Touche le bouton Partager (le carré avec la flèche ⬆️)\n2. Choisis « Sur l'écran d'accueil »\n3. Touche « Ajouter »\n\nL'appli s'ouvrira en plein écran, comme une vraie appli.",
             [{ text: 'OK' }],
         );

@@ -127,7 +127,7 @@ export default function TournamentScreen({ route, navigation }) {
     const share = async () => {
         const res = await shareInvite(id, '', {
             url: tournamentUrl(id),
-            message: `Inscris-toi au tournoi « ${t?.name} » (${GAME_LABEL[t?.gameType]}) sur Jeben Gere3 : ${tournamentUrl(id)}`,
+            message: `Inscris-toi au tournoi « ${t?.name} » (${GAME_LABEL[t?.gameType]}) sur L'Carta : ${tournamentUrl(id)}`,
         });
         if (res === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
     };

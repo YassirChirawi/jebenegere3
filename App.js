@@ -106,7 +106,7 @@ export default function App() {
                 animation: 'fade',
               }}
             >
-              <Stack.Screen name="Home" component={HomeScreen} options={{ title: 'Jeben Gere3', headerShown: false }} />
+              <Stack.Screen name="Home" component={HomeScreen} options={{ title: "L'Carta", headerShown: false }} />
               <Stack.Screen name="Lobby" component={LobbyScreen} options={{ title: 'Salon Privé', headerShown: false }} />
               <Stack.Screen name="Game" component={GameRouter} options={{ title: 'Partie en cours', headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />

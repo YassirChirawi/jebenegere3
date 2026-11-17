@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Jeben Gere3",
+    "name": "L'Carta",
     "slug": "jeben-gere3",
     "scheme": "jebengere3",
     "version": "1.0.0",
@@ -26,7 +26,7 @@
       "package": "fun.jebengere3.app",
       "adaptiveIcon": {
         "foregroundImage": "./assets/brand/adaptive-foreground.png",
-        "backgroundColor": "#1C0F13"
+        "backgroundColor": "#020E28"
       },
       "edgeToEdgeEnabled": true,
       "blockedPermissions": [
@@ -51,8 +51,8 @@
     },
     "web": {
       "favicon": "./assets/brand/favicon.png",
-      "name": "Jeben Gere3",
-      "shortName": "Jeben Gere3",
+      "name": "L'Carta",
+      "shortName": "L'Carta",
       "description": "Hezz2, Ronda, Kdoub et Sota Ghamla : les jeux de cartes marocains, en ligne avec tes amis ou contre des bots.",
       "themeColor": "#1C0F13",
       "backgroundColor": "#1C0F13",

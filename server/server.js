@@ -21,7 +21,7 @@ app.disable('x-powered-by');
 app.use(securityHeaders);
 app.use(cors(corsOptions));
 app.use(express.json({ limit: '20kb' }));
-app.get('/', (_req, res) => res.send('Jeben Gere3 server OK'));
+app.get('/', (_req, res) => res.send("L'Carta server OK"));
 app.get('/version', (_req, res) => res.json(serverInfo()));
 
 // === COMPTES ET PROGRESSION (phase 2) ===
@@ -934,7 +934,7 @@ io.on('connection', (socket) => {
 function start(port = process.env.PORT || 3000) {
     return new Promise((resolve) => {
         server.listen(port, () => {
-            console.log(`🚀 Serveur Jeben Gere3 Multiplayer démarré sur le port ${server.address().port}`);
+            console.log(`🚀 Serveur L'Carta Multiplayer démarré sur le port ${server.address().port}`);
             resolve(server.address().port);
         });
     });

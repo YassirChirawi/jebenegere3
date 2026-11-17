@@ -1,13 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, ImageBackground, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, ImageBackground, ScrollView, Platform } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
     withRepeat,
     withTiming,
     withSequence,
-    withDelay,
-    withSpring,
     Easing,
     FadeIn,
     FadeInDown,
@@ -32,49 +30,12 @@ import accountService, { useAccount } from '../network/accountService';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
+const LOGO = require('../../assets/brand/logo.webp');
 
 // Mode test (web) : ajouter ?test=1 à l'adresse pour démarrer les parties Hezz2 contre l'IA avec des 1, 2 et 7
 // ?test=1 : 1, 2 et 7 en main ; ?test=big : la main commence avec 20 cartes (vérification de l'éventail)
 const TEST_PARAM = Platform.OS === 'web' && typeof window !== 'undefined' ? ((window.location?.search || '').match(/[?&]test=(1|big)(&|$)/) || [])[1] : null;
 const TEST_MODE = TEST_PARAM ? (TEST_PARAM === 'big' ? 'big' : 'specials') : null;
-
-// Logo : trois figures en éventail qui respirent doucement
-function LogoCards() {
-    const sway = useSharedValue(0);
-    const enter = useSharedValue(0);
-    useEffect(() => {
-        enter.value = withDelay(150, withSpring(1, { damping: 12, stiffness: 90 }));
-        sway.value = withRepeat(withTiming(1, { duration: 2600, easing: Easing.inOut(Easing.sin) }), -1, true);
-    }, []);
-    const cards = [
-        { card: { suit: 'Bastos', value: 12 }, base: -18, x: -42 },
-        { card: { suit: 'Copas', value: 11 }, base: 0, x: 0 },
-        { card: { suit: 'Oros', value: 10 }, base: 18, x: 42 },
-    ];
-    return (
-        <View style={styles.logoCards}>
-            {cards.map(({ card, base, x }, i) => (
-                <FanCard key={i} card={card} base={base} x={x} sway={sway} enter={enter} i={i} />
-            ))}
-        </View>
-    );
-}
-
-function FanCard({ card, base, x, sway, enter, i }) {
-    const style = useAnimatedStyle(() => ({
-        transform: [
-            { translateX: x * enter.value },
-            { translateY: (1 - enter.value) * 40 + Math.abs(base) * 0.5 - sway.value * (i === 1 ? 6 : 3) },
-            { rotateZ: `${base * enter.value + (sway.value - 0.5) * 4}deg` },
-        ],
-        opacity: enter.value,
-    }));
-    return (
-        <Animated.View style={[styles.logoCard, { zIndex: i === 1 ? 2 : 1 }, style]}>
-            <CardFace card={card} width={62} height={90} />
-        </Animated.View>
-    );
-}
 
 // Écran d'attente du serveur (Render peut mettre ~30s à se réveiller)
 function ServerLoader() {
@@ -408,10 +369,8 @@ export default function HomeScreen({ navigation }) {
                     {/* Logo */}
                     <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.logo}>
                         <Animated.View style={[{ alignItems: 'center' }, titleStyle]}>
-                            <LogoCards />
-                            <Text style={styles.titleText}>JEBEN</Text>
-                            <Text style={styles.titleHighlight}>GERE3</Text>
-                            <Text style={styles.tagline}>جبن گرعة · Le jeu de cartes marocain</Text>
+                            <Image source={LOGO} style={styles.logoImage} accessibilityLabel="L'Carta" />
+                            <Text style={styles.tagline}>Le jeu de cartes marocain</Text>
                         </Animated.View>
                     </Animated.View>
 
@@ -638,47 +597,15 @@ const styles = StyleSheet.create({
         marginTop: 4,
         marginBottom: 14,
     },
-    logoCards: {
-        height: 104,
-        width: 200,
-        alignItems: 'center',
-        justifyContent: 'flex-end',
-        marginBottom: 6,
-    },
-    logoCard: {
-        position: 'absolute',
-        bottom: 0,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.5,
-        shadowRadius: 6,
-        elevation: 8,
-    },
-    titleText: {
-        fontSize: 44,
-        fontWeight: '900',
-        color: theme.cream,
-        letterSpacing: 8,
-        lineHeight: 48,
-        textShadowColor: 'rgba(0,0,0,0.8)',
-        textShadowOffset: { width: 0, height: 3 },
-        textShadowRadius: 6,
-    },
-    titleHighlight: {
-        fontSize: 52,
-        fontWeight: '900',
-        color: theme.goldLight,
-        letterSpacing: 6,
-        lineHeight: 56,
-        textShadowColor: 'rgba(212,175,55,0.75)',
-        textShadowOffset: { width: 0, height: 0 },
-        textShadowRadius: 18,
+    logoImage: {
+        width: 210,
+        height: 210,
     },
     tagline: {
         color: theme.cream,
         fontSize: 13,
         fontWeight: '700',
-        marginTop: 4,
+        marginTop: 2,
         opacity: 0.9,
         textShadowColor: '#000',
         textShadowRadius: 4,

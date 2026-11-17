@@ -27,8 +27,8 @@ function page(doc, other) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>${esc(doc.title)} · Jeben Gere3</title>
-  <meta name="description" content="${esc(doc.title)} du jeu Jeben Gere3.">
+  <title>${esc(doc.title)} · L'Carta</title>
+  <meta name="description" content="${esc(doc.title)} du jeu L'Carta.">
   <meta name="theme-color" content="#1C0F13">
   <link rel="icon" href="/favicon.ico">
   <style>
@@ -53,7 +53,7 @@ function page(doc, other) {
   <main>
     <header>
       <img src="/icons/icon-192.png" alt="" width="48" height="48">
-      <a href="/">Jeben Gere3</a>
+      <a href="/">L'Carta</a>
     </header>
     <h1>${esc(doc.title)}</h1>
     <p class="updated">Mise à jour : ${esc(doc.updated)}</p>

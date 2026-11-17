@@ -88,11 +88,11 @@ export async function copyInvite(code, url = inviteUrl(code)) {
 /** Partage du téléphone (WhatsApp, SMS…) ; sur ordinateur sans partage : copie du lien. Renvoie 'shared' | 'copied' | 'failed'. */
 export async function shareInvite(code, gameLabel, opts = {}) {
     const url = opts.url || inviteUrl(code);
-    const message = opts.message || `Viens jouer au ${gameLabel} avec moi sur Jeben Gere3 : ${url}`;
+    const message = opts.message || `Viens jouer au ${gameLabel} avec moi sur L'Carta : ${url}`;
     try {
         if (web) {
             if (navigator.share) {
-                await navigator.share({ title: 'Jeben Gere3', text: message, url });
+                await navigator.share({ title: "L'Carta", text: message, url });
                 return 'shared';
             }
             return (await copyInvite(code, url)) ? 'copied' : 'failed';

@@ -198,13 +198,13 @@ test('Ronda 2 contre 2 : équipes sur les sièges pairs / impairs, champion = le
     const final = t.rounds[0][0];
     const room = roomOfMatch(final.id, id);
     const teamA = t.units[final.a].members.map((e) => t.entrants.find((x) => x.id === e).name);
-    assert.deepEqual([room.activePlayers[0].name, room.activePlayers[2].name].sort(), teamA.sort(), 'équipe A aux sièges 0 et 2');
+    assert.deepEqual([room.activePlayers[0].name, room.activePlayers[2].name].sort(), [...teamA].sort(), 'équipe A aux sièges 0 et 2');
     // Le siège 1 (équipe B) abandonne : l'équipe A gagne
     const won = once(list[0], 'tournament_match_over');
     endMatch(room, 1);
     const mo = await won;
     assert.equal(mo.winner, teamA.join(' & '));
-    assert.deepEqual(t.champion.names.sort(), teamA.sort());
+    assert.deepEqual([...t.champion.names].sort(), [...teamA].sort());
     list.forEach((s) => s.close());
 });
 

@@ -1,4 +1,4 @@
-/* Service worker de Jeben Gere3
+/* Service worker de L'Carta
  * - Pages : réseau d'abord (toujours la dernière version), copie en cache si hors ligne.
  * - Code et sons/images (/_expo/static, /assets) : noms uniques à chaque build, donc cache d'abord.
  * - Tout ce qui va vers un autre domaine (serveur de jeu, avatars) n'est jamais touché.
