@@ -44,7 +44,27 @@ function blankUser(name) {
     };
 }
 
+// Classement gardé en mémoire : relu dans la base au plus une fois par minute et par (saison, jeu),
+// et tenu à jour à chaque enregistrement d'un compte (XP, pseudo, portrait, titre) ou suppression.
+const RANKING_TTL_MS = Number(process.env.RANKING_TTL_MS) || 60 * 1000;
+
 function createProgress(store) {
+    const { rankRow, rankRows } = require('./store');
+    const rankingCache = new Map(); // `${sid}:${game}` -> { at, rows (triées) }
+    const byRank = (a, b) => b.xp - a.xp || a.createdAt - b.createdAt;
+    function touchRanking(u) {
+        for (const [key, entry] of rankingCache) {
+            const [sid, game] = key.split(':');
+            const row = rankRow(u, sid, game);
+            entry.rows = entry.rows.filter((r) => r.id !== u.id);
+            if (row.xp > 0) entry.rows.push(row);
+            entry.rows.sort(byRank);
+        }
+    }
+    function dropFromRanking(id) {
+        for (const entry of rankingCache.values()) entry.rows = entry.rows.filter((r) => r.id !== id);
+    }
+
     // Sérialise les écritures par joueur (deux parties qui finissent en même temps)
     const locks = new Map();
     function withUser(id, fn) {
@@ -54,6 +74,7 @@ function createProgress(store) {
             if (!user) return null;
             const out = await fn(user);
             await store.save(user);
+            touchRanking(user);
             return out;
         });
         locks.set(id, run.catch(() => {}));
@@ -163,12 +184,16 @@ function createProgress(store) {
         s[game] = (s[game] || 0) + xp;
     }
 
-    async function seasonRanking(sid, game = 'all') {
-        const users = await store.all();
-        return users
-            .map((u) => ({ u, xp: u.seasons?.[sid]?.[game] || 0 }))
-            .filter((x) => x.xp > 0)
-            .sort((a, b) => b.xp - a.xp || a.u.createdAt - b.u.createdAt);
+    async function seasonRanking(sid, game = 'all', now = Date.now()) {
+        const key = `${sid}:${game}`;
+        let entry = rankingCache.get(key);
+        if (!entry || now - entry.at > RANKING_TTL_MS || now < entry.at) {
+            const rows = store.seasonRows ? await store.seasonRows(sid, game) : rankRows(await store.all(), sid, game);
+            entry = { at: now, rows: rows.sort(byRank) };
+            rankingCache.set(key, entry);
+        }
+        // Même forme qu'avant : { u, xp }, u ne contenant que les champs publics
+        return entry.rows.map((r) => ({ u: r, xp: r.xp }));
     }
 
     // Récompenses des saisons terminées (calculées à la première visite après la fin)
@@ -178,7 +203,7 @@ function createProgress(store) {
         if (!pending.length) return user;
         const results = {};
         for (const sid of pending) {
-            const ranking = await seasonRanking(sid);
+            const ranking = await seasonRanking(sid, 'all', now);
             results[sid] = { rank: ranking.findIndex((x) => x.u.id === user.id) + 1, xp: user.seasons[sid].all };
         }
         await withUser(user.id, (u) => {
@@ -201,7 +226,7 @@ function createProgress(store) {
     async function leaderboard(game = 'all', user = null, now = Date.now()) {
         const season = seasonOf(now);
         const key = GAME_KEYS.includes(game) ? game : 'all';
-        const ranking = await seasonRanking(season.id, key);
+        const ranking = await seasonRanking(season.id, key, now);
         const row = (x, i) => ({ rank: i + 1, name: x.u.name, avatar: x.u.avatar || 0, title: publicInfo(x.u).title, xp: x.xp });
         const meIdx = user ? ranking.findIndex((x) => x.u.id === user.id) : -1;
         return {
@@ -338,6 +363,7 @@ function createProgress(store) {
     async function deleteAccount(userId) {
         await (locks.get(userId) || Promise.resolve());
         locks.delete(userId);
+        dropFromRanking(userId);
         return store.remove(userId);
     }
 

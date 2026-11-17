@@ -18,6 +18,13 @@ const lower = (s) => String(s || '').trim().toLowerCase();
 const REPORT_TTL_MS = 183 * 24 * 3600 * 1000;
 const fresh = (r, now = Date.now()) => r && now - r.at < REPORT_TTL_MS;
 
+/** Ligne légère du classement d'une saison (sans tout le compte). */
+const rankRow = (u, sid, game) => ({
+    id: u.id, name: u.name, avatar: u.avatar || 0, title: u.title || null, createdAt: u.createdAt || 0,
+    xp: Number(u.seasons?.[sid]?.[game]) || 0,
+});
+const rankRows = (users, sid, game) => users.map((u) => rankRow(u, sid, game)).filter((r) => r.xp > 0);
+
 function memoryStore(initial = [], initialReports = [], initialTournaments = []) {
     const byId = new Map(initial.map((u) => [u.id, u]));
     const tournaments = new Map(initialTournaments.map((t) => [t.id, t]));
@@ -33,6 +40,7 @@ function memoryStore(initial = [], initialReports = [], initialTournaments = [])
         async save(user) { byId.set(user.id, user); return user; },
         async remove(id) { return byId.delete(id); },
         async all() { return [...byId.values()]; },
+        async seasonRows(sid, game) { return rankRows([...byId.values()], sid, game); },
         async addReport(r) { reports = [...reports.filter((x) => fresh(x)), r]; return r; },
         async listReports() { reports = reports.filter((x) => fresh(x)); return [...reports]; },
         async deleteReport(id) { const n = reports.length; reports = reports.filter((x) => x.id !== id); return reports.length < n; },
@@ -155,6 +163,17 @@ function pgStore(url, PoolImpl) {
             const r = await pool.query('SELECT data FROM players');
             return r.rows.map((x) => x.data);
         },
+        // Classement : seuls les champs utiles, et seulement les joueurs qui ont de l'XP dans la saison
+        async seasonRows(sid, game) {
+            await ready;
+            const r = await pool.query(
+                `SELECT id, data->>'name' AS name, data->>'avatar' AS avatar, data->>'title' AS title,
+                        data->>'createdAt' AS created, data->'seasons'->$1->>$2 AS xp
+                 FROM players WHERE (data->'seasons'->$1->>$2)::numeric > 0`,
+                [String(sid), String(game)],
+            );
+            return r.rows.map((x) => ({ id: x.id, name: x.name, avatar: Number(x.avatar) || 0, title: x.title || null, createdAt: Number(x.created) || 0, xp: Number(x.xp) || 0 }));
+        },
         async addReport(r) {
             await ready;
             await purge();
@@ -222,4 +241,4 @@ function createStore() {
     return fileStore(process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'players.json'));
 }
 
-module.exports = { createStore, memoryStore, fileStore, pgStore, databaseUrl, REPORT_TTL_MS };
+module.exports = { createStore, memoryStore, fileStore, pgStore, databaseUrl, rankRow, rankRows, REPORT_TTL_MS };

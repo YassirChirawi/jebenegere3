@@ -106,6 +106,27 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
   - en-têtes de sécurité, vraie IP du joueur derrière le proxy Render (limite d'essais de connexion) ;
   - anti-flood : au-delà de 25 messages par seconde, les messages sont ignorés ; au-delà de 120, la connexion est coupée.
 
+## Capacité du serveur et limites
+
+**Test de charge** (`cd server && node scripts/loadtest/load_run.js 25,50,100,200,300`) : des salons privés de Hezz2 à 4 vrais joueurs (sockets) qui jouent comme des humains (1 à 2,5 s par coup) et relancent une manche dès qu'elle finit. Mesuré le 17 nov 2026 sur un portable (Intel i7-1165G7), serveur seul dans son processus :
+
+| Joueurs connectés | Parties en cours | Processeur (moyenne / pic, % d'un cœur) | Mémoire | Coups par seconde | Réponse à un coup (médiane / 95 %) |
+|---|---|---|---|---|---|
+| 100 | 25 | 2,4 % / 11 % | 48 Mo | 13 | 1 / 3 ms |
+| 200 | 50 | 4,4 % / 13 % | 56 Mo | 25 | 1 / 3 ms |
+| 400 | 100 | 3,9 % / 12 % | 68 Mo | 51 | 1 / 2 ms |
+| 800 | 200 | 7,6 % / 17 % | 89 Mo | 102 | 1 / 4 ms |
+| 1 200 | 300 | 9,2 % / 24 % | 99 Mo | 150 | 1 / 3 ms |
+
+Lecture pour Render :
+- **Offre gratuite** (0,1 processeur, 512 Mo, processeur plus lent qu'un portable récent) : le processeur est la limite, pas la mémoire. Estimation : **environ 400 à 600 joueurs en même temps (100 à 150 parties)** avant que les coups ne prennent du retard. S'y ajoute la mise en veille après 15 min sans visite.
+- **Offre Starter** (0,5 processeur, environ 7 $/mois, sans mise en veille) : plusieurs milliers de joueurs.
+- Limites du test : en local (sans le délai d'Internet), Hezz2 seulement (la Ronda, le Kdoub et la Sota envoient une vue par joueur, un peu plus coûteuse), sans compte ni base de données.
+
+**Base de données** : un compte pèse 5 à 10 Ko. Chaque connexion d'un joueur avec compte, chaque fin de partie et chaque enregistrement comptent pour 1 à 3 opérations sur la base ; surveiller le quota d'opérations de l'offre Prisma (onglet Usage). Le **classement** est gardé en mémoire : la base n'est relue qu'une fois par minute au plus (par saison et par jeu, `RANKING_TTL_MS`), avec une requête qui ne lit que le pseudo, le portrait, le titre et l'XP de la saison ; il est tenu à jour à chaque fin de partie, changement de portrait ou suppression de compte.
+
+**Limites fixées dans le jeu** : joueurs par partie (Hezz2 2 à 4, Ronda 2 ou 4, Kdoub 3 à 6, Sota 4 à 6) ; 6 spectateurs par salon ; 10 s d'attente en partie en ligne puis bots ; tournois de 4 ou 8, 300 ouverts au plus, jusqu'à 30 jours à l'avance, palmarès des 20 derniers ; 5 appareils connectés par compte ; historique des 30 dernières parties ; 8 essais de mot de passe ratés par 10 min ; 25 messages par seconde par joueur (exclusion au-delà de 120) ; signalements gardés 6 mois. Les parties en cours sont en mémoire : un redémarrage les coupe (les tournois reprennent).
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
