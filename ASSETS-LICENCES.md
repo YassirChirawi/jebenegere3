@@ -14,8 +14,6 @@ Légende :
 | Fichier | Utilisé | Source probable | Pourquoi | Alternative libre proposée |
 |---|---|---|---|---|
 | **`FREE DYSTINCT X TIF X CHAABI TYPE BEAT - ZINA (1).mp3`** (musique d'ambiance) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | « Type beat » gratuit publié sur YouTube par un beatmaker | Ces beats « FREE » sont en général libres **seulement pour un usage non commercial et avec crédit**. Une diffusion sur les stores demande l'accord écrit du beatmaker (ou l'achat d'une licence). Le nom de deux artistes dans le titre n'arrange rien. | Musique « moroccan », « chaabi » ou « oriental » sous licence Pixabay (pixabay.com/music, usage commercial gratuit sans crédit), ou une boucle composée pour le jeu. Sinon, obtenir une licence écrite du beatmaker. |
-| **`plus_two.mp3`** (son du « +2 » en Hezz2) | Oui (`plus_two`) | Extrait de 3 s de la chanson de Khalid Aouni « Zid jouj ya moul rouge » (créé par `extract_clip.js`) | Extrait d'une chanson commerciale : droits de l'artiste et de son label, même pour 3 secondes. | Enregistrer soi-même « Zid jouj ! » (voix de Yassir ou d'un ami), ou utiliser le son synthétique `penalty.wav` déjà dans le jeu. |
-| **`خالد العوني زيد جوج يا مول الروج زيد جوج.mp3`** | Non (source de `plus_two.mp3`) | Chanson complète de Khalid Aouni | Œuvre protégée, présente en entier dans le dépôt. | Retirer du dépôt (et de l'historique Git si le dépôt est public). |
 | **`نوض القلاوي نوض nod al9lawi nod  Moroccan Memes Sound Effect.mp3`** | Non | Son « mème » tiré d'une vidéo | Droits de l'auteur de la vidéo inconnus. | Retirer du dépôt ; si on veut un son de ce genre, l'enregistrer soi-même. |
 | **`Galleria_01.jpg` à `Galleria_04.jpg`** (anciennes faces de cartes) | **Non, plus depuis le 16 nov 2026** (remplacées par `assets/cards/`, voir plus bas) | Scans d'un jeu de cartes espagnoles imprimé ; on lit la mention d'éditeur « MAROC CARTES 61002 » sur certaines cartes | Le dessin traditionnel (modèle Fournier de 1889) est ancien, mais un scan d'un jeu imprimé reproduit le travail d'un éditeur précis, avec sa mention. Risque de réclamation, et refus possible en relecture Apple. | Jeux espagnols du domaine public ou sous licence libre sur Wikimedia Commons (catégorie « Spanish playing cards » : vérifier la licence de chaque fichier, CC0 ou domaine public de préférence), ou redessiner les cartes (SVG). |
 | **`icon.png`** (ancienne icône) | Non, sauf `public/index.html` qui ne s'en sert plus pour les icônes ; **plus utilisé par l'appli depuis le 16 nov 2026** | Visuel au format Instagram 1080×1350 (probablement Canva), avec les cartes du jeu scanné | Remplacée par le logo L'Carta (voir 🟢). | Retirer du dépôt. |
@@ -31,7 +29,7 @@ Légende :
 
 | Fichier | Utilisé | Source | Licence |
 |---|---|---|---|
-| `assets/sfx/*.wav` (25 bruitages : cartes, darba, kdoub, victoire…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
+| `assets/sfx/*.wav` (26 bruitages : cartes, darba, kdoub, victoire, « +2 » du Hezz2…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
 | `alexis_gaming_cam-vinyl-stop-342938.mp3` (son « passe ton tour ») | Oui (`skip`) | Pixabay (nommage Pixabay : auteur, titre, numéro) | Licence Pixabay : usage commercial gratuit, sans crédit obligatoire. Garder la page de téléchargement en capture. |
 | `universfield-very-infectious-laughter-117727.mp3` (rire) | Oui (`laugh`) | Pixabay (auteur Universfield) | Licence Pixabay, même remarque. |
 | `freesound_community-080205_life-lost-game-over-89697.mp3` | Oui (`game_over`) | Pixabay, compte « freesound_community » (sons repris de Freesound) | Licence Pixabay, même remarque. |
@@ -61,7 +59,7 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 
 ## Avant d'envoyer aux stores
 
-1. Remplacer la musique et `plus_two.mp3` (tableau rouge).
+1. Remplacer la musique (tableau rouge). Le son « +2 » est fait (17 nov 2026) : l'extrait de la chanson de Khalid Aouni est remplacé par un son de synthèse (`plus_two` dans [scripts/generate-sfx.js](scripts/generate-sfx.js)), et la chanson, l'extrait et `extract_clip.js` sont retirés du dépôt (ils restent dans l'historique Git).
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
 3. Ajouter le crédit DiceBear / Adventurer.
 4. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.

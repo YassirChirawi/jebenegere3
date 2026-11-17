@@ -40,7 +40,7 @@ const SFX = {
     vrai:        { src: require('../../assets/sfx/vrai.wav'),        volume: 0.7 },
     sota:        { src: require('../../assets/sfx/sota.wav'),        volume: 0.85 },
     // Sons "culturels" existants
-    plus_two:    { src: require('../../assets/plus_two.mp3'),        volume: 1.0 },
+    plus_two:    { src: require('../../assets/sfx/plus_two.wav'),    volume: 0.8 },
     skip:        { src: require('../../assets/alexis_gaming_cam-vinyl-stop-342938.mp3'), volume: 0.8 },
     laugh:       { src: require('../../assets/universfield-very-infectious-laughter-117727.mp3'), volume: 0.7 },
     game_over:   { src: require('../../assets/freesound_community-080205_life-lost-game-over-89697.mp3'), volume: 0.7 },

@@ -424,6 +424,45 @@ const sounds = {
         [[63, 0.2], [66, 0.32], [70, 0.44]].forEach(([n, t]) => mixInto(d, bell(NOTE(n + 12), 1.0, 0.45, 0.4), t, 0.35));
         return d;
     },
+
+    // « +2 » en Hezz2 (remplace l'extrait de chanson) : dum-tak de darbouka, puis deux coups de cuivres qui montent
+    // (gardé en dernier : le générateur aléatoire est partagé, les autres sons restent identiques)
+    plus_two() {
+        const d = buf(1.1);
+        const dum = (at, f0) => {
+            const x = buf(0.35);
+            for (let i = 0; i < x.length; i++) {
+                const t = i / SR;
+                x[i] = Math.sin(2 * Math.PI * (f0 - 70 * Math.min(1, t / 0.08)) * t) * Math.exp(-t / 0.12) * Math.min(1, t / 0.002);
+            }
+            mixInto(d, x, at, 0.9);
+        };
+        const tak = (at) => {
+            const x = buf(0.09);
+            for (let i = 0; i < x.length; i++) x[i] = noise() * Math.exp(-(i / SR) / 0.015);
+            mixInto(d, lowpass(highpass(x, 1800), 7000), at, 0.55);
+        };
+        // Cuivre : dents de scie un peu désaccordées, filtre qui s'ouvre puis se referme
+        const stab = (at, notes, dur) => {
+            const x = buf(dur);
+            for (let i = 0; i < x.length; i++) {
+                const t = i / SR;
+                const env = Math.min(1, t / 0.012) * Math.exp(-t / (dur * 0.45));
+                let v = 0;
+                for (const n of notes) for (const det of [-0.004, 0.004]) {
+                    const ph = (NOTE(n) * (1 + det) * t) % 1;
+                    v += 2 * ph - 1;
+                }
+                x[i] = v * env;
+            }
+            mixInto(d, lowpass(x, (t) => 700 + 3200 * Math.exp(-t / 0.09)), at, 0.32);
+        };
+        dum(0, 190); tak(0.14); dum(0.21, 170);
+        stab(0.3, [62, 69, 74], 0.22);   // ré
+        stab(0.5, [65, 72, 77], 0.5);    // fa, plus haut et plus long : « jouj ! »
+        mixInto(d, bell(NOTE(89), 0.5, 0.18, 0.6), 0.52, 0.25);
+        return d;
+    },
 };
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
