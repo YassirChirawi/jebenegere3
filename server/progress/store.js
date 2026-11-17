@@ -1,7 +1,7 @@
 /**
  * Stockage des comptes joueurs.
- * - DATABASE_URL défini : PostgreSQL (une table `players`, données en JSONB). Recommandé sur Render,
- *   dont le disque est effacé à chaque redéploiement.
+ * - Adresse PostgreSQL trouvée (voir databaseUrl) : PostgreSQL (une table `players`, données en JSONB).
+ *   Recommandé sur Render, dont le disque est effacé à chaque redéploiement.
  * - Sinon : fichier JSON (DATA_FILE, par défaut server/data/players.json), pratique en local.
  * - STORE=memory : en mémoire (tests).
  *
@@ -195,10 +195,31 @@ function pgStore(url, PoolImpl) {
     };
 }
 
+/**
+ * Adresse de la base : DATABASE_URL, sinon une variable copiée telle quelle depuis Vercel / Prisma
+ * (préfixée, par exemple LCARTAA_DATABASE_URL_POOLED). On préfère la connexion « pooled ».
+ * Renvoie { name, url } (nom de la variable, pour le journal) ou null.
+ */
+function databaseUrl(env = process.env) {
+    const ok = (v) => typeof v === 'string' && /^postgres(ql)?:\/\//.test(v.trim().replace(/^"|"$/g, ''));
+    const clean = (v) => v.trim().replace(/^"|"$/g, '');
+    if (ok(env.DATABASE_URL)) return { name: 'DATABASE_URL', url: clean(env.DATABASE_URL) };
+    const names = Object.keys(env).sort();
+    for (const suffix of ['DATABASE_URL_POOLED', 'DATABASE_URL', 'POSTGRES_URL', 'PRISMA_DATABASE_URL']) {
+        const name = names.find((n) => n.endsWith(`_${suffix}`) && ok(env[n]));
+        if (name) return { name, url: clean(env[name]) };
+    }
+    return null;
+}
+
 function createStore() {
     if (process.env.STORE === 'memory') return memoryStore();
-    if (process.env.DATABASE_URL) return pgStore(process.env.DATABASE_URL);
+    const db = databaseUrl();
+    if (db) {
+        console.log(`[progress] base PostgreSQL : variable ${db.name}`);
+        return pgStore(db.url);
+    }
     return fileStore(process.env.DATA_FILE || path.join(__dirname, '..', 'data', 'players.json'));
 }
 
-module.exports = { createStore, memoryStore, fileStore, pgStore, REPORT_TTL_MS };
+module.exports = { createStore, memoryStore, fileStore, pgStore, databaseUrl, REPORT_TTL_MS };
