@@ -21,6 +21,12 @@ class SocketService {
             (this.infoListeners || []).forEach((fn) => fn(info));
         });
 
+        // Joueurs en ligne (nombre de connectés, parties en cours, recherches) : affiché sur l'accueil
+        this.socket.on('online_stats', (s) => {
+            this.onlineStats = s;
+            (this.onlineListeners || []).forEach((fn) => fn(s));
+        });
+
         this.socket.on('connect', () => {
             console.log('Connecté au serveur Socket.io avec ID:', this.socket.id);
             this._sendAuth(); // compte joueur : ré-authentification à chaque (re)connexion
@@ -99,6 +105,12 @@ class SocketService {
 
     supportsGame(game) {
         return game === 'hezz2' || !!this.serverInfo?.games?.includes(game);
+    }
+
+    onOnlineStats(callback) {
+        this.onlineListeners = [...(this.onlineListeners || []), callback];
+        if (this.onlineStats) callback(this.onlineStats);
+        return () => { this.onlineListeners = (this.onlineListeners || []).filter((f) => f !== callback); };
     }
 
     onServerInfo(callback) {

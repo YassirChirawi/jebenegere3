@@ -105,7 +105,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -399,6 +399,30 @@ function makeBots(roomId, count, startIndex = 0) {
 }
 
 // === MATCHMAKING ===
+// Joueurs en ligne (accueil) : connectés, joueurs en partie, parties en cours, recherches par jeu et taille.
+// Envoyé à tous quand ça change, au plus toutes les 5 s (et tout de suite à chaque nouvelle connexion).
+function onlineStats() {
+    let playing = 0, games = 0;
+    for (const r of Object.values(rooms)) {
+        if (!r.gameState || getEngine(r.gameType).isOver(r.gameState)) continue;
+        const humans = r.activePlayers.filter((p) => !p.isBot).length;
+        if (!humans) continue;
+        games += 1;
+        playing += humans;
+    }
+    const searching = {};
+    for (const [key, q] of Object.entries(matchmakingQueues)) if (q.length) searching[key] = q.length;
+    return { online: io.engine.clientsCount, playing, games, searching };
+}
+let lastOnline = '';
+const onlineTimer = setInterval(() => {
+    const s = onlineStats();
+    const json = JSON.stringify(s);
+    if (json === lastOnline) return;
+    lastOnline = json;
+    io.emit('online_stats', s);
+}, Number(process.env.ONLINE_STATS_MS) || 5000);
+
 const matchmakingTimer = setInterval(() => {
     const now = Date.now();
     for (const key in matchmakingQueues) {
@@ -527,6 +551,7 @@ io.on('connection', (socket) => {
     tournaments.attach(socket);
     console.log(`Nouvel utilisateur connecté: ${socket.id}`);
     socket.emit('server_info', serverInfo());
+    socket.emit('online_stats', onlineStats());
 
     // Compte : le client envoie son jeton (ou null pour se déconnecter)
     socket.on('auth', async (data, callback) => {
@@ -944,6 +969,7 @@ function start(port = process.env.PORT || 3000) {
 
 function stop() {
     clearInterval(matchmakingTimer);
+    clearInterval(onlineTimer);
     tournaments.stop();
     store.flushNow && store.flushNow();
     Object.values(rooms).forEach((r) => { if (r.timerInterval) clearInterval(r.timerInterval); clearTimeout(r.countdownTimer); });

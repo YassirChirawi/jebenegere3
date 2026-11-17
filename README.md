@@ -106,6 +106,12 @@ L'application vérifie la version du serveur à chaque connexion : le serveur en
   - en-têtes de sécurité, vraie IP du joueur derrière le proxy Render (limite d'essais de connexion) ;
   - anti-flood : au-delà de 25 messages par seconde, les messages sont ignorés ; au-delà de 120, la connexion est coupée.
 
+## Joueurs en ligne
+
+Sur l'accueil, au-dessus de **JOUER EN LIGNE** : « 🟢 12 joueurs en ligne · 3 parties en cours » (connectés au serveur, et parties en cours avec au moins un humain ; les bots ne comptent pas). Dans le menu **Jouer en ligne**, une pastille verte sur une taille indique combien de joueurs attendent déjà une partie de ce jeu à cette taille : la choisir lance la partie tout de suite.
+
+Côté serveur : événement `online_stats` `{ online, playing, games, searching: { 'hezz2:4': 2, … } }`, envoyé à la connexion puis à tous quand ça change, au plus toutes les 5 s (`ONLINE_STATS_MS`). Fonction annoncée : `online_count` (sans elle, l'accueil n'affiche rien).
+
 ## Capacité du serveur et limites
 
 **Test de charge** (`cd server && node scripts/loadtest/load_run.js 25,50,100,200,300`) : des salons privés de Hezz2 à 4 vrais joueurs (sockets) qui jouent comme des humains (1 à 2,5 s par coup) et relancent une manche dès qu'elle finit. Mesuré le 17 nov 2026 sur un portable (Intel i7-1165G7), serveur seul dans son processus :

@@ -87,6 +87,7 @@ export default function HomeScreen({ navigation }) {
     const [searchSeconds, setSearchSeconds] = useState(0);
     const [searchStatus, setSearchStatus] = useState(null); // null | 'found' | 'bots'
     const [serverInfo, setServerInfo] = useState(socketService.serverInfo);
+    const [online, setOnline] = useState(socketService.onlineStats || null);
     const [outdated, setOutdated] = useState(false);
     const matchUnsub = useRef(null);
     const searchTimer = useRef(null);
@@ -104,6 +105,7 @@ export default function HomeScreen({ navigation }) {
             setHasConnected(true);
         });
         const offDisconnect = socketService.onDisconnect(() => setIsConnected(false));
+        const offOnline = socketService.onOnlineStats(setOnline);
         const offInfo = socketService.onServerInfo((info) => {
             setServerInfo(info);
             setOutdated(false);
@@ -144,6 +146,7 @@ export default function HomeScreen({ navigation }) {
             offConnect();
             offDisconnect();
             offInfo();
+            offOnline();
             offAudio();
             stopSearchUi();
         };
@@ -325,7 +328,11 @@ export default function HomeScreen({ navigation }) {
 
     const toggleMenu = (m) => setMenu((cur) => (cur === m ? null : m));
 
-    const SizePicker = ({ onPick, color }) => (
+    // Joueurs qui cherchent une partie de ce jeu et de cette taille en ce moment
+    const searchingFor = (n) => online?.searching?.[`${game}:${n}`] || 0;
+    const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+
+    const SizePicker = ({ onPick, color, showSearching }) => (
         <Animated.View entering={FadeInDown.springify().damping(15)} style={[styles.sizeMenu, { borderColor: color }]}>
             <View style={styles.sizeHeader}>
                 <PressableScale onPress={() => setMenu(null)} style={styles.sizeBack} hitSlop={8}>
@@ -338,9 +345,15 @@ export default function HomeScreen({ navigation }) {
                     <PressableScale key={n} onPress={() => onPick(n)} style={[styles.sizeBtn, { backgroundColor: color }]}>
                         <Text style={styles.sizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>
                         <Text style={styles.sizeIcons}>{game === 'ronda' ? selected.sizeLabel(n) : '👤'.repeat(n)}</Text>
+                        {showSearching && searchingFor(n) > 0 && (
+                            <Text style={styles.sizeSearching} numberOfLines={1} accessibilityLabel={`${searchingFor(n)} en recherche`}>{searchingFor(n)}</Text>
+                        )}
                     </PressableScale>
                 ))}
             </View>
+            {showSearching && selected.sizes.some((n) => searchingFor(n) > 0) && (
+                <Text style={styles.sizeLegend}>🟢 = joueurs qui attendent déjà : choisis cette taille pour jouer tout de suite</Text>
+            )}
         </Animated.View>
     );
 
@@ -453,8 +466,17 @@ export default function HomeScreen({ navigation }) {
                             </Animated.View>
                         ) : (
                             <>
+                                {isConnected && online && (
+                                    <View style={styles.onlineRow} accessibilityLabel="Joueurs en ligne">
+                                        <View style={styles.onlineDot} />
+                                        <Text style={styles.onlineText}>
+                                            {plural(online.online, 'joueur')} en ligne
+                                            {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
+                                        </Text>
+                                    </View>
+                                )}
                                 <GameButton title={!isConnected ? '⏳ SERVEUR EN RÉVEIL…' : outdated ? 'EN LIGNE INDISPONIBLE' : `JOUER EN LIGNE · ${selected.label.toUpperCase()} ${menu === 'online' ? '▴' : '▾'}`} icon={isConnected ? '🌍' : undefined} variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected || outdated} style={{ marginTop: 16 }} />
-                                {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" />}
+                                {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" showSearching />}
 
                                 <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
                                 {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
@@ -727,6 +749,11 @@ const styles = StyleSheet.create({
         letterSpacing: 1,
         marginBottom: 8,
     },
+    sizeSearching: { position: 'absolute', top: -8, right: -8, backgroundColor: '#22C55E', color: '#06260F', fontSize: 11, fontWeight: '900', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 9, overflow: 'hidden', borderWidth: 1.5, borderColor: '#FFF7D6' },
+    sizeLegend: { color: theme.cream, fontSize: 11, opacity: 0.85, textAlign: 'center', marginTop: 8 },
+    onlineRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 14, marginBottom: -6 },
+    onlineDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#22C55E', shadowColor: '#22C55E', shadowOpacity: 0.9, shadowRadius: 4 },
+    onlineText: { color: theme.cream, fontSize: 12, fontWeight: '700', opacity: 0.9 },
     sizeRow: {
         flexDirection: 'row',
         gap: 10,
