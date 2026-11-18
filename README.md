@@ -174,7 +174,7 @@ Aucun secret n'est dans le dépôt : les certificats et clés de signature sont 
 
 Rien n'est publié : le code est prêt, il reste les comptes et les envois.
 
-1. **Avant tout** : remplacer les fichiers 🔴 de [ASSETS-LICENCES.md](ASSETS-LICENCES.md) (il reste la musique).
+1. **Avant tout** : remplacer les fichiers 🔴 de [ASSETS-LICENCES.md](ASSETS-LICENCES.md) (la musique et le son « +2 » sont faits ; il reste à vérifier les fichiers 🟡).
 2. Redéployer le serveur Render (suppression de compte, modération du chat) et vérifier https://jebengere3.fun/privacy et /terms.
 3. Créer les comptes : **Apple Developer, 99 $ par an** (developer.apple.com, validation en 1 à 2 jours, plus pour une entreprise) ; **Google Play Console, 25 $ une seule fois** (play.google.com/console, vérification d'identité de quelques jours).
 4. Builds de production : `eas build --profile production --platform all` (voir la section « Applis mobiles » ci-dessus).
@@ -361,4 +361,4 @@ src/
 
 Chaque moteur expose la même interface : `init`, `apply(state, joueur, action)`, `timerFor`, `onTimeout`, `botActions`, et en option `viewFor`, qui masque les mains adverses pour chaque joueur. Ajouter un jeu revient à écrire un moteur et à l'enregistrer dans `engines/index.js`.
 
-Les sons sont générés par `node scripts/generate-sfx.js`. Le script écrit des fichiers WAV dans `assets/sfx/`, y compris le « +2 » du Hezz2 (`plus_two.wav` : dum-tak de darbouka et deux coups de cuivres, qui remplace depuis le 17 nov 2026 l'extrait de chanson).
+La musique d'ambiance du menu (`assets/music/chaabi.mp3`, boucle de 32,5 s, 382 Ko) est composée et synthétisée par `node scripts/generate-music.js` : rythme maqsoum à la darbouka, bendir, basse, riff d'oud, mélodie au violon en mode hijaz sur ré, 118 battements par minute, encodée en MP3 avec le ffmpeg de `@ffmpeg-installer/ffmpeg`. Les sons sont générés par `node scripts/generate-sfx.js`. Le script écrit des fichiers WAV dans `assets/sfx/`, y compris le « +2 » du Hezz2 (`plus_two.wav` : dum-tak de darbouka et deux coups de cuivres, qui remplace depuis le 17 nov 2026 l'extrait de chanson).
