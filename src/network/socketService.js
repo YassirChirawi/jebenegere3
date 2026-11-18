@@ -246,6 +246,13 @@ class SocketService {
     onTimerTick(callback) { return this._listen('timer_tick', callback); }
     onPlayerReaction(callback) { return this._listen('player_reaction_broadcast', callback); }
     onActionRejected(callback) { return this._listen('action_rejected', callback); }
+    onRoomGone(callback) { return this._listen('room_gone', callback); }
+
+    // La partie existe-t-elle encore, avec ma place ? (après une reconnexion)
+    roomCheck(roomId, callback) {
+        if (!this.socket?.connected || !this.supports('room_check')) return;
+        this.socket.timeout(5000).emit('room_check', { roomId }, (err, r) => { if (!err) callback(r); });
+    }
     onBackToLobby(callback) { return this._listen('back_to_lobby', callback); }
     onChatRejected(callback) { return this._listen('chat_rejected', callback); }
     onPlayerLeft(callback) { return this._listen('player_left', callback); }

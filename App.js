@@ -17,6 +17,7 @@ import LegalScreen from './src/screens/LegalScreen';
 import TournamentsScreen from './src/screens/TournamentsScreen';
 import TournamentScreen from './src/screens/TournamentScreen';
 import TournamentMatchSheet from './src/components/TournamentMatchSheet';
+import RoomGuard from './src/components/RoomGuard';
 import ProgressToaster from './src/components/ProgressToaster';
 import accountService from './src/network/accountService';
 import audioService from './src/network/audioService';
@@ -55,6 +56,7 @@ function GameRouter(props) {
       <StartCountdown initialState={props.route?.params?.initialGameState} gameType={type} />
       <PlayerLeftBanner />
       <TournamentMatchSheet navigation={props.navigation} roomId={roomId} />
+      <RoomGuard navigation={props.navigation} roomId={roomId} tournamentId={props.route?.params?.initialGameState?.tournament?.id} />
     </View>
   );
 }

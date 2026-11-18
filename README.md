@@ -118,6 +118,15 @@ Sur l'accueil, au-dessus de **JOUER EN LIGNE** : « 🟢 12 joueurs en ligne · 
 
 Côté serveur : événement `online_stats` `{ online, playing, games, searching: { 'hezz2:4': 2, … } }`, envoyé à la connexion puis à tous quand ça change, au plus toutes les 5 s (`ONLINE_STATS_MS`). Fonction annoncée : `online_count` (sans elle, l'accueil n'affiche rien).
 
+## Coupures réseau et redémarrages du serveur
+
+- **Micro-coupure** (réseau mobile, appli en arrière-plan, moins de 2 min) : la connexion est retrouvée telle quelle (`connectionStateRecovery` de Socket.io), le joueur garde sa place et reçoit les coups manqués.
+- **Coupure plus longue en pleine partie** : sa place est gardée **45 s** (`RECONNECT_GRACE_MS`), le chrono joue pour lui ; ensuite il est remplacé (bot, ou forfait à 2 et en tournoi). Un départ volontaire (bouton Quitter) reste immédiat.
+- **Partie disparue** (serveur redémarré par un déploiement Render ou une panne, ou place perdue) : au premier coup joué, ou dès la reconnexion, l'appli affiche « Partie interrompue » au lieu d'une table figée. En tournoi, le bouton ramène à la page du tournoi : le match est relancé dès que les deux camps y sont (sinon le joueur était compté absent, puis forfait au bout de 3 min). La partie interrompue recommence de zéro.
+- **Erreur dans un moteur de jeu** : l'action est refusée et l'erreur est écrite dans le journal, sans arrêter le serveur (qui couperait toutes les parties).
+- **Conseil** : éviter de redéployer Render pendant un tournoi ou un test en cours.
+- Test de robustesse du moteur de Ronda : `cd server && node scripts/fuzz-ronda.js 300 4` (parties au hasard avec annonces, dénonciations et temps écoulés).
+
 ## Capacité du serveur et limites
 
 **Test de charge** (`cd server && node scripts/loadtest/load_run.js 25,50,100,200,300`) : des salons privés de Hezz2 à 4 vrais joueurs (sockets) qui jouent comme des humains (1 à 2,5 s par coup) et relancent une manche dès qu'elle finit. Mesuré le 17 nov 2026 sur un portable (Intel i7-1165G7), serveur seul dans son processus :

@@ -82,7 +82,13 @@ const io = new Server(server, {
     // Refuse aussi les connexions WebSocket venant d'un site non autorisé
     allowRequest: (req, cb) => cb(null, isAllowedOrigin(req.headers.origin)),
     maxHttpBufferSize: 64 * 1024,
+    // Micro-coupure (réseau mobile, appli en arrière-plan) : le joueur retrouve la même connexion,
+    // donc sa place à la table, et reçoit les messages manqués
+    connectionStateRecovery: { maxDisconnectionDuration: 2 * 60 * 1000, skipMiddlewares: true },
 });
+// Après une coupure en pleine partie, on garde la place du joueur ce temps-là avant de le remplacer
+// (le chrono continue de jouer pour lui) ; un départ volontaire est immédiat
+const RECONNECT_GRACE_MS = process.env.RECONNECT_GRACE_MS !== undefined ? Number(process.env.RECONNECT_GRACE_MS) : 45000;
 const limitSocket = socketRateLimit();
 
 /**
@@ -105,7 +111,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -264,7 +270,13 @@ function applyAction(roomId, playerIndex, action) {
     if (!room || !room.gameState) return false;
     const engine = getEngine(room.gameType);
     const prev = room.gameState;
-    const next = engine.apply(prev, playerIndex, action);
+    let next;
+    try {
+        next = engine.apply(prev, playerIndex, action);
+    } catch (e) {
+        console.error(`[${roomId}] action refusée après une erreur du moteur ${room.gameType}`, action, e);
+        return false;
+    }
     if (next === prev) return false;
     commitState(roomId, prev, next);
     return true;
@@ -368,7 +380,12 @@ function resetTimer(roomId) {
                     room.afkCount = room.afkCount || {};
                     room.afkCount[late] = (room.afkCount[late] || 0) + 1;
                 }
-                const next = engine.onTimeout(prev);
+                let next = prev;
+                try {
+                    next = engine.onTimeout(prev);
+                } catch (e) {
+                    console.error(`[${roomId}] erreur du moteur ${room.gameType} au temps écoulé`, e);
+                }
                 if (next !== prev) commitState(roomId, prev, next);
                 else resetTimer(roomId);
             }
@@ -384,7 +401,12 @@ function scheduleBots(roomId) {
     const engine = getEngine(room.gameType);
     const version = room.version;
     const isBot = (i) => !!room.activePlayers[i]?.isBot;
-    const actions = engine.botActions(room.gameState, isBot) || [];
+    let actions = [];
+    try {
+        actions = engine.botActions(room.gameState, isBot) || [];
+    } catch (e) {
+        console.error(`[${roomId}] erreur des bots ${room.gameType}`, e);
+    }
     actions.forEach((a) => {
         setTimeout(() => {
             const r = rooms[roomId];
@@ -885,13 +907,27 @@ io.on('connection', (socket) => {
     });
 
     // Hezz2 (événements historiques)
+    // L'appli vérifie, après une reconnexion, que sa partie existe toujours et qu'elle y a sa place
+    const seatedIn = (room) => !!room && (playerIndexOf(room, socket.id) !== -1 || room.spectators.some((p) => p.id === socket.id));
+    socket.on('room_check', (data, callback) => {
+        callback && callback({ ok: seatedIn(rooms[String(data?.roomId || '')]) });
+    });
+    const roomGone = (data) => {
+        const room = rooms[data?.roomId];
+        if (seatedIn(room)) return false;
+        socket.emit('room_gone', { roomId: data?.roomId });
+        return true;
+    };
+
     socket.on('play_card', (data) => {
+        if (roomGone(data)) return;
         const room = rooms[data?.roomId];
         if (!room || inCountdown(room)) return;
         applyAction(room.id, playerIndexOf(room, socket.id), { type: 'play', cardIndex: data.cardIndex, newSuitFor7: data.newSuitFor7 });
     });
 
     socket.on('draw_card', (data) => {
+        if (roomGone(data)) return;
         const room = rooms[data?.roomId];
         if (!room || inCountdown(room)) return;
         applyAction(room.id, playerIndexOf(room, socket.id), { type: 'draw' });
@@ -899,6 +935,7 @@ io.on('connection', (socket) => {
 
     // Action générique (Ronda, et les prochains jeux)
     socket.on('game_action', (data) => {
+        if (roomGone(data)) return;
         const room = rooms[data?.roomId];
         if (!room || !data.action || String(data.action.type).startsWith('_')) return; // actions internes réservées aux bots
         const idx = playerIndexOf(room, socket.id);
@@ -960,14 +997,19 @@ io.on('connection', (socket) => {
         socket.leave(roomId);
     });
 
-    socket.on('disconnect', () => {
-        console.log(`Utilisateur déconnecté: ${socket.id}`);
+    socket.on('disconnect', (reason) => {
+        console.log(`Utilisateur déconnecté: ${socket.id} (${reason})`);
         for (const key in matchmakingQueues) {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
-        Object.keys(rooms).forEach((roomId) => removePlayer(roomId, socket.id));
         tournaments.onDisconnect(socket);
         releaseDevice(socket);
+        const leave = () => Object.keys(rooms).forEach((roomId) => removePlayer(roomId, socket.id));
+        const voluntary = reason === 'client namespace disconnect' || reason === 'server namespace disconnect';
+        const playing = Object.values(rooms).some((r) => r.gameState && !getEngine(r.gameType).isOver(r.gameState) && playerIndexOf(r, socket.id) !== -1);
+        if (voluntary || !playing || !RECONNECT_GRACE_MS) { leave(); return; }
+        // Coupure en pleine partie : s'il revient (même connexion retrouvée), il garde sa place
+        setTimeout(() => { if (!io.sockets.sockets.get(socket.id)) leave(); }, RECONNECT_GRACE_MS);
     });
 });
 
