@@ -1,6 +1,7 @@
 /**
  * Musique d'ambiance du menu : boucle chaabi composée et synthétisée pour le jeu (libre de droits).
- * Darbouka (rythme maqsoum), bendir, basse, oud (Karplus-Strong) et violon en mode hijaz sur ré.
+ * Darbouka sur 4 temps (« pa · pam pam » : coup sec, silence, deux coups graves), bendir, basse
+ * et oud (Karplus-Strong) en mode hijaz sur ré : riff, puis mélodie à l'oud sur la seconde moitié. Pas de flûte ni de violon.
  * 16 mesures à 118 battements par minute (≈ 32,5 s), la fin s'enchaîne sans coupure avec le début.
  *
  *   node scripts/generate-music.js
@@ -54,7 +55,7 @@ function highpass(d, fc) {
 }
 
 // ---------------- Instruments ----------------
-function dum() { // coup grave de darbouka
+function dum() { // « pam » : coup grave de darbouka
     const d = new Float32Array(Math.round(0.35 * SR));
     for (let i = 0; i < d.length; i++) {
         const t = i / SR;
@@ -63,11 +64,11 @@ function dum() { // coup grave de darbouka
     }
     return d;
 }
-function tak(soft = false) { // coup sec sur le bord
+function tak() { // « pa » : coup sec sur le bord
     const d = new Float32Array(Math.round(0.09 * SR));
     for (let i = 0; i < d.length; i++) {
         const t = i / SR;
-        d[i] = noise() * Math.exp(-t / (soft ? 0.012 : 0.02)) + 0.4 * Math.sin(2 * Math.PI * 520 * t) * Math.exp(-t / 0.02);
+        d[i] = noise() * Math.exp(-t / 0.02) + 0.4 * Math.sin(2 * Math.PI * 520 * t) * Math.exp(-t / 0.02);
     }
     return lowpass(highpass(d, 1500), 9000);
 }
@@ -78,14 +79,6 @@ function bendir() { // tambour sur cadre : grave sourd avec la peau qui frise
         d[i] = Math.sin(2 * Math.PI * 78 * t) * Math.exp(-t / 0.12) + 0.3 * noise() * Math.exp(-t / 0.08);
     }
     return lowpass(d, 1800);
-}
-function clap() { // claquement de mains (trois mains qui ne tombent pas pile ensemble)
-    const d = new Float32Array(Math.round(0.18 * SR));
-    for (const off of [0, 0.011, 0.022]) {
-        const s = Math.round(off * SR);
-        for (let i = 0; i + s < d.length; i++) d[i + s] += noise() * Math.exp(-(i / SR) / 0.03);
-    }
-    return lowpass(highpass(d, 900), 4500);
 }
 function bass(n, dur) {
     const d = new Float32Array(Math.round(dur * SR));
@@ -112,41 +105,19 @@ function oud(n, dur) { // corde pincée (Karplus-Strong), un peu de bruit de ple
     for (let i = 0; i < d.length; i++) d[i] *= Math.min(1, i / (0.002 * SR)) * (i / SR > dur ? Math.exp(-(i / SR - dur) / 0.12) : 1);
     return lowpass(d, 3200);
 }
-function violin(n, dur) { // archet : dents de scie adoucies, vibrato qui arrive après l'attaque
-    const d = new Float32Array(Math.round((dur + 0.15) * SR));
-    const f0 = NOTE(n);
-    let ph = 0;
-    for (let i = 0; i < d.length; i++) {
-        const t = i / SR;
-        const vib = 1 + 0.006 * Math.sin(2 * Math.PI * 5.6 * t) * Math.min(1, Math.max(0, (t - 0.12) / 0.2));
-        ph += (f0 * vib) / SR;
-        let v = 0;
-        for (let h = 1; h <= 8; h++) v += Math.sin(2 * Math.PI * h * ph) / h;
-        const env = Math.min(1, t / 0.07) * (t > dur ? Math.exp(-(t - dur) / 0.06) : 1);
-        d[i] = v * env;
-    }
-    return lowpass(d, 3000);
-}
-
 // ---------------- Partition ----------------
 const at = (bar, beat) => bar * BAR + beat * BEAT;
 const D3 = 50, Eb3 = 51, Fs3 = 54, G3 = 55, A3 = 57, Bb3 = 58, C3 = 48;
 const D4 = 62, Eb4 = 63, Fs4 = 66, G4 = 67, A4 = 69, Bb4 = 70, C5 = 72, D5 = 74;
 
-// Percussions : maqsoum (D T . T D . T .) en croches, petites notes fantômes, roulement en fin de phrase
+// Darbouka sur 4 temps : « pa » (coup sec) sur le 1, silence sur le 2, « pam pam » (coups graves) sur le 3 et le 4.
+// Bendir doux sur le 1. Petit roulement « pa-pa-pa » en fin de phrase (mesures 8 et 16), pour relancer.
 for (let bar = 0; bar < BARS; bar++) {
-    const fill = bar % 8 === 7;
-    const pattern = fill ? 'DTTTDTTT' : 'DT.TD.T.';
-    [...pattern].forEach((c, k) => {
-        const t = at(bar, k / 2);
-        if (c === 'D') add(dum(), t, -0.1, 0.9);
-        if (c === 'T') add(tak(), t, 0.15, fill && k > 4 ? 0.55 : 0.45);
-        if (c === '.' && rand() < 0.6) add(tak(true), t, 0.2, 0.18);
-    });
-    if (!fill) for (const k of [1, 3, 5, 7]) if (rand() < 0.35) add(tak(true), at(bar, k / 2 + 0.25), 0.25, 0.12);
-    add(bendir(), at(bar, 0), -0.3, 0.6);
-    add(bendir(), at(bar, 2), -0.3, 0.45);
-    if (bar >= 8) { add(clap(), at(bar, 1), 0.35, 0.28); add(clap(), at(bar, 3), 0.35, 0.28); }
+    add(tak(), at(bar, 0), 0.1, 0.6);   // pa
+    add(dum(), at(bar, 2), -0.1, 0.9);  // pam
+    add(dum(), at(bar, 3), -0.1, 0.85); // pam
+    add(bendir(), at(bar, 0), -0.3, 0.45);
+    if (bar % 8 === 7) for (const b of [1, 1.5]) add(tak(), at(bar, b), 0.15, 0.4);
 }
 
 // Basse : la tonique (ré) et sa quinte (la), qui suit le riff
@@ -160,10 +131,11 @@ const RIFF_A = [D3, Eb3, Fs3, G3, A3, G3, Fs3, Eb3, D3, null, D3, Fs3, Eb3, D3, 
 const RIFF_B = [A3, Bb3, A3, G3, Fs3, G3, A3, null, G3, Fs3, Eb3, D3, Eb3, Fs3, D3, null];
 for (let bar = 0; bar < BARS; bar += 2) {
     const riff = bar % 8 >= 4 ? RIFF_B : RIFF_A;
-    riff.forEach((n, k) => { if (n !== null) add(oud(n, BEAT / 2), at(bar, k / 2), -0.45, 0.42); });
+    riff.forEach((n, k) => { if (n !== null) add(oud(n, BEAT / 2), at(bar, k / 2), -0.45, bar >= 8 ? 0.3 : 0.42); });
 }
 
-// Violon : la mélodie sur la deuxième moitié (mesures 9 à 16)
+// Mélodie à l'oud sur la deuxième moitié (mesures 9 à 16) : une octave au-dessus du riff ;
+// les notes longues sont jouées en trémolo (la corde repincée en doubles croches), comme au oud
 const MELODY = [ // [note, durée en temps]
     [[A4, 2], [Bb4, 1], [A4, 1]],
     [[G4, 1], [Fs4, 1], [G4, 2]],
@@ -176,7 +148,14 @@ const MELODY = [ // [note, durée en temps]
 ];
 MELODY.forEach((bar, b) => {
     let beat = 0;
-    bar.forEach(([n, len]) => { add(violin(n, len * BEAT * 0.97), at(8 + b, beat), 0.45, 0.3); beat += len; });
+    bar.forEach(([n, len]) => {
+        const strokes = len >= 2 ? len * 4 : 1; // trémolo sur les notes de 2 temps et plus
+        for (let k = 0; k < strokes; k++) {
+            const step = len / strokes;
+            add(oud(n, step * BEAT), at(8 + b, beat + k * step), 0.4, k === 0 ? 0.5 : 0.32);
+        }
+        beat += len;
+    });
 });
 
 // ---------------- Réverbération (bouclée : on la fait tourner deux fois, on garde le second passage) ----------------
