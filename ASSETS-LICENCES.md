@@ -28,7 +28,7 @@ Légende :
 | Fichier | Utilisé | Source | Licence |
 |---|---|---|---|
 | `assets/sfx/*.wav` (26 bruitages : cartes, darba, kdoub, victoire, « +2 » du Hezz2…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
-| `assets/music/chaabi.mp3` (musique d'ambiance du menu) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | Composée et synthétisée pour le jeu avec [scripts/generate-music.js](scripts/generate-music.js) (darbouka « pa · pam pam » sur 4 temps, bendir, basse, oud, mode hijaz) | Création du projet : libre. Remplace le « type beat » de YouTube (retiré du dépôt le 18 nov 2026, reste dans l'historique Git). |
+| `assets/music/cava.mp3` (musique d'ambiance du menu) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | « Afro Moroccan Style Beat x African Instrumental "Cava" » de **808xri**, Pixabay n° 354190 (fichier d'origine `808xri-afro-moroccan-style-beat-x-african-instrumental-quotcavaquot-354190.mp3`, ajouté par Yassir le 18 nov 2026) | Licence Pixabay : usage commercial gratuit, crédit non obligatoire. Garder une capture de la page de téléchargement. Compressé pour l'appli (mono, 56 kbit/s, 1,1 Mo au lieu de 5,3 Mo, même volume que l'ancienne musique, fondu de 0,8 s au début et de 3 s à la fin pour la boucle). |
 | `alexis_gaming_cam-vinyl-stop-342938.mp3` (son « passe ton tour ») | Oui (`skip`) | Pixabay (nommage Pixabay : auteur, titre, numéro) | Licence Pixabay : usage commercial gratuit, sans crédit obligatoire. Garder la page de téléchargement en capture. |
 | `universfield-very-infectious-laughter-117727.mp3` (rire) | Oui (`laugh`) | Pixabay (auteur Universfield) | Licence Pixabay, même remarque. |
 | `freesound_community-080205_life-lost-game-over-89697.mp3` | Oui (`game_over`) | Pixabay, compte « freesound_community » (sons repris de Freesound) | Licence Pixabay, même remarque. |
@@ -59,6 +59,6 @@ Aucun de ces fichiers n'est chargé par l'appli. Ce sont des photos de produits 
 
 ## Avant d'envoyer aux stores
 
-1. Fait : musique d'ambiance remplacée (18 nov 2026) par une boucle composée pour le jeu ; son « +2 » fait (17 nov 2026) : l'extrait de la chanson de Khalid Aouni est remplacé par un son de synthèse (`plus_two` dans [scripts/generate-sfx.js](scripts/generate-sfx.js)), et la chanson, l'extrait et `extract_clip.js` sont retirés du dépôt (ils restent dans l'historique Git).
+1. Fait : musique d'ambiance remplacée (18 nov 2026) par « Cava » de 808xri (Pixabay) ; son « +2 » fait (17 nov 2026) : l'extrait de la chanson de Khalid Aouni est remplacé par un son de synthèse (`plus_two` dans [scripts/generate-sfx.js](scripts/generate-sfx.js)), et la chanson, l'extrait et `extract_clip.js` sont retirés du dépôt (ils restent dans l'historique Git).
 2. Trancher sur les 🟡 : retrouver la source ou remplacer.
 3. Retirer les fichiers non utilisés et les fichiers 🔴 du dépôt.

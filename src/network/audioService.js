@@ -49,8 +49,8 @@ const SFX = {
 // Alias pour compatibilité avec l'ancien code
 const ALIASES = { turn: 'card_play', win: 'victory', lose: 'defeat' };
 
-// Boucle chaabi composée pour le jeu (scripts/generate-music.js) : 32,5 s, 382 Ko, libre de droits
-const MUSIC_SRC = require('../../assets/music/chaabi.mp3');
+// « Cava » de 808xri (Pixabay, licence Pixabay : usage commercial gratuit), 2 min 44, mono 56 kbit/s, 1,1 Mo
+const MUSIC_SRC = require('../../assets/music/cava.mp3');
 const MUSIC_VOLUME = { menu: 0.1, game: 0 }; // musique au menu seulement : silence pendant les parties
 const TICK_SRC = require('../../assets/freesound_community-tic-tac-27828.mp3');
 

@@ -39,3 +39,6 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Musique d'origine (5,3 Mo) : seule la version compressée assets/music/cava.mp3 est suivie
+assets/music/808xri-*.mp3
