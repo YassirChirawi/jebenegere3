@@ -28,7 +28,7 @@ Légende :
 | Fichier | Utilisé | Source | Licence |
 |---|---|---|---|
 | `assets/sfx/*.wav` (26 bruitages : cartes, darba, kdoub, victoire, « +2 » du Hezz2…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
-| `assets/music/chaabi.mp3` (musique d'ambiance du menu) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | Composée et synthétisée pour le jeu avec [scripts/generate-music.js](scripts/generate-music.js) (darbouka, bendir, basse, oud, violon, mode hijaz) | Création du projet : libre. Remplace le « type beat » de YouTube (retiré du dépôt le 18 nov 2026, reste dans l'historique Git). |
+| `assets/music/chaabi.mp3` (musique d'ambiance du menu) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | Composée et synthétisée pour le jeu avec [scripts/generate-music.js](scripts/generate-music.js) (darbouka « pa · pam pam » sur 4 temps, bendir, basse, oud, mode hijaz) | Création du projet : libre. Remplace le « type beat » de YouTube (retiré du dépôt le 18 nov 2026, reste dans l'historique Git). |
 | `alexis_gaming_cam-vinyl-stop-342938.mp3` (son « passe ton tour ») | Oui (`skip`) | Pixabay (nommage Pixabay : auteur, titre, numéro) | Licence Pixabay : usage commercial gratuit, sans crédit obligatoire. Garder la page de téléchargement en capture. |
 | `universfield-very-infectious-laughter-117727.mp3` (rire) | Oui (`laugh`) | Pixabay (auteur Universfield) | Licence Pixabay, même remarque. |
 | `freesound_community-080205_life-lost-game-over-89697.mp3` | Oui (`game_over`) | Pixabay, compte « freesound_community » (sons repris de Freesound) | Licence Pixabay, même remarque. |
