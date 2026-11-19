@@ -247,7 +247,7 @@ const styles = StyleSheet.create({
     },
     toast: {
         alignSelf: 'center',
-        backgroundColor: 'rgba(12, 5, 7, 0.85)',
+        backgroundColor: 'rgba(6,12,28,0.85)',
         borderWidth: 1.5,
         borderRadius: 16,
         paddingHorizontal: 12,
@@ -268,7 +268,7 @@ const styles = StyleSheet.create({
     suitBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(12,5,7,0.8)',
+        backgroundColor: 'rgba(6,12,28,0.8)',
         borderWidth: 2,
         borderRadius: 12,
         paddingVertical: 4,

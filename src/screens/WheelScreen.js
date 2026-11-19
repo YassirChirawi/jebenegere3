@@ -15,6 +15,7 @@ import accountService, { useAccount } from '../network/accountService';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { WHEEL, RARITIES, CHESTS } from '../../server/progress/defs';
+import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 
 const N = WHEEL.segments.length;
 const STEP = 360 / N;
@@ -197,16 +198,11 @@ export default function WheelScreen({ navigation }) {
                 <Image source={DECOR.fondRoue} style={{ position: 'absolute', width: 800 * k, height: 450 * k, left: (width - 800 * k) / 2, top: (height - 450 * k) / 2 }} />
             </View>
             <View style={styles.dim} />
-            <View style={styles.header}>
-                <PressableScale style={styles.headBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.headBtnText}>⬅️ Retour</Text>
-                </PressableScale>
-                <Text style={styles.title}>🎡 Roue du jour</Text>
-                <View style={styles.balance}>
-                    <BingaIcon size={16} />
-                    <Text style={styles.balanceText}>{profile ? (profile.binga?.balance ?? 0).toLocaleString('fr-FR') : '—'}</Text>
-                </View>
-            </View>
+            <ScreenHeader
+                title="Roue du jour"
+                onBack={() => navigation.goBack()}
+                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? (profile.binga?.balance ?? 0).toLocaleString('fr-FR') : '—'} />}
+            />
             <ScrollView contentContainerStyle={styles.scroll}>
                 <Text style={styles.intro}>Un tour gratuit par jour, toujours un lot. La roue ne se paie jamais, ni en binga ni en argent.</Text>
                 <View style={{ alignItems: 'center', marginVertical: 12 }}>
@@ -249,25 +245,25 @@ export default function WheelScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
-    dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,4,8,0.55)' },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
+    dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,12,28,0.55)' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(8,15,34,0.85)' },
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     title: { color: theme.goldLight, fontSize: 20, fontWeight: '900' },
     balance: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: theme.gold },
     balanceText: { color: theme.goldLight, fontWeight: '900', fontSize: 13 },
     scroll: { padding: 14, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
-    intro: { color: theme.cream, fontSize: 12, fontWeight: '700', textAlign: 'center', backgroundColor: 'rgba(28,15,19,0.85)', borderRadius: 14, padding: 10 },
+    intro: { color: theme.cream, fontSize: 12, fontWeight: '700', textAlign: 'center', backgroundColor: 'rgba(14,26,56,0.85)', borderRadius: 14, padding: 10 },
     segText: { color: '#FFF7D6', fontWeight: '900', textAlign: 'center', textShadowColor: '#000', textShadowRadius: 3, marginTop: 2, maxWidth: 70 },
     hub: { backgroundColor: '#5B2E12', borderWidth: 3, borderColor: '#F5D77A', alignItems: 'center', justifyContent: 'center' },
     pointerWrap: { position: 'absolute', top: -14 },
-    prize: { alignItems: 'center', backgroundColor: 'rgba(28,15,19,0.95)', borderRadius: 18, borderWidth: 2, borderColor: theme.gold, padding: 16 },
+    prize: { alignItems: 'center', backgroundColor: 'rgba(14,26,56,0.95)', borderRadius: 18, borderWidth: 2, borderColor: theme.gold, padding: 16 },
     prizeTitle: { color: theme.goldLight, fontWeight: '900', fontSize: 22, marginTop: 6 },
     prizeRarity: { fontWeight: '900', fontSize: 13, textTransform: 'uppercase', marginTop: 4 },
     prizeItem: { color: theme.cream, fontWeight: '900', fontSize: 18 },
     prizeSub: { color: theme.mint, fontWeight: '800', fontSize: 12, marginTop: 4, textAlign: 'center' },
     note: { color: theme.textDim, fontSize: 11, marginTop: 8, textAlign: 'center' },
-    odds: { marginTop: 16, backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)', padding: 12 },
+    odds: { marginTop: 16, backgroundColor: 'rgba(14,26,56,0.92)', borderRadius: 16, borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)', padding: 12 },
     oddsTitle: { color: theme.goldLight, fontWeight: '900', fontSize: 14, marginBottom: 6 },
     oddsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 5 },
     oddsLabel: { color: theme.cream, fontWeight: '800', fontSize: 12, width: 128 },

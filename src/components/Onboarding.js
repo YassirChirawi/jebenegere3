@@ -135,7 +135,7 @@ export default function Onboarding({ visible, onPlay, onClose, name: initialName
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(8,3,6,0.92)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+    overlay: { flex: 1, backgroundColor: 'rgba(6,12,28,0.92)', justifyContent: 'center', alignItems: 'center', padding: 16 },
     box: { width: '100%', maxWidth: 400, alignItems: 'center', backgroundColor: theme.panelSolid, borderRadius: 24, borderWidth: 2, borderColor: theme.gold, paddingVertical: 22, paddingHorizontal: 18 },
     skip: { position: 'absolute', top: 12, right: 16, zIndex: 2 },
     skipText: { color: theme.textDim, fontWeight: '800', fontSize: 13 },

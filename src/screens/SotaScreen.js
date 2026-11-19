@@ -529,7 +529,7 @@ const styles = StyleSheet.create({
     turnChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(12,5,7,0.78)',
+        backgroundColor: 'rgba(6,12,28,0.78)',
         borderRadius: 24,
         paddingVertical: 3,
         paddingLeft: 3,
@@ -562,7 +562,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 10,
-        backgroundColor: 'rgba(10,4,6,0.7)',
+        backgroundColor: 'rgba(6,12,28,0.7)',
         borderWidth: 1,
         borderColor: 'rgba(212,175,55,0.35)',
     },

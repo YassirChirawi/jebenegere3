@@ -6,16 +6,17 @@ import audioService from '../network/audioService';
 import Gradient from './Gradient';
 
 export const theme = {
-    bg: '#1C0F13',
-    bgDeep: '#12080B',
-    panel: 'rgba(28, 15, 19, 0.88)',
-    panelSolid: '#2A1419',
-    gold: '#D4AF37',
-    goldLight: '#F5D77A',
-    goldDark: '#9C7A1E',
-    cream: '#F8EBD0',
-    text: '#F3E9DC',
-    textDim: '#B8A99A',
+    // Bleu nuit et or (même palette que les écrans « premium » : src/components/Luxe.js)
+    bg: '#0A1527',
+    bgDeep: '#060C18',
+    panel: 'rgba(14, 26, 56, 0.9)',
+    panelSolid: '#13224A',
+    gold: '#E8B84A',
+    goldLight: '#FFE08A',
+    goldDark: '#9A6B16',
+    cream: '#FFF3D6',
+    text: '#F3EEE2',
+    textDim: '#AFB8CF',
     red: '#C0392B',
     redLight: '#EF4444',
     green: '#1E8C5A',
@@ -195,7 +196,7 @@ const styles = StyleSheet.create({
         letterSpacing: 0.5,
     },
     iconBtn: {
-        backgroundColor: 'rgba(18, 8, 11, 0.7)',
+        backgroundColor: 'rgba(8,15,34,0.7)',
         borderWidth: 1.5,
         borderColor: 'rgba(212,175,55,0.55)',
         justifyContent: 'center',

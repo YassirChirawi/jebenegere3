@@ -56,7 +56,7 @@ export default function TournamentMatchSheet({ navigation, roomId }) {
 
 const styles = StyleSheet.create({
     backdrop: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.72)', alignItems: 'center', justifyContent: 'center', padding: 16, zIndex: 9000 },
-    panel: { width: '100%', maxWidth: 380, backgroundColor: 'rgba(28,15,19,0.98)', borderRadius: 20, padding: 20, alignItems: 'center', borderWidth: 2, borderColor: theme.gold },
+    panel: { width: '100%', maxWidth: 380, backgroundColor: 'rgba(14,26,56,0.98)', borderRadius: 20, padding: 20, alignItems: 'center', borderWidth: 2, borderColor: theme.gold },
     panelFinal: { backgroundColor: '#5E0A12', borderColor: theme.goldLight },
     label: { color: theme.gold, fontWeight: '900', fontSize: 12, letterSpacing: 1, textAlign: 'center' },
     emoji: { fontSize: 44, marginTop: 6 },

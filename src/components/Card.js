@@ -149,7 +149,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(255,255,255,0.7)',
     },
     dim: {
-        backgroundColor: 'rgba(20, 10, 12, 0.45)',
+        backgroundColor: 'rgba(6,12,28,0.45)',
     },
     shadow: {
         shadowColor: '#000',

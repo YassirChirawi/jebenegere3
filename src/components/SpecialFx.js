@@ -79,7 +79,7 @@ const styles = StyleSheet.create({
     box: { alignItems: 'center' },
     icon: { width: 130, height: 130 },
     badge: { position: 'absolute', right: -18, bottom: -6, width: 62, height: 62 },
-    label: { alignItems: 'center', marginTop: -8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(10,4,8,0.88)' },
+    label: { alignItems: 'center', marginTop: -8, paddingHorizontal: 14, paddingVertical: 6, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(6,12,28,0.88)' },
     title: { fontSize: 20, fontWeight: '900' },
     sub: { color: '#FFF7D6', fontSize: 12, fontWeight: '800', textShadowColor: '#000', textShadowRadius: 6, marginTop: 2, textAlign: 'center', maxWidth: 280 },
 });

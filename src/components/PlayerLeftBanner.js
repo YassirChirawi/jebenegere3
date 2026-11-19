@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
         zIndex: 8000,
     },
     text: {
-        backgroundColor: 'rgba(28,15,19,0.95)',
+        backgroundColor: 'rgba(14,26,56,0.95)',
         color: theme.cream,
         fontWeight: '800',
         fontSize: 14,

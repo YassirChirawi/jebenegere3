@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator } from 'react-native';
 import Animated, { FadeInRight } from 'react-native-reanimated';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { PressableScale, theme } from '../components/ui';
 import { GAMES, GAME_ORDER } from '../games';
 import accountService, { useAccount } from '../network/accountService';
+import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 function daysLeft(end) {
@@ -48,14 +48,9 @@ export default function LeaderboardScreen({ navigation }) {
     const meInTop = data?.me && data.top.some((r) => r.rank === data.me.rank);
 
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.header}>
-                <PressableScale style={styles.headBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.headBtnText}>⬅️ Retour</Text>
-                </PressableScale>
-                <Text style={styles.headTitle}>🏆 Classement</Text>
-                <View style={{ width: 70 }} />
-            </View>
+        <View style={styles.container}>
+            <LuxeBackdrop />
+            <ScreenHeader title="Classement" onBack={() => navigation.goBack()} />
 
             <View style={styles.tabs}>
                 {[['all', 'Général'], ...GAME_ORDER.map((g) => [g, GAMES[g].label])].map(([k, l]) => (
@@ -90,13 +85,13 @@ export default function LeaderboardScreen({ navigation }) {
                     )}
                 </ScrollView>
             )}
-        </ImageBackground>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(8,15,34,0.85)' },
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     headTitle: { color: theme.goldLight, fontSize: 20, fontWeight: '900' },
@@ -107,7 +102,7 @@ const styles = StyleSheet.create({
     season: { color: theme.cream, textAlign: 'center', fontWeight: '800', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.45)', alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
     reward: { color: theme.goldLight, textAlign: 'center', fontSize: 11, marginTop: 4 },
     list: { padding: 12, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
-    row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 6, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
+    row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(14,26,56,0.92)', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 6, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
     rowMe: { borderColor: theme.gold, backgroundColor: 'rgba(60,40,10,0.95)' },
     pos: { width: 32, textAlign: 'center', color: theme.cream, fontWeight: '900', fontSize: 15 },
     name: { color: theme.cream, fontWeight: '800' },

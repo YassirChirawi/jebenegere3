@@ -211,7 +211,7 @@ const styles = StyleSheet.create({
         padding: 20,
     },
     modalContent: {
-        backgroundColor: '#2F1218',
+        backgroundColor: '#13224A',
         borderRadius: 20,
         width: '100%',
         maxHeight: '80%',
@@ -226,7 +226,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginBottom: 15,
         borderBottomWidth: 1,
-        borderBottomColor: '#4A0E1A',
+        borderBottomColor: '#1B2E5C',
         paddingBottom: 10,
     },
     scrollView: {
@@ -252,7 +252,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         marginTop: 10,
-        backgroundColor: '#4A0E1A',
+        backgroundColor: '#1B2E5C',
         padding: 10,
         borderRadius: 8,
     },
@@ -280,7 +280,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     closeButtonText: {
-        color: '#1C0F13',
+        color: '#0A1527',
         fontWeight: '900',
         fontSize: 16,
     },

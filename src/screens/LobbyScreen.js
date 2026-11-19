@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
@@ -13,8 +13,8 @@ import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
 import { inDiscord, discordInvite } from '../utils/discord';
 import { useAccount } from '../network/accountService';
 import { BINGA } from '../../server/progress/defs';
+import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
 function WaitingDots() {
     const t = useSharedValue(0);
@@ -170,13 +170,9 @@ ${inviteUrl(roomId)}`);
     };
 
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.dim} pointerEvents="none" />
-            <View style={styles.header}>
-                <IconButton icon="⬅️" onPress={handleLeave} label="Retour" size={42} />
-                <Text style={styles.headerTitle}>Salon privé · {game.label}</Text>
-                <View style={{ width: 42 }} />
-            </View>
+        <View style={styles.container}>
+            <LuxeBackdrop />
+            <ScreenHeader title={`Salon privé · ${game.label}`} onBack={handleLeave} />
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
@@ -363,13 +359,13 @@ ${inviteUrl(roomId)}`);
                     </View>
                 )}
             </View>
-        </ImageBackground>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(18,6,9,0.55)' },
+    container: { flex: 1, backgroundColor: theme.bg },
+    dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,12,28,0.55)' },
     header: {
         flexDirection: 'row',
         alignItems: 'center',

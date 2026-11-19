@@ -9,11 +9,11 @@
     "icon": "./assets/brand/icon-1024.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "backgroundColor": "#1C0F13",
+    "backgroundColor": "#0A1527",
     "splash": {
       "image": "./assets/brand/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1C0F13"
+      "backgroundColor": "#0A1527"
     },
     "ios": {
       "bundleIdentifier": "fun.jebengere3.app",
@@ -54,8 +54,8 @@
       "name": "L'Carta",
       "shortName": "L'Carta",
       "description": "Hezz2, Ronda, Kdoub et Sota Ghamla : les jeux de cartes marocains, en ligne avec tes amis ou contre des bots.",
-      "themeColor": "#1C0F13",
-      "backgroundColor": "#1C0F13",
+      "themeColor": "#0A1527",
+      "backgroundColor": "#0A1527",
       "display": "standalone",
       "orientation": "any",
       "lang": "fr"

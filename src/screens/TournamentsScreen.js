@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { PressableScale, GameButton, theme } from '../components/ui';
@@ -7,8 +7,8 @@ import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
 import { BINGA } from '../../server/progress/defs';
 import { myTournaments, remember, GAME_LABEL, formatWhen } from '../utils/tournaments';
+import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 const DAY_MS = 86400000;
 const STEP = 15; // minutes
 
@@ -77,14 +77,9 @@ export default function TournamentsScreen({ navigation }) {
     };
 
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.header}>
-                <PressableScale style={styles.headBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.headBtnText}>⬅️ Retour</Text>
-                </PressableScale>
-                <Text style={styles.headTitle}>🏆 Tournois</Text>
-                <View style={{ width: 70 }} />
-            </View>
+        <View style={styles.container}>
+            <LuxeBackdrop />
+            <ScreenHeader title="Tournois" onBack={() => navigation.goBack()} />
 
             <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
                 {!supported ? (
@@ -181,19 +176,19 @@ export default function TournamentsScreen({ navigation }) {
                     </>
                 )}
             </ScrollView>
-        </ImageBackground>
+        </View>
     );
 }
 
 export const tournamentStyles = StyleSheet.create({
     container: { flex: 1, backgroundColor: theme.bg },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(8,15,34,0.85)' },
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     headTitle: { color: theme.goldLight, fontSize: 20, fontWeight: '900', flexShrink: 1, textAlign: 'center' },
     list: { padding: 16, paddingBottom: 48, maxWidth: 560, width: '100%', alignSelf: 'center' },
     intro: { color: theme.cream, fontSize: 13, textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 12, lineHeight: 19 },
-    card: { backgroundColor: 'rgba(28,15,19,0.95)', borderRadius: 16, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)' },
+    card: { backgroundColor: 'rgba(14,26,56,0.95)', borderRadius: 16, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)' },
     cardTitle: { color: theme.goldLight, fontWeight: '900', fontSize: 16, marginBottom: 4 },
     label: { color: theme.gold, fontWeight: '900', fontSize: 11, letterSpacing: 1, marginTop: 12, marginBottom: 6 },
     input: { backgroundColor: 'rgba(0,0,0,0.4)', color: theme.cream, borderRadius: 10, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, borderWidth: 1, borderColor: 'rgba(212,175,55,0.3)' },
@@ -207,7 +202,7 @@ export const tournamentStyles = StyleSheet.create({
     time: { color: theme.cream, fontSize: 26, fontWeight: '900', minWidth: 96, textAlign: 'center' },
     hint: { color: theme.textDim, fontSize: 12, marginTop: 8, lineHeight: 17 },
     section: { color: theme.gold, fontWeight: '900', fontSize: 12, letterSpacing: 1.5, marginTop: 22, marginBottom: 8, textShadowColor: '#000', textShadowRadius: 4 },
-    row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
+    row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(14,26,56,0.92)', borderRadius: 14, paddingVertical: 10, paddingHorizontal: 12, marginBottom: 6, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
     rowIcon: { fontSize: 20, width: 32 },
     rowName: { color: theme.cream, fontWeight: '800', fontSize: 14 },
     rowSub: { color: theme.textDim, fontSize: 11, marginTop: 2 },

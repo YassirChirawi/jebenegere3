@@ -966,7 +966,7 @@ export default function RondaScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
     spotLayer: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center', zIndex: 60, elevation: 60 },
-    spotBox: { alignItems: 'center', paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(12,6,8,0.82)' },
+    spotBox: { alignItems: 'center', paddingHorizontal: 18, paddingTop: 16, paddingBottom: 10, borderRadius: 18, borderWidth: 2, backgroundColor: 'rgba(6,12,28,0.82)' },
     spotCards: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
     spotTitle: { fontWeight: '900', fontSize: 18, letterSpacing: 3 },
     spotNext: { color: theme.cream, fontWeight: '800', fontSize: 12, fontStyle: 'italic', marginTop: 2 },
@@ -1139,7 +1139,7 @@ const styles = StyleSheet.create({
         paddingVertical: 8,
         paddingHorizontal: 12,
         borderRadius: 14,
-        backgroundColor: 'rgba(12,6,8,0.9)',
+        backgroundColor: 'rgba(6,12,28,0.9)',
         borderWidth: 1,
         borderColor: theme.gold,
     },
@@ -1289,7 +1289,7 @@ const styles = StyleSheet.create({
     turnChip: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(12,5,7,0.78)',
+        backgroundColor: 'rgba(6,12,28,0.78)',
         borderRadius: 24,
         paddingVertical: 3,
         paddingLeft: 3,
@@ -1380,7 +1380,7 @@ const styles = StyleSheet.create({
         paddingHorizontal: 10,
         paddingVertical: 3,
         borderRadius: 10,
-        backgroundColor: 'rgba(10,4,6,0.7)',
+        backgroundColor: 'rgba(6,12,28,0.7)',
         borderWidth: 1,
         borderColor: 'rgba(212,175,55,0.35)',
     },

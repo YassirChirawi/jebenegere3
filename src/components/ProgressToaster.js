@@ -116,7 +116,7 @@ export default function ProgressToaster() {
 
 const styles = StyleSheet.create({
     wrap: { position: 'absolute', top: 14, left: 0, right: 0, alignItems: 'center', zIndex: 9000, elevation: 9000 },
-    toast: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: '92%', backgroundColor: 'rgba(18,8,11,0.96)', borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 12 },
+    toast: { flexDirection: 'row', alignItems: 'center', gap: 10, maxWidth: '92%', backgroundColor: 'rgba(8,15,34,0.96)', borderWidth: 1.5, borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10, elevation: 12 },
     icon: { fontSize: 26 },
     title: { fontWeight: '900', fontSize: 14 },
     text: { color: theme.cream, fontWeight: '700', fontSize: 12 },

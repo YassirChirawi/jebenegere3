@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -12,8 +12,8 @@ import { useAccount } from '../network/accountService';
 import { getMine, remember, forget, GAME_LABEL, formatWhen, formatCountdown } from '../utils/tournaments';
 import { tournamentUrl, copyInvite, shareInvite } from '../utils/invite';
 import { tournamentStyles as base } from './TournamentsScreen';
+import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 const STATUS = { open: 'Inscriptions ouvertes', running: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
 
 /** Un tournoi : inscription, inscrits, tableau (tours et finale), match à venir, champion. */
@@ -135,18 +135,20 @@ export default function TournamentScreen({ route, navigation }) {
 
     if (error) {
         return (
-            <ImageBackground source={BG} style={base.container} resizeMode="cover">
+            <View style={base.container}>
+                <LuxeBackdrop />
                 <Header navigation={navigation} title="🏆 Tournoi" />
                 <Text style={base.empty}>{error}</Text>
-            </ImageBackground>
+            </View>
         );
     }
     if (!t) {
         return (
-            <ImageBackground source={BG} style={base.container} resizeMode="cover">
+            <View style={base.container}>
+                <LuxeBackdrop />
                 <Header navigation={navigation} title="🏆 Tournoi" />
                 <ActivityIndicator color={theme.gold} style={{ marginTop: 40 }} />
-            </ImageBackground>
+            </View>
         );
     }
 
@@ -161,7 +163,8 @@ export default function TournamentScreen({ route, navigation }) {
     const iAmChampion = t.status === 'done' && me && t.champion && t.champion.names.includes(t.entrants.find((e) => e.id === me)?.name);
 
     return (
-        <ImageBackground source={BG} style={base.container} resizeMode="cover">
+        <View style={base.container}>
+                <LuxeBackdrop />
             <Header navigation={navigation} title={`🏆 ${t.name}`} />
             <ScrollView contentContainerStyle={base.list} keyboardShouldPersistTaps="handled">
                 <View style={styles.infoCard}>
@@ -297,19 +300,13 @@ export default function TournamentScreen({ route, navigation }) {
                     <Text style={[base.hint, { textAlign: 'center' }]}>Le tableau est tiré au sort au début du tournoi.</Text>
                 )}
             </ScrollView>
-        </ImageBackground>
+        </View>
     );
 }
 
 function Header({ navigation, title }) {
     return (
-        <View style={base.header}>
-            <PressableScale style={base.headBtn} onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Home'))}>
-                <Text style={base.headBtnText}>⬅️ Retour</Text>
-            </PressableScale>
-            <Text style={base.headTitle} numberOfLines={1}>{title}</Text>
-            <View style={{ width: 70 }} />
-        </View>
+        <ScreenHeader title={title} onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Home'))} />
     );
 }
 
@@ -350,7 +347,7 @@ function MatchCard({ m, me, onPress, expanded }) {
 }
 
 const styles = StyleSheet.create({
-    infoCard: { backgroundColor: 'rgba(28,15,19,0.95)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)', alignItems: 'center' },
+    infoCard: { backgroundColor: 'rgba(14,26,56,0.95)', borderRadius: 16, padding: 14, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)', alignItems: 'center' },
     infoGame: { color: theme.cream, fontWeight: '800', fontSize: 13, textAlign: 'center' },
     infoWhen: { color: theme.goldLight, fontWeight: '900', fontSize: 18, marginTop: 6, textAlign: 'center' },
     countdown: { color: theme.mint, fontWeight: '900', fontSize: 14, marginTop: 2 },
@@ -368,13 +365,13 @@ const styles = StyleSheet.create({
     registered: { color: theme.mint, fontWeight: '900', fontSize: 15, textAlign: 'center' },
     link: { color: theme.goldLight, fontWeight: '700', fontSize: 13, backgroundColor: 'rgba(0,0,0,0.4)', padding: 10, borderRadius: 10 },
     entrants: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-    entrant: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(28,15,19,0.92)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' },
+    entrant: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(14,26,56,0.92)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' },
     entrantMe: { borderColor: theme.gold },
     entrantText: { color: theme.cream, fontWeight: '700', fontSize: 13 },
     round: { width: 190 },
     roundLabel: { color: theme.goldLight, fontWeight: '900', fontSize: 12, textAlign: 'center', marginBottom: 6, letterSpacing: 0.5 },
     roundMatches: { flex: 1, justifyContent: 'space-around', gap: 8 },
-    match: { backgroundColor: 'rgba(28,15,19,0.95)', borderRadius: 12, padding: 8, borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' },
+    match: { backgroundColor: 'rgba(14,26,56,0.95)', borderRadius: 12, padding: 8, borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' },
     matchLive: { borderColor: theme.mint },
     side: { flexDirection: 'row', alignItems: 'center', paddingVertical: 4, paddingHorizontal: 6, borderRadius: 8 },
     sideWon: { backgroundColor: 'rgba(212,175,55,0.18)' },

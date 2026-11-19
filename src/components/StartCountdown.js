@@ -72,7 +72,7 @@ function fromState(s) {
 const styles = StyleSheet.create({
     overlay: {
         ...StyleSheet.absoluteFillObject,
-        backgroundColor: 'rgba(10,4,6,0.62)',
+        backgroundColor: 'rgba(6,12,28,0.62)',
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 9000,
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
         borderRadius: 22,
         borderWidth: 2,
         borderColor: theme.gold,
-        backgroundColor: 'rgba(28,15,19,0.92)',
+        backgroundColor: 'rgba(14,26,56,0.92)',
         maxWidth: 360,
     },
     label: { color: theme.textDim, fontWeight: '900', fontSize: 12, letterSpacing: 2 },

@@ -333,7 +333,7 @@ const styles = StyleSheet.create({
     },
     chatText: {
         fontSize: 14,
-        color: '#2A1419',
+        color: '#13224A',
         fontWeight: '700',
     },
     chatName: {
@@ -364,7 +364,7 @@ const styles = StyleSheet.create({
         width: 36,
         height: 36,
         borderRadius: 18,
-        backgroundColor: 'rgba(10,4,6,0.6)',
+        backgroundColor: 'rgba(6,12,28,0.6)',
         borderWidth: 1,
         borderColor: 'rgba(212,175,55,0.45)',
         alignItems: 'center',
@@ -381,7 +381,7 @@ const styles = StyleSheet.create({
         gap: 6,
         padding: 8,
         borderRadius: 16,
-        backgroundColor: 'rgba(10,4,6,0.92)',
+        backgroundColor: 'rgba(6,12,28,0.92)',
         borderWidth: 1,
         borderColor: theme.gold,
         zIndex: 100,
