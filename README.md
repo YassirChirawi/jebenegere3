@@ -312,6 +312,16 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
   - **Sans compte :** une seule fenêtre « Crée ton compte, c'est gratuit », avec un bouton « Jouer sans compte ».
   - Toutes se ferment d'un geste. Ce qui a déjà été vu est gardé sur l'appareil, pour le jour en cours (clé `dailyPopups`).
 
+## Premier lancement, bilan de fin de partie, sons
+
+- **Premier lancement** (`src/components/Onboarding.js`) : 4 écrans courts (bienvenue, binga, coffres et roue, « À toi de jouer »), avec le pseudo et le choix du jeu, puis une première partie contre l'ordinateur en un geste, à la plus petite taille du jeu. « Passer » ou « Plus tard » ferment la présentation. Elle n'est montrée qu'une fois, et jamais à un joueur qui avait déjà ouvert l'appli (règles déjà vues). Les fenêtres du jour attendent qu'elle soit fermée.
+- **Bilan de fin de partie** (`src/components/GameRecap.js`, comptes) :
+  - XP gagnée, avec la barre du rang qui se remplit et le passage au rang suivant animé ;
+  - binga qui défilent, avec le détail (partie, missions, nouveau rang) ;
+  - défis réussis, nouveau titre, récompense de tournoi.
+  Il remplace les petites notifications de fin de partie. Celles-ci restent pour les manches de Ronda et pour les mises.
+- **Sons dédiés** (`scripts/generate-sfx.js`, par exemple `node scripts/generate-sfx.js coins` pour un seul son) : pluie de pièces, cliquetis de la roue qui ralentit, arpège à l'arrêt de la roue, coffre qui s'ouvre, fanfare de nouveau rang, « ding » des fenêtres du jour.
+
 ## Binga : la monnaie du jeu
 
 Le binga se **gagne en jouant**. Il ne s'achète pas avec de l'argent et ne se convertit jamais en argent. Il est réservé aux joueurs avec un compte, et il est stocké avec le compte dans PostgreSQL : il est donc retrouvé après un redémarrage du serveur ou sur un autre appareil. Il servira pour les cosmétiques, les coffres et les entrées de tournoi, jamais pour jouer une partie normale, qui reste gratuite.

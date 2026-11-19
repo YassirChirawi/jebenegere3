@@ -24,6 +24,7 @@ import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
 import { BingaIcon, Chip } from '../components/Decor';
 import DailyPopups from '../components/DailyPopups';
+import Onboarding from '../components/Onboarding';
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
@@ -68,6 +69,7 @@ export default function HomeScreen({ navigation }) {
     const [joining, setJoining] = useState(false);
     const [lastChampion, setLastChampion] = useState(null); // palmarès : dernier tournoi gagné
     const [showRules, setShowRules] = useState(false);
+    const [showOnboarding, setShowOnboarding] = useState(false); // premier lancement
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
     // Accueil en deux temps : 'home' (carte du joueur + JOUER) puis 'play' (jeu et mode)
     const [view, setView] = useState('home');
@@ -125,8 +127,10 @@ export default function HomeScreen({ navigation }) {
                 if (savedName) setName(savedName);
                 const savedGame = await AsyncStorage.getItem('selectedGame');
                 if (savedGame && GAMES[savedGame]?.available) setGame(savedGame);
-                const seen = await AsyncStorage.getItem('rulesSeen');
-                if (!seen) setShowRules(true);
+                // Premier lancement : présentation guidée (elle remplace l'ouverture automatique des règles)
+                // (un joueur qui avait déjà vu les règles n'est pas un nouveau joueur : pas de présentation)
+                const onboarded = (await AsyncStorage.getItem('onboarded')) || (await AsyncStorage.getItem('rulesSeen'));
+                if (!onboarded) setShowOnboarding(true);
             } catch (e) { /* ignore */ }
             setNameReady(true);
             // Ouvert depuis un lien d'invitation (…/salon/CODE)
@@ -326,6 +330,29 @@ export default function HomeScreen({ navigation }) {
         setIsSearching(false);
         setSearchingSize(null);
         setSearchStatus(null);
+    };
+
+    const finishOnboarding = () => {
+        setShowOnboarding(false);
+        AsyncStorage.multiSet([['onboarded', '1'], ['rulesSeen', '1']]).catch(() => {});
+    };
+
+    // Première partie contre l'ordinateur, lancée depuis la présentation (taille la plus petite du jeu)
+    const startFirstGame = (g, playerName) => {
+        const n = (profile?.name || playerName || '').trim();
+        if (!n) return;
+        finishOnboarding();
+        setName(n);
+        setGame(g);
+        AsyncStorage.multiSet([['playerName', n], ['selectedGame', g]]).catch(() => {});
+        enterFullscreen(g === 'ronda' ? 'landscape' : 'any');
+        socketService.createBotRoom(n, gameInfo(g).sizes[0], g, (response) => {
+            if (response?.success) {
+                navigation.navigate('Game', { roomId: response.roomId, playerName: n, initialGameState: response.gameState, isHost: true });
+            } else {
+                dialog.alert('Erreur', response?.message || "Impossible de créer la partie contre l'ordinateur.");
+            }
+        });
     };
 
     const closeRules = () => {
@@ -564,10 +591,18 @@ export default function HomeScreen({ navigation }) {
             )}
 
             <RulesModal visible={showRules && !inviteCode} onClose={closeRules} gameType={game} />
+            <Onboarding
+                visible={showOnboarding && nameReady && !inviteCode && !showInvite}
+                name={name}
+                hasAccount={!!profile}
+                connected={isConnected}
+                onPlay={startFirstGame}
+                onClose={finishOnboarding}
+            />
             <DailyPopups
                 profile={profile}
                 isGuest={!account.token && !account.loading}
-                ready={hasConnected && view === 'home' && !showRules && !showInvite && !inviteCode && !isSearching}
+                ready={hasConnected && view === 'home' && !showRules && !showOnboarding && !showInvite && !inviteCode && !isSearching}
                 navigation={navigation}
             />
             <InviteJoinSheet
