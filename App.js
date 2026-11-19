@@ -14,6 +14,7 @@ import SotaScreen from './src/screens/SotaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import WheelScreen from './src/screens/WheelScreen';
+import MissionsScreen from './src/screens/MissionsScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import LegalScreen from './src/screens/LegalScreen';
 import TournamentsScreen from './src/screens/TournamentsScreen';
@@ -31,6 +32,7 @@ import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen
 import StartCountdown from './src/components/StartCountdown';
 import PlayerLeftBanner from './src/components/PlayerLeftBanner';
 import socketService from './src/network/socketService';
+import { useWideFrame } from './src/utils/frame';
 
 const Stack = createNativeStackNavigator();
 
@@ -73,6 +75,7 @@ export default function App() {
   const { width, height } = useWindowDimensions();
   // Web sur téléphone tenu en paysage : on utilise tout l'écran au lieu du cadre portrait
   const webLandscapePhone = Platform.OS === 'web' && width > height && height < 600;
+  const wideFrame = useWideFrame(); // accueil en paysage : toute la largeur de l'écran
 
   useEffect(() => {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
@@ -95,7 +98,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <View style={[styles.mobileContainer, webLandscapePhone && styles.fullScreen]}>
+      <View style={[styles.mobileContainer, (webLandscapePhone || wideFrame) && styles.fullScreen]}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <NavigationContainer theme={navTheme}>
             <StatusBar style="light" />
@@ -116,6 +119,7 @@ export default function App() {
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
               <Stack.Screen name="Shop" component={ShopScreen} options={{ title: 'Boutique', headerShown: false }} />
               <Stack.Screen name="Wheel" component={WheelScreen} options={{ title: 'Roue du jour', headerShown: false }} />
+              <Stack.Screen name="Missions" component={MissionsScreen} options={{ title: 'Missions', headerShown: false }} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Classement', headerShown: false }} />
               <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Confidentialité', headerShown: false }} />
               <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournois', headerShown: false }} />

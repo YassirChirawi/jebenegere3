@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, Image } from 'react-native';
 import PlayerAvatar from '../components/PlayerAvatar';
+import AppNav from '../components/AppNav';
 import { BingaIcon, DECOR } from '../components/Decor';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { CardBack } from '../components/Card';
@@ -270,6 +271,7 @@ export default function ShopScreen({ navigation }) {
                     })}
                 </View>
             </ScrollView>
+            <AppNav navigation={navigation} current="collection" />
             {fx && <WinEffect key={fx.id} effect={fx.k} />}
             {opening && (
                 <ChestOpening

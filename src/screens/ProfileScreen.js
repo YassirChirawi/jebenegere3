@@ -13,7 +13,8 @@ import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { dialog } from '../components/Dialog';
 import { useChatModeration, unblockPlayer } from '../utils/chatModeration';
-import { BINGA, CHESTS, RARITIES } from '../../server/progress/defs';
+import AppNav from '../components/AppNav';
+import { CHESTS, RARITIES } from '../../server/progress/defs';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -139,12 +140,6 @@ export default function ProfileScreen({ navigation }) {
     const rank = getRankInfo(xp);
     const shownTitle = profile?.title ? profile.titles.find((t) => t.id === profile.title)?.label : null;
 
-    const chooseTitle = async (t) => {
-        if (!t.unlocked) { audioService.playSound('error'); return; }
-        audioService.playSound('coin');
-        await accountService.update({ title: profile.title === t.id ? null : t.id });
-    };
-
     const [deleting, setDeleting] = useState(false);
     const deleteAccount = () => {
         dialog.alert(
@@ -265,44 +260,7 @@ export default function ProfileScreen({ navigation }) {
                         </View>
                         <Text style={[styles.dim, { textAlign: 'center' }]}>Partie finie : +10 même en perdant, +25 en gagnant (+20 contre l'ordinateur). Les binga se gagnent en jouant : ils ne s'achètent pas et ne valent pas d'argent.</Text>
 
-                        <Text style={styles.bingaSub}>Connexion du jour</Text>
-                        <View style={styles.loginRow}>
-                            {BINGA.login.map((amount, i) => {
-                                const day = i + 1;
-                                const l = profile.binga.login;
-                                const got = l.claimed ? day <= l.streak : day < l.streak;
-                                const today = day === l.streak;
-                                return (
-                                    <View key={day} style={[styles.loginDay, got && styles.loginDayGot, today && styles.loginDayToday]}>
-                                        <Text style={styles.loginDayN}>J{day}</Text>
-                                        <Text style={styles.loginDayAmount}>{got ? '✓' : `+${amount}`}</Text>
-                                    </View>
-                                );
-                            })}
-                        </View>
-                        <Text style={styles.dim}>
-                            {profile.binga.login.claimed
-                                ? `Reçu aujourd'hui : +${profile.binga.login.amount} binga (jour ${profile.binga.login.streak}/${profile.binga.login.days}). Reviens demain pour continuer la série.`
-                                : `Bonus du jour : +${profile.binga.login.amount} binga.`}
-                        </Text>
-
-                        <Text style={styles.bingaSub}>Gagnés en jouant aujourd'hui : {profile.binga.playToday}/{profile.binga.playCap}</Text>
-                        <Bar value={profile.binga.playToday / profile.binga.playCap} />
-                        {profile.binga.playToday >= profile.binga.playCap && <Text style={styles.dim}>Plafond du jour atteint : les missions et la connexion du jour rapportent toujours.</Text>}
-
-                        <Text style={styles.bingaSub}>Missions du jour</Text>
-                        {profile.binga.missions.map((m) => (
-                            <View key={m.id} style={[styles.challenge, m.done && styles.challengeDone]}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.text}>{m.done ? '✅ ' : ''}{m.label}</Text>
-                                    <Bar value={m.progress / m.target} color={m.done ? theme.mint : theme.gold} />
-                                </View>
-                                <View style={styles.challengeRight}>
-                                    <Text style={styles.challengeCount}>{m.progress}/{m.target}</Text>
-                                    <Text style={styles.challengeXp}>+{m.binga} binga</Text>
-                                </View>
-                            </View>
-                        ))}
+                        <GameButton small title="Missions et connexion du jour" icon="🎯" variant="red" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'center', marginTop: 12 }} />
 
                         {profile.binga.log?.length > 0 && <Text style={styles.bingaSub}>Derniers gains et achats</Text>}
                         {(profile.binga.log || []).slice(0, 6).map((e, i) => (
@@ -336,36 +294,15 @@ export default function ProfileScreen({ navigation }) {
                     </Section>
                 )}
 
-                {/* Défis du jour */}
-                <Section title="🎯 Défis du jour" right={profile ? <Text style={styles.dim}>Nouveaux dans {untilTomorrow()}</Text> : null} delay={120}>
-                    {profile ? profile.daily.list.map((c) => (
-                        <View key={c.id} style={[styles.challenge, c.done && styles.challengeDone]}>
-                            <View style={{ flex: 1 }}>
-                                <Text style={styles.text}>{c.done ? '✅ ' : ''}{c.label}</Text>
-                                <Bar value={c.progress / c.target} color={c.done ? theme.mint : theme.gold} />
-                            </View>
-                            <View style={styles.challengeRight}>
-                                <Text style={styles.challengeCount}>{c.progress}/{c.target}</Text>
-                                <Text style={styles.challengeXp}>+{c.xp} XP 🎁</Text>
-                            </View>
-                        </View>
-                    )) : (
-                        <Text style={styles.dim}>Connecte-toi pour relever 3 défis par jour : chacun rapporte des XP et débloque un dos de cartes ou un tapis.</Text>
-                    )}
-                </Section>
-
-                {/* Titres */}
+                {/* Défis du jour, missions, succès et badges : écran Missions */}
                 {profile && (
-                    <Section title="🏷️ Titres" right={<Text style={styles.dim}>Touche un titre pour l'afficher</Text>} delay={180}>
-                        {profile.titles.map((t) => (
-                            <Pressable key={t.id} onPress={() => chooseTitle(t)} style={[styles.titleRow, !t.unlocked && { opacity: 0.55 }, profile.title === t.id && styles.titleRowOn]}>
-                                <View style={{ flex: 1 }}>
-                                    <Text style={styles.text}>{t.unlocked ? '🏷️' : '🔒'} {t.label}{profile.title === t.id ? '  · affiché' : ''}</Text>
-                                    <Text style={styles.dim}>{t.desc}</Text>
-                                </View>
-                                {!t.unlocked && <Text style={styles.challengeCount}>{t.progress}/{t.target}</Text>}
-                            </Pressable>
-                        ))}
+                    <Section title="🎯 Défis, missions et badges" delay={120}>
+                        <Text style={styles.dim}>
+                            Défis du jour : {profile.daily.list.filter((c) => c.done).length}/{profile.daily.list.length}
+                            {'  ·  '}Badges : {profile.titles.filter((t) => t.unlocked).length}/{profile.titles.length}
+                            {shownTitle ? `  ·  affiché : « ${shownTitle} »` : ''}
+                        </Text>
+                        <GameButton small title="Voir les missions" icon="🎯" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'flex-start', marginTop: 10 }} />
                     </Section>
                 )}
 
@@ -445,6 +382,7 @@ export default function ProfileScreen({ navigation }) {
                     </View>
                 </Section>
             </ScrollView>
+            <AppNav navigation={navigation} current="profile" />
             <CustomizeSheet
                 visible={customize}
                 onClose={() => setCustomize(false)}

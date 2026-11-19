@@ -329,12 +329,30 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - **Bas de page :** règles, lien d'invitation, installation de l'appli, scène de Marrakech au coucher du soleil.
 - **Habillage** ([src/components/Luxe.js](src/components/Luxe.js), [src/components/Gradient.js](src/components/Gradient.js)) : panneaux à double filet doré, badge de niveau, barre d'XP, raccourcis, cartes de modes, ruban de titre. Tout est dessiné en SVG, donc net à toutes les tailles. Les boutons de toute l'appli (`GameButton`) passent aussi au dégradé avec liseré doré.
 - **Images** (`assets/ui/`, environ 250 Ko en tout) : découpées dans la maquette de Yassir par [scripts/build-home-ui.py](scripts/build-home-ui.py). Le fond bleu nuit est rendu transparent.
+- **En paysage** (tablette, ordinateur, téléphone tourné ; écran plus large que haut et d'au moins 700 px) : l'accueil prend toute la largeur, en 3 colonnes.
+  - En haut : le joueur (portrait, niveau, XP), le logo, les binga, la musique et le son.
+  - À gauche : la navigation (avec le Classement), les règles et le lien d'invitation.
+  - Au centre : les modes de jeu, puis le bandeau des tournois.
+  - À droite (à partir de 1000 px) : la saison (XP et temps restant), la roue du jour, les coffres, les missions.
+  - Sur ordinateur, les autres écrans gardent le cadre de téléphone ([src/utils/frame.js](src/utils/frame.js)).
 - **Fenêtres du jour** (`src/components/DailyPopups.js`) : une fois par jour chacune, l'une après l'autre, quand l'accueil est libre (pas pendant les règles, une invitation ou une recherche).
   1. **Connexion du jour :** les binga reçus et le calendrier des 7 jours (jours passés cochés, jour 7 à 150).
   2. **Roue du jour :** « 1 tour gratuit t'attend », si le tour n'a pas encore été fait.
   3. **Boutique :** les nouveautés (portraits premium, coffres).
   - **Sans compte :** une seule fenêtre « Crée ton compte, c'est gratuit », avec un bouton « Jouer sans compte ».
   - Toutes se ferment d'un geste. Ce qui a déjà été vu est gardé sur l'appareil, pour le jour en cours (clé `dailyPopups`).
+
+## Navigation et missions
+
+- **Barre du bas** ([src/components/AppNav.js](src/components/AppNav.js)) sur l'accueil (en portrait), la Collection (Boutique), les Récompenses (Roue du jour), les Missions et le Profil. L'onglet ouvert est en relief rouge. Pastilles rouges : tour de roue gratuit, mission ou défi du jour pas fini. En paysage, elle devient la colonne de gauche de l'accueil.
+- **Missions** ([src/screens/MissionsScreen.js](src/screens/MissionsScreen.js)) :
+  - **Récompense quotidienne :** les 7 jours de connexion (jours reçus cochés en vert, jour du jour en or, jour 7 en rouge).
+  - **Missions :** les 3 missions binga, avec leur barre et leur gain. Elles sont créditées automatiquement par le serveur dès qu'elles sont finies : la case affiche alors « ✓ Reçu », il n'y a rien à récupérer. En dessous, les binga gagnés en jouant aujourd'hui (plafond du jour).
+  - **Défis du jour :** les 3 défis XP.
+  - **Succès et badges :** les titres en écussons (grisés tant qu'ils ne sont pas gagnés, avec la progression). Toucher un badge gagné l'affiche à côté du pseudo.
+  - Sans compte : une invitation à créer un compte.
+- Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
+- Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
 
 ## Premier lancement, bilan de fin de partie, sons
 

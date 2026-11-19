@@ -26,6 +26,10 @@ import { BingaIcon, Chip } from '../components/Decor';
 import DailyPopups from '../components/DailyPopups';
 import Onboarding from '../components/Onboarding';
 import { inDiscord, discordInstanceId } from '../utils/discord';
+import AppNav, { useLandscape } from '../components/AppNav';
+import { setWideFrame } from '../utils/frame';
+import { ChestArt } from '../components/ChestOpening';
+import { SEASON_MS } from '../../server/progress/defs';
 import { LUXE, LUXE_IMG, MODE_COLORS, Gradient, Glow, LuxePanel, LevelBadge, XpBar, LaurelPortrait, QuickTile, ModeCard, RibbonTitle, GoldSquare } from '../components/Luxe';
 
 const UI = {
@@ -99,7 +103,16 @@ export default function HomeScreen({ navigation }) {
     const [hasConnected, setHasConnected] = useState(false);
     const [rankInfo, setRankInfo] = useState(null);
     const [localStats, setLocalStats] = useState({ played: 0, wins: 0 }); // invité : statistiques de l'appareil
-    const { width: winW } = useWindowDimensions();
+    const { width: winW, height: winH } = useWindowDimensions();
+    const landscape = useLandscape(); // écran large en paysage : colonnes (navigation, modes, saison et récompenses)
+    // En paysage, l'accueil prend toute la largeur (sur ordinateur, les autres écrans gardent le cadre de téléphone)
+    useEffect(() => {
+        const apply = () => setWideFrame(landscape);
+        apply();
+        const offFocus = navigation.addListener('focus', apply);
+        const offBlur = navigation.addListener('blur', () => setWideFrame(false));
+        return () => { offFocus(); offBlur(); setWideFrame(false); };
+    }, [landscape, navigation]);
     const account = useAccount();
     const profile = account.profile;
     // Connecté : le pseudo est celui du compte
@@ -450,6 +463,191 @@ export default function HomeScreen({ navigation }) {
     const modesInRow = modeW >= 64;
     const cardW = modesInRow ? modeW : Math.floor((pageW - 36 - 24 - 12) / 2);
     const wheelReady = !!profile?.wheel?.available;
+    // Panneau des modes : onglets de jeu, phrase du jeu, puis les 4 cartes (ou la recherche en cours)
+    const renderModes = (cw, inRow) => (
+        <>
+                                <View style={styles.lxGames}>
+                                    {GAME_ORDER.filter((k) => GAMES[k].available).map((k) => {
+                                        const on = k === game;
+                                        return (
+                                            <PressableScale
+                                                key={k}
+                                                onPress={() => { setGame(k); setMenu(null); AsyncStorage.setItem('selectedGame', k).catch(() => {}); }}
+                                                style={[styles.lxGame, on && styles.lxGameOn]}
+                                                accessibilityLabel={GAMES[k].label}
+                                                accessibilityState={{ selected: on }}
+                                            >
+                                                {pageW >= 380 && <CardFace card={GAMES[k].card} width={20} height={29} />}
+                                                <Text style={[styles.lxGameText, on && { color: LUXE.goldLight }]} numberOfLines={1}>{GAMES[k].label.split(' ')[0]}</Text>
+                                            </PressableScale>
+                                        );
+                                    })}
+                                </View>
+                                <Text style={styles.lxTagline} numberOfLines={2}>{selected.tagline}</Text>
+                                {isSearching ? (
+                                    <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
+                                        <SearchSpinner />
+                                        <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
+                                            {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
+                                        </Text>
+                                        <Text style={styles.searchSub}>{selected.label} · partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
+                                        <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
+                                        <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
+                                    </Animated.View>
+                                ) : (
+                                    <View style={[styles.lxModeGrid, !inRow && { flexWrap: 'wrap', rowGap: 12 }]}>
+                                        <ModeCard width={cw} icon={UI.online} label="En ligne" sub={online ? `${online.online} en ligne` : 'vs joueurs'} colors={MODE_COLORS.red} disabled={!isConnected || outdated} onPress={() => startMode('online')} />
+                                        <ModeCard width={cw} icon={UI.solo} label="Solo" sub="vs ordinateur" colors={MODE_COLORS.blue} disabled={!isConnected} onPress={() => startMode('bot')} />
+                                        <ModeCard width={cw} icon={UI.tournament} label="Tournois" sub={lastChampion ? `👑 ${lastChampion.champion}` : 'élimination'} colors={MODE_COLORS.purple} disabled={!isConnected} onPress={() => navigation.navigate('Tournaments')} />
+                                        <ModeCard width={cw} icon={UI.friends} label="Entre amis" sub={inDiscord ? 'salon Discord' : 'salon privé'} colors={MODE_COLORS.green} disabled={!isConnected || (inDiscord && !profile?.name)} onPress={() => { if (!requireName()) return; if (inDiscord) joinDiscordRoom(); else handleCreateRoom(); }} />
+                                    </View>
+                                )}
+        </>
+    );
+    // ------------------------------------------------------------ paysage
+    const renderLandscape = () => {
+        const sideW = winW >= 1100 ? 210 : 176;
+        const rightW = winW >= 1000 ? 240 : 0; // colonne de droite seulement sur grand écran
+        const centerW = winW - sideW - rightW - 16 * 2 - (rightW ? 24 : 12);
+        const lsCard = Math.max(70, Math.min(170, Math.floor((centerW - 24 - 3 * 10) / 4), Math.floor((winH - (winH < 520 ? 240 : 250)) / 1.24)));
+        const season = profile?.season;
+        const seasonPct = season ? Math.max(0, Math.min(1, 1 - (season.end - Date.now()) / SEASON_MS)) : 0;
+        const short = winH < 520; // téléphone tenu en paysage : haut d'écran plus compact
+        const logoW = Math.min(300, (short ? winH * 0.24 : 130) / 0.433);
+        const portrait = short ? 62 : 78;
+        const missionsDone = profile?.binga ? profile.binga.missions.filter((m) => m.done).length : 0;
+        const sidePanel = (icon, title, sub, button, onPress, extra) => (
+            <PressableScale onPress={onPress} style={{ marginBottom: 10 }} accessibilityLabel={title} scaleTo={0.97}>
+                <LuxePanel style={styles.lsBox}>
+                    <View style={styles.lsBoxRow}>
+                        {icon}
+                        <View style={{ flex: 1, marginLeft: 8 }}>
+                            <Text style={styles.lsBoxTitle} numberOfLines={1}>{title}</Text>
+                            {sub ? <Text style={styles.lsBoxSub} numberOfLines={2}>{sub}</Text> : null}
+                        </View>
+                    </View>
+                    {extra}
+                    {button ? <View style={styles.lsBoxBtn}><Gradient colors={['#FFE795', '#EDBE4E', '#A8761A']} /><Text style={styles.lsBoxBtnText}>{button}</Text></View> : null}
+                </LuxePanel>
+            </PressableScale>
+        );
+        return (
+            <View style={{ flex: 1 }}>
+                <Image source={LUXE_IMG.scene} style={[styles.lsScene, { width: winW, height: winW * 0.328 }]} pointerEvents="none" />
+                <Image source={LUXE_IMG.arch} style={[styles.archL, { width: 170, height: 154 }]} pointerEvents="none" />
+                <Image source={LUXE_IMG.arch} style={[styles.archR, { width: 170, height: 154 }]} pointerEvents="none" />
+
+                {/* Haut : joueur, logo, binga et son */}
+                <View style={styles.lsTop}>
+                    <Pressable onPress={() => navigation.navigate('Profile')} style={[styles.lsPlayer, { width: sideW + 90 }]} accessibilityLabel="Mon profil">
+                        <LaurelPortrait size={portrait}>
+                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={portrait * 0.74} />
+                        </LaurelPortrait>
+                        <View style={{ flex: 1, marginLeft: 6 }}>
+                            {profile ? (
+                                <Text style={styles.lsName} numberOfLines={1}>{profile.name}</Text>
+                            ) : (
+                                <TextInput style={[styles.lxInput, { paddingVertical: 4, fontSize: 14 }]} placeholder="Ton pseudo…" placeholderTextColor={LUXE.dim} value={name} onChangeText={setName} maxLength={16} accessibilityLabel="Ton pseudo" />
+                            )}
+                            <Text style={styles.lsLevel}>Niveau <Text style={{ color: LUXE.goldLight }}>{level}</Text>{rankInfo ? `  ·  ${rankInfo.name}` : ''}</Text>
+                            {rankInfo && <XpBar progress={rankInfo.levelProgress || 0} height={12} style={{ marginTop: 3 }} />}
+                            {rankInfo && <Text style={styles.lsXp}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>}
+                        </View>
+                    </Pressable>
+                    <Animated.View style={[{ flex: 1, alignItems: 'center' }, titleStyle]}>
+                        <Image source={LUXE_IMG.logo} style={{ width: logoW, height: logoW * 0.433 }} accessibilityLabel="L'Carta" />
+                    </Animated.View>
+                    <View style={[styles.lsRight, { width: Math.max(rightW, 190) }]}>
+                        <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel="Binga">
+                            <Gradient colors={['#2A1A0E', '#120904']} />
+                            <BingaIcon size={24} />
+                            <Text style={styles.lxCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
+                            <View style={styles.lxPlus}><Text style={styles.lxPlusText}>+</Text></View>
+                        </PressableScale>
+                        <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
+                        <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
+                    </View>
+                </View>
+
+                <View style={styles.lsBody}>
+                    {/* Gauche : navigation */}
+                    <ScrollView style={{ width: sideW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+                        <AppNav navigation={navigation} current="home" side />
+                        <View style={[styles.lxLinks, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>
+                            <PressableScale onPress={() => setShowRules(true)} style={styles.lxLink}><Text style={styles.lxLinkText}>📜 Règles</Text></PressableScale>
+                            {isConnected && (
+                                <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}><Text style={styles.lxLinkText}>🔗 Lien d'invitation</Text></PressableScale>
+                            )}
+                        </View>
+                    </ScrollView>
+
+                    {/* Centre : modes de jeu, tournois */}
+                    <ScrollView style={{ flex: 1, marginHorizontal: 12 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 24 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+                        {outdated && isConnected && (
+                            <View style={[styles.reconnect, styles.outdated]}><Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles.</Text></View>
+                        )}
+                        {!isConnected && (
+                            <View style={styles.reconnect}>
+                                <Text style={styles.reconnectText}>{wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s`}</Text>
+                            </View>
+                        )}
+                        <View>
+                            <LuxePanel style={styles.lxModes} colors={['#5C1020', '#2B0710']}>
+                                {renderModes(lsCard, true)}
+                            </LuxePanel>
+                            <RibbonTitle title="Modes de jeu" style={styles.lxRibbon} />
+                        </View>
+                        <PressableScale onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 14 }} accessibilityLabel="Voir les tournois" scaleTo={0.98}>
+                            <LuxePanel style={styles.lsTour} colors={['#4A1460', '#5C1020']}>
+                                <Image source={UI.tournament} style={{ width: 92, height: 64 }} resizeMode="contain" />
+                                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                                    <Text style={styles.lsTourTitle}>Tournois</Text>
+                                    <Text style={styles.lsTourSub} numberOfLines={2}>{lastChampion ? `Dernier champion : ${lastChampion.champion} (${GAME_LABEL[lastChampion.gameType]})` : 'Élimination directe : inscris-toi et décroche le titre de champion.'}</Text>
+                                </View>
+                                <View style={styles.lsTourBtn}><Gradient colors={['#EA4A45', '#8E121B']} /><Text style={styles.lsTourBtnText}>Voir ›</Text></View>
+                            </LuxePanel>
+                        </PressableScale>
+                    </ScrollView>
+
+                    {/* Droite : saison, roue, coffres, missions */}
+                    {rightW > 0 && (
+                        <ScrollView style={{ width: rightW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+                            {sidePanel(
+                                <Image source={UI.sStreak} style={{ width: 40, height: 28 }} resizeMode="contain" />,
+                                season ? `Saison ${season.id}` : 'Saison',
+                                season ? `${season.xp} XP · fin le ${new Date(season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` : 'Crée ton compte pour le classement de la saison.',
+                                null,
+                                () => navigation.navigate('Leaderboard'),
+                                season ? <XpBar progress={seasonPct} height={10} style={{ marginTop: 8 }} /> : null,
+                            )}
+                            {sidePanel(
+                                <Image source={UI.rewards} style={{ width: 44, height: 38 }} resizeMode="contain" />,
+                                'Roue du jour',
+                                wheelReady ? '1 tour gratuit t\'attend' : profile ? 'Prochain tour demain' : 'Gratuite chaque jour',
+                                wheelReady || !profile ? 'Tourner' : null,
+                                () => navigation.navigate('Wheel'),
+                            )}
+                            {sidePanel(
+                                <ChestArt chest="or" size={50} />,
+                                'Coffres',
+                                'Bronze, argent, or : chances affichées',
+                                'Ouvrir',
+                                () => navigation.navigate('Shop'),
+                            )}
+                            {sidePanel(
+                                <Image source={UI.collection} style={{ width: 44, height: 30 }} resizeMode="contain" />,
+                                'Missions',
+                                profile?.binga ? `${missionsDone}/${profile.binga.missions.length} faites aujourd'hui` : 'Avec un compte',
+                                null,
+                                () => navigation.navigate('Missions'),
+                            )}
+                        </ScrollView>
+                    )}
+                </View>
+            </View>
+        );
+    };
+
     const startMode = (m) => {
         if (!requireName()) return;
         if (m === 'online' && outdated) { audioService.playSound('error'); return; }
@@ -465,6 +663,8 @@ export default function HomeScreen({ navigation }) {
                 <View style={styles.center}>
                     <ServerLoader />
                 </View>
+            ) : landscape ? (
+                renderLandscape()
             ) : (
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                     <View style={styles.page}>
@@ -585,42 +785,7 @@ export default function HomeScreen({ navigation }) {
                         {/* Modes de jeu */}
                         <Animated.View entering={FadeInUp.delay(280).springify().damping(16)} style={{ marginTop: 26 }}>
                             <LuxePanel style={styles.lxModes} colors={['#5C1020', '#2B0710']}>
-                                <View style={styles.lxGames}>
-                                    {GAME_ORDER.filter((k) => GAMES[k].available).map((k) => {
-                                        const on = k === game;
-                                        return (
-                                            <PressableScale
-                                                key={k}
-                                                onPress={() => { setGame(k); setMenu(null); AsyncStorage.setItem('selectedGame', k).catch(() => {}); }}
-                                                style={[styles.lxGame, on && styles.lxGameOn]}
-                                                accessibilityLabel={GAMES[k].label}
-                                                accessibilityState={{ selected: on }}
-                                            >
-                                                {pageW >= 380 && <CardFace card={GAMES[k].card} width={20} height={29} />}
-                                                <Text style={[styles.lxGameText, on && { color: LUXE.goldLight }]} numberOfLines={1}>{GAMES[k].label.split(' ')[0]}</Text>
-                                            </PressableScale>
-                                        );
-                                    })}
-                                </View>
-                                <Text style={styles.lxTagline} numberOfLines={2}>{selected.tagline}</Text>
-                                {isSearching ? (
-                                    <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
-                                        <SearchSpinner />
-                                        <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
-                                            {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
-                                        </Text>
-                                        <Text style={styles.searchSub}>{selected.label} · partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
-                                        <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
-                                        <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
-                                    </Animated.View>
-                                ) : (
-                                    <View style={[styles.lxModeGrid, !modesInRow && { flexWrap: 'wrap', rowGap: 12 }]}>
-                                        <ModeCard width={cardW} icon={UI.online} label="En ligne" sub={online ? `${online.online} en ligne` : 'vs joueurs'} colors={MODE_COLORS.red} disabled={!isConnected || outdated} onPress={() => startMode('online')} />
-                                        <ModeCard width={cardW} icon={UI.solo} label="Solo" sub="vs ordinateur" colors={MODE_COLORS.blue} disabled={!isConnected} onPress={() => startMode('bot')} />
-                                        <ModeCard width={cardW} icon={UI.tournament} label="Tournois" sub={lastChampion ? `👑 ${lastChampion.champion}` : 'élimination'} colors={MODE_COLORS.purple} disabled={!isConnected} onPress={() => navigation.navigate('Tournaments')} />
-                                        <ModeCard width={cardW} icon={UI.friends} label="Entre amis" sub={inDiscord ? 'salon Discord' : 'salon privé'} colors={MODE_COLORS.green} disabled={!isConnected || (inDiscord && !profile?.name)} onPress={() => { if (!requireName()) return; if (inDiscord) joinDiscordRoom(); else handleCreateRoom(); }} />
-                                    </View>
-                                )}
+                                {renderModes(cardW, modesInRow)}
                             </LuxePanel>
                             <RibbonTitle title="Modes de jeu" style={styles.lxRibbon} />
                         </Animated.View>
@@ -647,6 +812,7 @@ export default function HomeScreen({ navigation }) {
                     </View>
                 </ScrollView>
             )}
+            {hasConnected && !landscape && <AppNav navigation={navigation} current="home" />}
 
             {/* Choix du nombre de joueurs (en ligne ou contre l'ordinateur) */}
             <Modal visible={!!menu} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
@@ -749,6 +915,25 @@ const styles = StyleSheet.create({
     lxLinks: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
     lxLink: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(232,184,74,0.45)', backgroundColor: 'rgba(10,21,39,0.75)' },
     lxLinkText: { color: LUXE.goldLight, fontWeight: '800', fontSize: 12 },
+    lsScene: { position: 'absolute', bottom: 0, left: 0, opacity: 0.6 },
+    lsTop: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingTop: 8 },
+    lsPlayer: { flexDirection: 'row', alignItems: 'center' },
+    lsName: { color: LUXE.cream, fontWeight: '900', fontSize: 19, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
+    lsLevel: { color: LUXE.cream, fontWeight: '800', fontSize: 12 },
+    lsXp: { color: LUXE.dim, fontWeight: '800', fontSize: 10, marginTop: 2 },
+    lsRight: { flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', gap: 8 },
+    lsBody: { flex: 1, flexDirection: 'row', paddingHorizontal: 16, paddingTop: 4 },
+    lsBox: { padding: 12 },
+    lsBoxRow: { flexDirection: 'row', alignItems: 'center' },
+    lsBoxTitle: { color: LUXE.goldLight, fontWeight: '900', fontSize: 15 },
+    lsBoxSub: { color: LUXE.cream, fontWeight: '700', fontSize: 11, marginTop: 2 },
+    lsBoxBtn: { alignSelf: 'flex-end', marginTop: 8, paddingHorizontal: 16, paddingVertical: 5, borderRadius: 12, overflow: 'hidden', borderWidth: 1, borderColor: '#FFE9A8' },
+    lsBoxBtnText: { color: '#3A1A05', fontWeight: '900', fontSize: 13 },
+    lsTour: { flexDirection: 'row', alignItems: 'center', padding: 12 },
+    lsTourTitle: { color: LUXE.goldLight, fontWeight: '900', fontSize: 19, textShadowColor: '#000', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
+    lsTourSub: { color: LUXE.cream, fontWeight: '700', fontSize: 12, marginTop: 2 },
+    lsTourBtn: { paddingHorizontal: 18, paddingVertical: 9, borderRadius: 18, overflow: 'hidden', borderWidth: 1.5, borderColor: LUXE.goldLight },
+    lsTourBtnText: { color: '#fff', fontWeight: '900', fontSize: 15, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2 },
     lxSheetBg: { flex: 1, backgroundColor: 'rgba(4,8,18,0.82)', justifyContent: 'center', alignItems: 'center', padding: 16 },
     lxSizeHint: { color: LUXE.dim, fontWeight: '800', fontSize: 13, textAlign: 'center', marginTop: 4 },
     lxSizes: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 },

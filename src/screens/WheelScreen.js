@@ -9,6 +9,7 @@ import Svg, { Path, Circle, G } from 'react-native-svg';
 import { GameButton, PressableScale, theme, haptic } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { DECOR, BingaIcon, Chip } from '../components/Decor';
+import AppNav from '../components/AppNav';
 import { ChestArt } from '../components/ChestOpening';
 import accountService, { useAccount } from '../network/accountService';
 import socketService from '../network/socketService';
@@ -241,6 +242,7 @@ export default function WheelScreen({ navigation }) {
                     <Text style={styles.note}>Un coffre gagné s'ouvre tout de suite, gratuitement, avec ses propres chances (affichées dans la Boutique). Cosmétique déjà tous possédés : 20 binga.</Text>
                 </View>
             </ScrollView>
+            <AppNav navigation={navigation} current="rewards" />
         </View>
     );
 }
