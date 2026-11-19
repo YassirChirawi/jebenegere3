@@ -1,6 +1,6 @@
 /**
  * Génère les effets sonores du jeu (WAV mono 16 bits) par synthèse procédurale.
- * Usage : node scripts/generate-sfx.js
+ * Usage : node scripts/generate-sfx.js [noms des sons]
  * Sortie : assets/sfx/*.wav
  */
 const fs = require('fs');
@@ -463,11 +463,87 @@ const sounds = {
         mixInto(d, bell(NOTE(89), 0.5, 0.18, 0.6), 0.52, 0.25);
         return d;
     },
+
+    // ---------------- Économie (binga, roue, coffres, bilan) ----------------
+    // Pluie de pièces : petits tintements métalliques qui s'accumulent
+    coins() {
+        const d = buf(1.0);
+        for (let k = 0; k < 14; k++) {
+            const at = 0.02 + k * 0.055 + rand() * 0.03;
+            const f = 1800 + rand() * 1600;
+            const x = buf(0.25);
+            for (let i = 0; i < x.length; i++) {
+                const t = i / SR;
+                const env = Math.min(1, t / 0.002) * Math.exp(-t / 0.06);
+                x[i] = env * (Math.sin(2 * Math.PI * f * t) + 0.6 * Math.sin(2 * Math.PI * f * 2.76 * t) + 0.3 * Math.sin(2 * Math.PI * f * 5.4 * t));
+            }
+            mixInto(d, x, at, 0.5 + rand() * 0.4);
+        }
+        return d;
+    },
+    // Cliquet de la roue (un « tic » court, rejoué à chaque case)
+    wheel_tick() {
+        const d = buf(0.05);
+        for (let i = 0; i < d.length; i++) {
+            const t = i / SR;
+            d[i] = (noise() * 0.6 + Math.sin(2 * Math.PI * 2400 * t)) * Math.exp(-t / 0.006);
+        }
+        return highpass(d, 900);
+    },
+    // Roue arrêtée : arpège montant brillant
+    wheel_win() {
+        const d = buf(1.1);
+        [72, 76, 79, 84, 88].forEach((n, i) => mixInto(d, bell(NOTE(n), 0.9, 0.3, 0.7), i * 0.08, 0.7));
+        mixInto(d, bell(NOTE(96), 0.9, 0.5, 0.4), 0.42, 0.35);
+        return d;
+    },
+    // Coffre : grincement du couvercle, « clac » du loquet, puis éclat lumineux
+    chest_open() {
+        const d = buf(1.3);
+        const creak = buf(0.35);
+        for (let i = 0; i < creak.length; i++) {
+            const t = i / SR;
+            const f = 180 + 120 * t + 15 * Math.sin(2 * Math.PI * 23 * t);
+            creak[i] = Math.sign(Math.sin(2 * Math.PI * f * t)) * 0.4 * Math.min(1, t / 0.05) * Math.exp(-t / 0.25) + noise() * 0.1;
+        }
+        mixInto(d, lowpass(creak, 1800), 0, 0.5);
+        const clack = buf(0.08);
+        for (let i = 0; i < clack.length; i++) clack[i] = noise() * Math.exp(-(i / SR) / 0.01);
+        mixInto(d, lowpass(clack, 3500), 0.33, 0.9);
+        const shimmer = buf(0.9);
+        for (let i = 0; i < shimmer.length; i++) {
+            const t = i / SR;
+            const env = Math.min(1, t / 0.15) * Math.exp(-t / 0.35);
+            shimmer[i] = env * noise();
+        }
+        mixInto(d, highpass(shimmer, 5000), 0.38, 0.35);
+        [79, 83, 86, 91].forEach((n, i) => mixInto(d, bell(NOTE(n), 0.7, 0.3, 0.6), 0.4 + i * 0.06, 0.45));
+        return d;
+    },
+    // Nouveau rang : fanfare courte (accord majeur qui monte)
+    level_up() {
+        const d = buf(1.6);
+        [[60, 64, 67], [65, 69, 72], [67, 71, 74], [72, 76, 79, 84]].forEach((chord, k) => {
+            chord.forEach((n) => mixInto(d, bell(NOTE(n), k === 3 ? 1.2 : 0.4, k === 3 ? 0.5 : 0.15, 0.8), k * 0.13, 0.35));
+        });
+        return d;
+    },
+    // Fenêtre du jour qui s'ouvre : petit « ding » doux à deux notes
+    popup() {
+        const d = buf(0.7);
+        mixInto(d, bell(NOTE(81), 0.6, 0.22, 0.4), 0, 0.7);
+        mixInto(d, bell(NOTE(88), 0.6, 0.28, 0.4), 0.09, 0.6);
+        return d;
+    },
 };
 
 fs.mkdirSync(OUT_DIR, { recursive: true });
 console.log('Génération des effets sonores →', OUT_DIR);
+// Sans argument : tous les sons. Avec des noms : seulement ceux-là
+// (ex. node scripts/generate-sfx.js coins wheel_tick), pour ne pas écraser un son remplacé à la main (plus_two).
+const only = process.argv.slice(2);
 for (const [name, fn] of Object.entries(sounds)) {
+    if (only.length && !only.includes(name)) continue;
     writeWav(name, fn());
 }
 console.log('Terminé.');

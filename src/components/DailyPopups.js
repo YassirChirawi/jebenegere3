@@ -129,7 +129,7 @@ export default function DailyPopups({ profile, isGuest, ready, navigation }) {
         setQueue(rest);
         setCurrent(next);
         markSeen(next);
-        audioService.playSound(next === 'login' ? 'coin' : 'pop');
+        audioService.playSound(next === 'login' ? 'coins' : 'popup');
         haptic('light');
     }, [queue, current, ready]);
 

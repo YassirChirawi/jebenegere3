@@ -27,7 +27,7 @@ Légende :
 
 | Fichier | Utilisé | Source | Licence |
 |---|---|---|---|
-| `assets/sfx/*.wav` (26 bruitages : cartes, darba, kdoub, victoire, « +2 » du Hezz2…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
+| `assets/sfx/*.wav` (32 bruitages : cartes, darba, kdoub, victoire, pièces, roue, coffre, nouveau rang, « +2 » du Hezz2…) | Oui | Créés par synthèse avec [scripts/generate-sfx.js](scripts/generate-sfx.js) | Création du projet : libre. |
 | `assets/music/cava.mp3` (musique d'ambiance du menu) | Oui ([audioService.js](src/network/audioService.js), `MUSIC_SRC`) | « Afro Moroccan Style Beat x African Instrumental "Cava" » de **808xri**, Pixabay n° 354190 (fichier d'origine `808xri-afro-moroccan-style-beat-x-african-instrumental-quotcavaquot-354190.mp3`, ajouté par Yassir le 18 nov 2026) | Licence Pixabay : usage commercial gratuit, crédit non obligatoire. Garder une capture de la page de téléchargement. Compressé pour l'appli (mono, 56 kbit/s, 1,1 Mo au lieu de 5,3 Mo, même volume que l'ancienne musique, fondu de 0,8 s au début et de 3 s à la fin pour la boucle). |
 | `alexis_gaming_cam-vinyl-stop-342938.mp3` (son « passe ton tour ») | Oui (`skip`) | Pixabay (nommage Pixabay : auteur, titre, numéro) | Licence Pixabay : usage commercial gratuit, sans crédit obligatoire. Garder la page de téléchargement en capture. |
 | `universfield-very-infectious-laughter-117727.mp3` (rire) | Oui (`laugh`) | Pixabay (auteur Universfield) | Licence Pixabay, même remarque. |

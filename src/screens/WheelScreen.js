@@ -132,10 +132,28 @@ export default function WheelScreen({ navigation }) {
     const [result, setResult] = useState(null);
     const available = !!profile?.wheel?.available;
 
+    const ticks = React.useRef(null);
+    const stopTicks = () => { if (ticks.current) clearTimeout(ticks.current); ticks.current = null; };
+    // Un « tic » par case qui passe sous l'aiguille : rapide au début, de plus en plus lent
+    const startTicks = (duration) => {
+        stopTicks();
+        const t0 = Date.now();
+        const loop = () => {
+            const k = (Date.now() - t0) / duration;
+            if (k >= 1) return;
+            audioService.playSound('wheel_tick');
+            ticks.current = setTimeout(loop, 45 + 380 * k * k);
+        };
+        loop();
+    };
+    React.useEffect(() => stopTicks, []);
+
     const done = (r) => {
+        stopTicks();
         setSpinning(false);
         setResult(r.result);
-        audioService.playSound(r.result.chest || r.result.item ? 'victory' : 'coin');
+        audioService.playSound('wheel_win');
+        setTimeout(() => audioService.playSound(r.result.chest ? 'chest_open' : r.result.item ? 'victory' : 'coins'), 350);
         haptic('success');
         accountService.applyProgress({ profile: r.profile });
     };
@@ -166,6 +184,7 @@ export default function WheelScreen({ navigation }) {
         // La case gagnante s'arrête sous l'aiguille (en haut), après 5 tours
         const target = 360 - (r.result.segment * STEP + STEP / 2) + (Math.random() - 0.5) * STEP * 0.6;
         const base = rotation.value - (rotation.value % 360);
+        startTicks(2500);
         rotation.value = withTiming(base + 360 * 5 + target, { duration: 2600, easing: Easing.out(Easing.cubic) }, (fin) => {
             if (fin) runOnJS(done)(r);
         });

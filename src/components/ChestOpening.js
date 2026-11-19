@@ -107,7 +107,9 @@ export default function ChestOpening({ chest, request, onClose, onUse }) {
             setRes(r);
             setPhase('open');
             scale.value = withSequence(withTiming(1.18, { duration: 120 }), withSpring(1));
-            audioService.playSound(r.result.item.rarity === 'legendaire' || r.result.item.rarity === 'epique' ? 'victory' : 'coin');
+            audioService.playSound('chest_open');
+            if (r.result.item.rarity === 'legendaire' || r.result.item.rarity === 'epique') setTimeout(() => audioService.playSound('victory'), 450);
+            else if (r.result.duplicate) setTimeout(() => audioService.playSound('coins'), 450);
             haptic(r.result.item.rarity === 'legendaire' ? 'double' : 'success');
             setTimeout(() => alive && setPhase('done'), 700);
         });

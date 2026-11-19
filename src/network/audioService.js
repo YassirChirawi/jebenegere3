@@ -41,6 +41,13 @@ const SFX = {
     sota:        { src: require('../../assets/sfx/sota.wav'),        volume: 0.85 },
     // Sons "culturels" existants
     plus_two:    { src: require('../../assets/sfx/plus_two.wav'),    volume: 0.8 },
+    // Économie : binga, roue, coffres, bilan, fenêtres du jour (scripts/generate-sfx.js)
+    coins:       { src: require('../../assets/sfx/coins.wav'),       volume: 0.6 },
+    wheel_tick:  { src: require('../../assets/sfx/wheel_tick.wav'),  volume: 0.45, pool: 4 },
+    wheel_win:   { src: require('../../assets/sfx/wheel_win.wav'),   volume: 0.7 },
+    chest_open:  { src: require('../../assets/sfx/chest_open.wav'),  volume: 0.75 },
+    level_up:    { src: require('../../assets/sfx/level_up.wav'),    volume: 0.75 },
+    popup:       { src: require('../../assets/sfx/popup.wav'),       volume: 0.55 },
     skip:        { src: require('../../assets/alexis_gaming_cam-vinyl-stop-342938.mp3'), volume: 0.8 },
     laugh:       { src: require('../../assets/universfield-very-infectious-laughter-117727.mp3'), volume: 0.7 },
     game_over:   { src: require('../../assets/freesound_community-080205_life-lost-game-over-89697.mp3'), volume: 0.7 },

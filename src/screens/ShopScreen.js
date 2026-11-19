@@ -139,7 +139,7 @@ export default function ShopScreen({ navigation }) {
                         dialog.alert('Achat impossible', r.error || 'Réessaie dans un instant.');
                         return;
                     }
-                    audioService.playSound('victory');
+                    audioService.playSound('coins');
                     haptic('success');
                     if (item.kind !== 'emote') use(item);
                     dialog.alert('C\'est à toi ! 🎉', item.kind === 'emote'
