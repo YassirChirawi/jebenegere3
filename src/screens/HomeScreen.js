@@ -440,6 +440,15 @@ export default function HomeScreen({ navigation }) {
                                 <Text style={styles.rankXp}>{rankInfo.currentXP} XP</Text>
                             </PressableScale>
                         )}
+                        {profile?.binga && (
+                            <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
+                                <Text style={styles.rankText}>💰 {profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                                <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]} numberOfLines={1}>
+                                    Missions {profile.binga.missions.filter((m) => m.done).length}/{profile.binga.missions.length}
+                                    {profile.binga.login.claimed ? '' : ` · bonus du jour +${profile.binga.login.amount}`}
+                                </Text>
+                            </PressableScale>
+                        )}
                         <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
                             {profile ? (
                                 <Text style={styles.rankText}>
@@ -449,7 +458,7 @@ export default function HomeScreen({ navigation }) {
                                     </Text>
                                 </Text>
                             ) : (
-                                <Text style={styles.rankText}>🔐 Crée ton compte : défis du jour, titres et classement</Text>
+                                <Text style={styles.rankText}>🔐 Crée ton compte : binga, défis du jour, titres et classement</Text>
                             )}
                         </PressableScale>
 

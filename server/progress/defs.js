@@ -128,7 +128,28 @@ function seasonOf(now = Date.now()) {
 
 const GAME_KEYS = ['hezz2', 'ronda', 'kdoub', 'sota'];
 
+// ----------------------------------------------------------------------------
+// Binga : monnaie du jeu, gagnée en jouant (jamais achetée, jamais convertie en argent).
+// Montants décidés par Yassir : ne pas les changer sans lui demander.
+// ----------------------------------------------------------------------------
+const BINGA = {
+    // Partie finie : même en perdant, on gagne quelque chose
+    game: {
+        online: { win: 25, loss: 10 }, // au moins un adversaire humain
+        bots: { win: 20, loss: 10 }, // contre l'ordinateur seulement
+    },
+    // Connexion du jour, en série : jour 1, 2, 3 à 6, puis 150 le 7e jour ; ensuite la série recommence
+    login: [50, 75, 100, 100, 100, 100, 150],
+    rankUp: 100, // à chaque nouveau rang
+    playDailyCap: 500, // plafond des binga gagnés en jouant par jour (hors missions et connexion)
+    missions: [
+        { id: 'play3', label: 'Jouer 3 parties', metric: 'play', target: 3, binga: 30 },
+        { id: 'win1', label: 'Gagner 1 partie', metric: 'win', target: 1, binga: 50 },
+        { id: 'other1', label: 'Jouer une partie de Ronda, Kdoub ou Sota', metric: 'other', target: 1, binga: 30 },
+    ],
+};
+
 module.exports = {
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
-    TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS,
+    TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
 };

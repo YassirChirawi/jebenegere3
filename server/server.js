@@ -54,6 +54,11 @@ app.get('/api/me', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (user) res.json({ profile: await progress.profile(user) });
 }));
+// Connexion du jour : binga crédités une seule fois par jour (le serveur décide du jour et du montant)
+app.post('/api/daily-login', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (user) res.json(await progress.dailyLogin(user));
+}));
 app.post('/api/me', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (user) res.json({ profile: await progress.updateMe(user, req.body || {}) });
@@ -111,7 +116,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga'] };
 }
 
 // === MODÉRATION DU CHAT ===

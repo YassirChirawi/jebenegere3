@@ -6,7 +6,9 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
-const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS } = defs;
+const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA } = defs;
+const BINGA_LOG_MAX = 30;
+const GAME_NAMES = { hezz2: 'Hezz2', ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota' };
 
 const NAME_RE = /^[\p{L}\p{N} _.'-]{3,16}$/u;
 const HISTORY_MAX = 30;
@@ -41,6 +43,92 @@ function blankUser(name) {
         seasonDone: {},
         badges: [],
         blocked: [], // joueurs bloqués dans le chat : [{ key, name, at }]
+        binga: blankBinga(),
+    };
+}
+
+// ----------------------------------------------------------------------------
+// Binga : tout est calculé ici, à partir des parties arbitrées par le serveur
+// (jamais sur la parole de l'appli)
+// ----------------------------------------------------------------------------
+function blankBinga() {
+    return { balance: 0, day: null, playToday: 0, missions: { progress: {}, done: [] }, login: { last: null, streak: 0 }, log: [] };
+}
+
+// Remet à zéro les compteurs du jour (gains en jouant, missions) quand le jour change
+function bingaDay(u, now = Date.now()) {
+    u.binga = { ...blankBinga(), ...(u.binga || {}) };
+    const day = dayKey(now);
+    if (u.binga.day !== day) {
+        u.binga.day = day;
+        u.binga.playToday = 0;
+        u.binga.missions = { progress: {}, done: [] };
+    }
+    return u.binga;
+}
+
+function credit(u, amount, reason, now = Date.now()) {
+    if (!amount) return 0;
+    u.binga.balance += amount;
+    u.binga.log = [{ at: now, amount, reason }, ...(u.binga.log || [])].slice(0, BINGA_LOG_MAX);
+    return amount;
+}
+
+/**
+ * Binga d'une partie finie : 10 même en perdant, 25 en gagnant (20 contre l'ordinateur),
+ * dans la limite de 500 par jour ; puis missions du jour. Rien pour un abandon ou une partie
+ * jouée en automatique.
+ */
+function bingaForGame(u, entry, now = Date.now()) {
+    const b = bingaDay(u, now);
+    const out = { game: 0, base: 0, capped: false, won: !!entry.won, vsBots: !!entry.vsBots, missions: [] };
+    if (!entry.record || entry.noBinga || entry.afk) return out;
+    const rates = entry.vsBots ? BINGA.game.bots : BINGA.game.online;
+    out.base = entry.won ? rates.win : rates.loss;
+    out.game = Math.max(0, Math.min(out.base, BINGA.playDailyCap - b.playToday));
+    out.capped = out.game < out.base;
+    b.playToday += out.game;
+    credit(u, out.game, `Partie de ${GAME_NAMES[entry.game] || entry.game} · ${entry.won ? 'victoire' : 'défaite'}`, now);
+
+    const metrics = { play: 1, win: entry.won ? 1 : 0, other: ['ronda', 'kdoub', 'sota'].includes(entry.game) ? 1 : 0 };
+    BINGA.missions.forEach((m) => {
+        if (b.missions.done.includes(m.id) || !metrics[m.metric]) return;
+        b.missions.progress[m.id] = Math.min(m.target, (b.missions.progress[m.id] || 0) + metrics[m.metric]);
+        if (b.missions.progress[m.id] >= m.target) {
+            b.missions.done.push(m.id);
+            credit(u, m.binga, `Mission : ${m.label}`, now);
+            out.missions.push({ id: m.id, label: m.label, binga: m.binga });
+        }
+    });
+    return out;
+}
+
+/** Connexion du jour : 50, 75, puis 100 (jours 3 à 6), 150 le 7e jour ; un jour manqué remet la série à 1. */
+function claimLogin(u, now = Date.now()) {
+    const b = bingaDay(u, now);
+    const today = dayKey(now);
+    if (b.login.last === today) return null;
+    const yesterday = dayKey(now - 24 * 3600 * 1000);
+    const streak = b.login.last === yesterday ? (b.login.streak % BINGA.login.length) + 1 : 1;
+    const amount = BINGA.login[streak - 1];
+    b.login = { last: today, streak };
+    credit(u, amount, `Connexion du jour (jour ${streak}/${BINGA.login.length})`, now);
+    return { amount, streak, days: BINGA.login.length };
+}
+
+function bingaView(u, now = Date.now()) {
+    const b = bingaDay(u, now);
+    const today = dayKey(now);
+    const claimed = b.login.last === today;
+    const yesterday = dayKey(now - 24 * 3600 * 1000);
+    const nextStreak = claimed ? b.login.streak : (b.login.last === yesterday ? (b.login.streak % BINGA.login.length) + 1 : 1);
+    return {
+        balance: b.balance,
+        playToday: b.playToday,
+        playCap: BINGA.playDailyCap,
+        missions: BINGA.missions.map((m) => ({ ...m, progress: b.missions.progress[m.id] || 0, done: b.missions.done.includes(m.id) })),
+        login: { claimed, streak: claimed ? b.login.streak : nextStreak, amount: BINGA.login[nextStreak - 1], days: BINGA.login.length },
+        log: b.log || [],
     };
 }
 
@@ -295,8 +383,14 @@ function createProgress(store) {
                 }
             });
 
+            // Binga : partie finie (même perdue) et missions du jour, puis nouveau rang
+            const binga = bingaForGame(u, entry, now);
+            const rankBefore = rankFor(u.xp).index;
             u.xp += xpGained;
             addSeasonXp(u, entry.game, xpGained, now);
+            const ranksUp = Math.max(0, rankFor(u.xp).index - rankBefore);
+            binga.rank = credit(u, ranksUp * BINGA.rankUp, `Nouveau rang : ${rankFor(u.xp).name}`, now);
+            binga.total = binga.game + binga.missions.reduce((n, m) => n + m.binga, 0) + binga.rank;
 
             if (entry.record) {
                 u.history = [{
@@ -308,7 +402,7 @@ function createProgress(store) {
                     at: now,
                 }, ...(u.history || [])].slice(0, HISTORY_MAX);
             }
-            return { xpGained, completed, titles: newTitles, profile: profileOf(u, now) };
+            return { xpGained, completed, titles: newTitles, binga, profile: profileOf(u, now) };
         });
     }
 
@@ -326,7 +420,15 @@ function createProgress(store) {
 
     // Abandon en cours de partie : compté comme une défaite, sans XP
     async function recordAbandon(userId, game, opponents, now = Date.now()) {
-        return award(userId, { game, xp: 0, record: true, won: false, result: 'Abandon 🏳️', opponents, counters: {}, hezz2Khasser: true }, now);
+        return award(userId, { game, xp: 0, record: true, won: false, result: 'Abandon 🏳️', opponents, counters: {}, hezz2Khasser: true, noBinga: true }, now);
+    }
+
+    // Connexion du jour (une fois par jour, le serveur décide) : { reward | null, profile }
+    async function dailyLogin(user, now = Date.now()) {
+        return withUser(user.id, (u) => {
+            const reward = claimLogin(u, now);
+            return { reward, profile: profileOf(u, now) };
+        });
     }
 
     // ------------------------------------------------------------------ profil
@@ -351,6 +453,7 @@ function createProgress(store) {
             titles: TITLES.map((t) => ({ id: t.id, label: t.label, desc: t.desc, target: t.target, progress: Math.min(t.target, u.counters[t.counter] || 0), unlocked: u.titles.includes(t.id) })),
             badges: u.badges || [],
             season: { id: season.id, end: season.end, xp: u.seasons?.[season.id]?.all || 0 },
+            binga: bingaView(u, now),
         };
     }
 
@@ -376,7 +479,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

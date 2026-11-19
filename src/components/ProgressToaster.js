@@ -27,9 +27,26 @@ export default function ProgressToaster() {
         setTimeout(() => { busy.current = false; pump(); }, 3200);
     };
 
+    // Connexion du jour : tout de suite
+    useEffect(() => accountService.onLoginReward((r) => {
+        queue.current.push({ icon: '💰', title: 'Connexion du jour', text: `+${r.amount} binga · série jour ${r.streak}/${r.days}`, color: theme.goldLight, sound: 'coin' });
+        pump();
+    }), []);
+
     useEffect(() => socketService.onProgress((p) => {
         accountService.applyProgress(p);
         const items = [];
+        // Binga de la partie : toujours affichés, même en cas de défaite
+        const b = p.binga;
+        if (b && (b.game > 0 || b.capped)) {
+            let text;
+            if (b.game === 0) text = 'Plafond du jour atteint (500 binga en jouant). Les missions rapportent toujours, reviens demain !';
+            else if (!b.won) text = `+${b.game} binga, même en perdant`;
+            else text = `+${b.game} binga${b.vsBots ? " · victoire contre l'ordinateur" : ' · victoire'}`;
+            if (b.game > 0 && b.capped) text += ' (plafond du jour atteint)';
+            items.push({ icon: '💰', title: b.won ? 'Binga gagnés' : 'Partie finie', text, color: theme.goldLight, sound: 'coin' });
+        }
+        (b?.missions || []).forEach((m) => items.push({ icon: '💰', title: 'Mission du jour réussie', text: `${m.label} · +${m.binga} binga`, color: theme.mint }));
         (p.completed || []).forEach((c) => {
             items.push({ icon: '🎯', title: 'Défi relevé !', text: `${c.label} · +${c.xp} XP`, color: theme.mint });
             if (c.reward) items.push({ icon: '🎁', title: c.reward.kind === 'back' ? 'Nouveau dos de cartes' : 'Nouveau tapis', text: `${c.reward.label} · à choisir dans Profil → Style`, color: theme.goldLight, sound: 'victory' });
@@ -40,7 +57,7 @@ export default function ProgressToaster() {
         if (p.profile && p.xpGained) {
             const before = rankFor(p.profile.xp - p.xpGained);
             const after = rankFor(p.profile.xp);
-            if (after.index > before.index) items.push({ icon: after.emoji, title: 'Nouveau rang !', text: after.name, color: theme.gold, sound: 'victory', haptic: 'double' });
+            if (after.index > before.index) items.push({ icon: after.emoji, title: 'Nouveau rang !', text: `${after.name}${b?.rank ? ` · +${b.rank} binga` : ''}`, color: theme.gold, sound: 'victory', haptic: 'double' });
         }
         if (!items.length) return;
         // On laisse d'abord l'écran de fin de partie s'afficher

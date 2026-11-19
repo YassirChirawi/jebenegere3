@@ -17,6 +17,8 @@ const BASE = SOCKET_URL.replace(/\/+$/, '');
 let state = { token: null, profile: null, loading: true, error: null, guestAvatar: 0 };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
+const loginRewardListeners = new Set();
+let claiming = false;
 const set = (patch) => {
     state = { ...state, ...patch };
     if (patch.profile !== undefined) syncLocal(state.profile);
@@ -96,10 +98,33 @@ const accountService = {
         if (r.profile) {
             set({ profile: r.profile, loading: false, error: null });
             AsyncStorage.setItem('authProfile', JSON.stringify(r.profile)).catch(() => {});
+            accountService.dailyLogin();
             return r.profile;
         }
         set({ loading: false });
         return state.profile;
+    },
+
+    /** Connexion du jour : le serveur crédite les binga une seule fois par jour (rien si déjà reçus). */
+    async dailyLogin() {
+        // (appelé juste après un profil frais : « claimed » dit si le bonus du jour est déjà reçu)
+        if (!state.token || !state.profile?.binga || state.profile.binga.login?.claimed || claiming) return;
+        claiming = true;
+        try {
+            const r = await request('/api/daily-login', { method: 'POST' });
+            if (r.profile) {
+                set({ profile: r.profile });
+                AsyncStorage.setItem('authProfile', JSON.stringify(r.profile)).catch(() => {});
+            }
+            if (r.reward) loginRewardListeners.forEach((fn) => fn(r.reward));
+        } finally {
+            claiming = false;
+        }
+    },
+
+    onLoginReward(fn) {
+        loginRewardListeners.add(fn);
+        return () => loginRewardListeners.delete(fn);
     },
 
     async register(name, password, importXp) {
@@ -121,6 +146,7 @@ const accountService = {
         await AsyncStorage.setItem('authProfile', JSON.stringify(profile)).catch(() => {});
         set({ token, profile, loading: false, error: null });
         authSocket();
+        accountService.dailyLogin();
     },
 
     async logout(expired = false) {

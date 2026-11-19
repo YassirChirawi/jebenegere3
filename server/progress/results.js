@@ -36,8 +36,10 @@ function gameResults(room, state) {
     const push = (i, entry) => {
         const p = room.activePlayers[i];
         if (!p || p.isBot || !p.userId) return;
-        if ((afk[i] || 0) > AFK_XP_LIMIT) entry.xp = 0; // partie jouée en automatique : pas d'XP
-        out.push({ index: i, userId: p.userId, entry: { opponents: opponentsOf(room, i), ...entry } });
+        if ((afk[i] || 0) > AFK_XP_LIMIT) { entry.xp = 0; entry.afk = true; } // partie jouée en automatique : ni XP ni binga
+        // Contre l'ordinateur seulement ? (un humain parti et remplacé par un bot compte comme un humain)
+        const vsBots = room.activePlayers.every((o, k) => k === i || (o.isBot && !o.replaced));
+        out.push({ index: i, userId: p.userId, entry: { opponents: opponentsOf(room, i), vsBots, ...entry } });
     };
 
     switch (room.gameType) {

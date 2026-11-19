@@ -291,6 +291,31 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 - **Sota Ghamla** : une carte est piochée au hasard à la fin du chrono.
 - La fenêtre pour contrer un 1 en Hezz2 dure **5 s**.
 
+## Binga : la monnaie du jeu
+
+Le binga se **gagne en jouant**. Il ne s'achète pas avec de l'argent et ne se convertit jamais en argent. Il est réservé aux joueurs avec un compte, et il est stocké avec le compte dans PostgreSQL : il est donc retrouvé après un redémarrage du serveur ou sur un autre appareil. Il servira pour les cosmétiques, les coffres et les entrées de tournoi, jamais pour jouer une partie normale, qui reste gratuite.
+
+| Gain | Montant |
+|---|---|
+| Partie finie, perdue | **10 binga** (même en perdant) |
+| Partie finie, gagnée, avec au moins un adversaire humain | **25 binga** |
+| Partie gagnée contre l'ordinateur seulement | **20 binga** |
+| Connexion du jour, en série | 50, 75, puis 100 (jours 3 à 6), **150** le 7ᵉ jour, puis la série recommence ; un jour manqué la remet à 50 |
+| Missions du jour (3) | jouer 3 parties : 30 · gagner 1 partie : 50 · jouer une partie de Ronda, Kdoub ou Sota : 30 |
+| Nouveau rang | **100 binga** par rang |
+
+- **Ce qu'est une victoire :** la même définition que pour les statistiques. En Hezz2, ne pas être Khasser ; en Ronda, l'équipe qui gagne la partie (pas une simple manche) ; en Kdoub, le premier ; en Sota, ne pas finir avec la Sota.
+- **Plafond :** 500 binga par jour gagnés en jouant. Les missions, la connexion du jour et les rangs passent en plus. Si le plafond est atteint au milieu d'une partie, on reçoit seulement le reste.
+- **Rien n'est crédité** pour un abandon ou pour une partie jouée en automatique (plus de 3 tours manqués), comme pour l'XP.
+- **Le jour change à minuit, heure du Maroc**, comme pour les défis du jour.
+- **Tout est calculé par le serveur**, à partir des parties qu'il arbitre. La connexion du jour (`POST /api/daily-login`) n'est créditée qu'une fois par jour, et l'appli ne peut envoyer aucun montant.
+- **Affichage :**
+  - après chaque partie, une notification indique le gain, par exemple « +10 binga, même en perdant » ;
+  - l'accueil affiche le solde et les missions ;
+  - le Profil affiche le solde, la série de connexion, les gains du jour sur 500, les missions et les derniers gains.
+- **Pas de vidéo récompensée :** il n'y en a pas dans l'appli pour l'instant (prévue à 50 binga, 3 fois par jour au plus).
+- Les montants sont regroupés dans `BINGA`, dans `server/progress/defs.js`. Ils ont été décidés par Yassir : ne pas les changer sans lui demander.
+
 ## Premium, phase 2 : progression et récompenses
 
 - **Compte** : un pseudo de 3 à 16 caractères et un mot de passe d'au moins 6 caractères, sans email.
