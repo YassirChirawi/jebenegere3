@@ -351,6 +351,9 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
   - **Défis du jour :** les 3 défis XP.
   - **Succès et badges :** les titres en écussons (grisés tant qu'ils ne sont pas gagnés, avec la progression). Toucher un badge gagné l'affiche à côté du pseudo.
   - Sans compte : une invitation à créer un compte.
+- **Même style partout** : Missions, Ma Collection (Boutique) et Profil ont le fond bleu nuit, l'en-tête doré (‹ retour, titre, solde) et des sections en panneaux dorés à bandeau rouge (`LuxeBackdrop`, `ScreenHeader`, `SectionHead` dans [src/components/Luxe.js](src/components/Luxe.js)).
+- **Ma Collection** (ex-Boutique) : onglets en cases dorées avec icône (Coffres, Dos, Tables, Effets, Réactions, Portraits ; l'onglet ouvert en rouge). Chaque onglet indique où en est la collection (objets possédés / total, avec une barre, et « Collection complète ! » quand tout est possédé ; c'est un affichage, sans récompense en plus). Les objets sont des cartes bleu nuit avec un liseré de la couleur de la rareté et une pastille ✓ quand ils sont à toi. Prix, coffres et chances ne changent pas.
+- **Profil** : carte du joueur sur velours (lauriers, pseudo ✏️, badge de niveau, barre d'XP, rang, saison), puis 4 cases : victoires, meilleure série, taux de victoire, parties jouées.
 - Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
 - Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
 

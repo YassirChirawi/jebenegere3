@@ -1,11 +1,13 @@
 /**
- * Boutique : cosmétiques achetés avec des binga gagnés en jouant (jamais avec de l'argent).
+ * Ma Collection (Boutique) : cosmétiques achetés avec des binga gagnés en jouant (jamais avec de l'argent).
+ * Chaque onglet montre où en est la collection (objets possédés / total).
  * Visuels seulement : aucun avantage en partie. Les légendaires ne s'achètent pas (coffre Or).
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, Image } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
 import PlayerAvatar from '../components/PlayerAvatar';
 import AppNav from '../components/AppNav';
+import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
 import { BingaIcon, DECOR } from '../components/Decor';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { CardBack } from '../components/Card';
@@ -19,7 +21,6 @@ import audioService from '../network/audioService';
 import { BACKS, EFFECTS, FELTS, TABLE_SKINS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt, setTable } from '../utils/cosmetics';
 import { COSMETICS, RARITIES, CHESTS, priceOf } from '../../server/progress/defs';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
 const TABS = [
     ['chest', 'Coffres'],
@@ -29,6 +30,22 @@ const TABS = [
     ['emote', 'Réac.'],
     ['avatar', 'Portraits'],
 ];
+// Nom complet de chaque collection
+const TAB_TITLES = { back: 'Dos de cartes', table: 'Tables et tapis', effect: 'Effets de victoire', emote: 'Réactions', avatar: 'Portraits' };
+const NAV_CARDS = require('../../assets/ui/nav_collection.webp');
+
+// Petite icône de chaque onglet
+function TabIcon({ k }) {
+    switch (k) {
+        case 'chest': return <ChestArt chest="or" size={30} />;
+        case 'back': return <Image source={NAV_CARDS} style={{ width: 30, height: 26 }} resizeMode="contain" />;
+        case 'table': return <Image source={Object.values(TABLE_SKINS)[0]?.src} style={{ width: 34, height: 22, borderRadius: 4 }} resizeMode="cover" />;
+        case 'effect': return <Text style={{ fontSize: 22 }}>✨</Text>;
+        case 'emote': return <Text style={{ fontSize: 22 }}>😂</Text>;
+        case 'avatar': return <PlayerAvatar name="?" variant={29} size={28} />;
+        default: return null;
+    }
+}
 const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
 
 // Visuel offert, affiché en tête de liste (pas dans le catalogue)
@@ -186,17 +203,13 @@ export default function ShopScreen({ navigation }) {
     const list = tab === 'chest' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab || (tab === 'table' && c.kind === 'felt'))];
 
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.header}>
-                <PressableScale style={styles.headBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.headBtnText}>⬅️ Retour</Text>
-                </PressableScale>
-                <Text style={styles.title}>🛍️ Boutique</Text>
-                <View style={styles.balance}>
-                    <BingaIcon size={16} />
-                    <Text style={styles.balanceText}>{profile ? balance.toLocaleString('fr-FR') : '—'}</Text>
-                </View>
-            </View>
+        <View style={styles.container}>
+            <LuxeBackdrop />
+            <ScreenHeader
+                title="Ma Collection"
+                onBack={() => navigation.goBack()}
+                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? balance.toLocaleString('fr-FR') : '—'} />}
+            />
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Text style={styles.info}>
@@ -214,12 +227,32 @@ export default function ShopScreen({ navigation }) {
                 </View>
 
                 <View style={styles.tabs}>
-                    {TABS.map(([k, label]) => (
-                        <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-                            <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{label}</Text>
-                        </Pressable>
-                    ))}
+                    {TABS.map(([k, label]) => {
+                        const on = tab === k;
+                        return (
+                            <PressableScale key={k} onPress={() => setTab(k)} style={[styles.tab, on && styles.tabOn]} accessibilityLabel={label} accessibilityState={{ selected: on }} scaleTo={0.93}>
+                                <Gradient colors={on ? ['#C42634', '#5E0B15'] : ['#1D2C55', '#0C1632']} />
+                                <View style={styles.tabIcon}><TabIcon k={k} /></View>
+                                <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>{label}</Text>
+                            </PressableScale>
+                        );
+                    })}
                 </View>
+
+                {/* Où en est la collection de cet onglet */}
+                {tab !== 'chest' && (() => {
+                    const have = list.filter(owned).length;
+                    const complete = have === list.length;
+                    return (
+                        <LuxePanel style={styles.progressBox} inner={false}>
+                            <SectionHead title={`${TAB_TITLES[tab]} (${list.length})`} right={<Text style={[styles.progressCount, complete && { color: '#7CF29A' }]}>{complete ? '✓ ' : ''}{have} / {list.length}</Text>} />
+                            <View style={{ padding: 10 }}>
+                                <XpBar progress={list.length ? have / list.length : 0} height={10} />
+                                {complete && <Text style={styles.complete}>👑 Collection complète !</Text>}
+                            </View>
+                        </LuxePanel>
+                    );
+                })()}
 
                 {tab === 'table' && <Text style={styles.soon}>Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.</Text>}
                 {tab === 'avatar' && <Text style={styles.soon}>24 portraits en plus des 12 offerts, dont 8 premium (Épique et Légendaire). Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
@@ -227,15 +260,17 @@ export default function ShopScreen({ navigation }) {
 
                 {tab === 'chest' && (
                     <>
-                        <ImageBackground source={DECOR.coffres} style={styles.chestBanner} imageStyle={{ borderRadius: 16 }} resizeMode="cover">
+                        <View style={styles.chestBanner}>
+                            <Image source={DECOR.coffres} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            <Gradient colors={['rgba(6,12,24,0)', 'rgba(6,12,24,0.85)']} />
                             <View style={styles.chestBannerShade}>
                                 <Text style={styles.chestBannerTitle}>Coffres et roue du jour</Text>
                                 <GameButton small title="🎡 Roue du jour (gratuite)" onPress={() => navigation.navigate('Wheel')} />
                             </View>
-                        </ImageBackground>
+                        </View>
                         <Text style={styles.soon}>Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.</Text>
                         {Object.entries(CHESTS).map(([id, c]) => (
-                            <View key={id} style={[styles.chestCard, { borderColor: c.color }]}>
+                            <LuxePanel key={id} style={[styles.chestCard, { borderColor: c.color }]}>
                                 <View style={styles.chestLeft}>
                                     <ChestArt chest={id} size={92} />
                                     <Text style={[styles.chestName, { color: c.color }]}>{c.label}</Text>
@@ -252,7 +287,7 @@ export default function ShopScreen({ navigation }) {
                                     {pityText(id) && <Text style={styles.pity}>⭐ {pityText(id)}</Text>}
                                     <GameButton small title={`Ouvrir · 💰 ${c.price}`} onPress={() => openChest(id)} variant={profile && balance >= c.price ? 'gold' : 'outline'} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
                                 </View>
-                            </View>
+                            </LuxePanel>
                         ))}
                     </>
                 )}
@@ -261,7 +296,10 @@ export default function ShopScreen({ navigation }) {
                     {list.map((item) => {
                         const r = RARITIES[item.rarity];
                         return (
-                            <Animated.View key={item.id} entering={FadeIn.duration(200)} style={[styles.item, { borderColor: owned(item) ? theme.mint : `${r.color}88` }]}>
+                            <Animated.View key={item.id} entering={FadeIn.duration(200)} style={[styles.item, { borderColor: owned(item) ? '#5FE08A' : `${r.color}AA` }]}>
+                                <Gradient colors={['#1A2A52', '#0A1430']} />
+                                <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
+                                {owned(item) && <View style={styles.ownedDot}><Text style={styles.ownedDotText}>✓</Text></View>}
                                 <View style={styles.previewBox}><Preview item={item} onPreviewEffect={previewEffect} /></View>
                                 <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
                                 <Text style={[styles.rarity, { color: r.color }]}>{item.free ? 'Offert' : r.label}</Text>
@@ -281,47 +319,48 @@ export default function ShopScreen({ navigation }) {
                     onUse={(item) => use(item)}
                 />
             )}
-        </ImageBackground>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: theme.bg },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
-    headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
-    headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
-    title: { color: theme.goldLight, fontSize: 20, fontWeight: '900' },
-    balance: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: theme.gold },
-    balanceText: { color: theme.goldLight, fontWeight: '900', fontSize: 13 },
+    tabIcon: { height: 30, justifyContent: 'center', alignItems: 'center' },
+    progressBox: { marginBottom: 12 },
+    progressCount: { color: LUXE.cream, fontWeight: '900', fontSize: 13 },
+    complete: { color: LUXE.goldLight, fontWeight: '900', fontSize: 14, textAlign: 'center', marginTop: 8 },
+    rarityBar: { position: 'absolute', top: 0, left: 0, right: 0, height: 3 },
+    ownedDot: { position: 'absolute', top: 6, right: 6, width: 18, height: 18, borderRadius: 9, backgroundColor: '#22A447', borderWidth: 1.5, borderColor: '#BDF7CB', alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+    ownedDotText: { color: '#fff', fontSize: 10, fontWeight: '900' },
+    container: { flex: 1, backgroundColor: LUXE.night },
     scroll: { padding: 14, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
-    info: { color: theme.cream, fontSize: 12, fontWeight: '700', textAlign: 'center', backgroundColor: 'rgba(28,15,19,0.85)', borderRadius: 14, padding: 10 },
-    guest: { marginTop: 10, padding: 10, borderRadius: 14, borderWidth: 1, borderColor: theme.gold, backgroundColor: 'rgba(212,175,55,0.15)' },
+    info: { color: LUXE.dim, fontSize: 12, fontWeight: '700', textAlign: 'center', paddingHorizontal: 6 },
+    guest: { marginTop: 10, padding: 10, borderRadius: 14, borderWidth: 1.5, borderColor: LUXE.gold, backgroundColor: 'rgba(232,184,74,0.14)' },
     guestText: { color: theme.goldLight, fontWeight: '800', fontSize: 12, textAlign: 'center' },
     rarities: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 6, marginTop: 10 },
-    rarityPill: { fontSize: 11, fontWeight: '900', borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden' },
-    tabs: { flexDirection: 'row', marginTop: 12, marginBottom: 10, backgroundColor: 'rgba(0,0,0,0.55)', borderRadius: 12, padding: 3 },
-    tab: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center' },
-    tabOn: { backgroundColor: theme.gold },
-    tabText: { color: theme.textDim, fontWeight: '800', fontSize: 11 },
-    tabTextOn: { color: theme.bg },
-    soon: { color: theme.cream, fontSize: 12, textAlign: 'center', marginBottom: 10, backgroundColor: 'rgba(28,15,19,0.85)', borderRadius: 12, padding: 8 },
+    rarityPill: { fontSize: 11, fontWeight: '900', borderWidth: 1, borderRadius: 10, paddingHorizontal: 8, paddingVertical: 3, backgroundColor: 'rgba(6,12,24,0.7)', overflow: 'hidden' },
+    tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 14, marginBottom: 12 },
+    tab: { width: '31.8%', flexGrow: 1, alignItems: 'center', paddingVertical: 7, borderRadius: 14, borderWidth: 1.5, borderColor: 'rgba(232,184,74,0.55)', overflow: 'hidden' },
+    tabOn: { borderColor: '#FFE08A' },
+    tabText: { color: LUXE.cream, fontWeight: '900', fontSize: 12, marginTop: 3 },
+    tabTextOn: { color: '#FFF3D6' },
+    soon: { color: LUXE.dim, fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 10, paddingHorizontal: 6 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-    item: { width: '31.5%', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, marginBottom: 10, borderRadius: 14, borderWidth: 1.5, backgroundColor: 'rgba(28,15,19,0.94)' },
+    item: { width: '31.5%', alignItems: 'center', paddingTop: 12, paddingBottom: 10, paddingHorizontal: 4, marginBottom: 10, borderRadius: 16, borderWidth: 1.5, overflow: 'hidden' },
     previewBox: { height: 88, justifyContent: 'center', alignItems: 'center' },
-    itemLabel: { color: theme.cream, fontWeight: '900', fontSize: 12, marginTop: 6, textAlign: 'center' },
+    itemLabel: { color: LUXE.cream, fontWeight: '900', fontSize: 12, marginTop: 6, textAlign: 'center' },
     rarity: { fontSize: 10, fontWeight: '900', marginTop: 2 },
     actionBox: { marginTop: 8, minHeight: 34, justifyContent: 'center', alignItems: 'center' },
-    status: { color: theme.textDim, fontSize: 10, fontWeight: '800', textAlign: 'center' },
+    status: { color: LUXE.dim, fontSize: 10, fontWeight: '800', textAlign: 'center' },
     effectIcon: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     seeText: { color: theme.goldLight, fontSize: 10, fontWeight: '900' },
     emoteBox: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
-    chestBanner: { height: 130, marginBottom: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: theme.gold },
-    chestBannerShade: { flex: 1, justifyContent: 'flex-end', alignItems: 'flex-start', padding: 10, gap: 6, backgroundColor: 'rgba(0,0,0,0.25)' },
+    chestBanner: { height: 130, marginBottom: 12, borderRadius: 18, overflow: 'hidden', borderWidth: 1.5, borderColor: LUXE.gold },
+    chestBannerShade: { flex: 1, justifyContent: 'flex-end', alignItems: 'flex-start', padding: 10, gap: 6 },
     chestBannerTitle: { color: '#FFF7D6', fontWeight: '900', fontSize: 16, textShadowColor: '#000', textShadowRadius: 6 },
-    chestCard: { flexDirection: 'row', gap: 12, padding: 12, marginBottom: 12, borderRadius: 16, borderWidth: 1.5, backgroundColor: 'rgba(28,15,19,0.94)' },
+    chestCard: { flexDirection: 'row', gap: 12, padding: 12, marginBottom: 12 },
     chestLeft: { alignItems: 'center', width: 104 },
     chestName: { fontWeight: '900', fontSize: 13, marginTop: 4, textAlign: 'center' },
-    oddsTitle: { color: theme.cream, fontWeight: '900', fontSize: 12, marginBottom: 4 },
+    oddsTitle: { color: LUXE.cream, fontWeight: '900', fontSize: 12, marginBottom: 4 },
     oddsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
     oddsLabel: { width: 70, fontSize: 11, fontWeight: '900' },
     oddsTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },

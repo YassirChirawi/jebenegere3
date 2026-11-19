@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, TextInput, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TextInput, Pressable, ActivityIndicator, Image } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
@@ -14,9 +14,16 @@ import audioService from '../network/audioService';
 import { dialog } from '../components/Dialog';
 import { useChatModeration, unblockPlayer } from '../utils/chatModeration';
 import AppNav from '../components/AppNav';
+import { LUXE, LuxePanel, LevelBadge, XpBar, LaurelPortrait, LuxeBackdrop, ScreenHeader, SectionHead, GoldSquare, LUXE_IMG } from '../components/Luxe';
+
+const STAT_ICONS = {
+    wins: require('../../assets/ui/stat_victoires.webp'),
+    best: require('../../assets/ui/stat_serie.webp'),
+    rate: require('../../assets/ui/stat_parties.webp'),
+    played: require('../../assets/ui/stat_taux.webp'),
+};
 import { CHESTS, RARITIES } from '../../server/progress/defs';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
 // Coups spéciaux affichés par jeu (compteurs du serveur)
 const SPECIALS = {
@@ -37,22 +44,14 @@ function untilTomorrow() {
 }
 
 function Section({ title, right, children, delay = 0 }) {
+    const [emoji, ...rest] = title.split(' ');
     return (
-        <Animated.View entering={FadeInDown.delay(delay).springify().damping(16)} style={styles.section}>
-            <View style={styles.sectionHead}>
-                <Text style={styles.sectionTitle}>{title}</Text>
-                {right}
-            </View>
-            {children}
+        <Animated.View entering={FadeInDown.delay(delay).springify().damping(16)} style={{ marginBottom: 14 }}>
+            <LuxePanel inner={false}>
+                <SectionHead emoji={emoji} title={rest.join(' ')} right={right} />
+                <View style={styles.sectionBody}>{children}</View>
+            </LuxePanel>
         </Animated.View>
-    );
-}
-
-function Bar({ value, color = theme.gold }) {
-    return (
-        <View style={styles.track}>
-            <View style={[styles.fill, { width: `${Math.max(3, Math.min(1, value) * 100)}%`, backgroundColor: color }]} />
-        </View>
     );
 }
 
@@ -175,58 +174,92 @@ export default function ProfileScreen({ navigation }) {
     };
 
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.header}>
-                <PressableScale style={styles.headBtn} onPress={() => navigation.goBack()}>
-                    <Text style={styles.headBtnText}>⬅️ Retour</Text>
-                </PressableScale>
-                <Text style={styles.title}>Mon Profil</Text>
-                <View style={{ flexDirection: 'row', gap: 6 }}>
-                    <PressableScale style={styles.headBtn} onPress={() => navigation.navigate('Leaderboard')}>
-                        <Text style={styles.headBtnText}>🏆</Text>
-                    </PressableScale>
-                    <PressableScale style={styles.headBtn} onPress={() => setCustomize(true)}>
-                        <Text style={styles.headBtnText}>🎨 Style</Text>
-                    </PressableScale>
-                </View>
-            </View>
+        <View style={styles.container}>
+            <LuxeBackdrop />
+            <ScreenHeader
+                title="Mon Profil"
+                onBack={() => navigation.goBack()}
+                right={(
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                        <GoldSquare onPress={() => navigation.navigate('Leaderboard')} label="Classement"><Text style={{ fontSize: 18 }}>🏆</Text></GoldSquare>
+                        <GoldSquare onPress={() => setCustomize(true)} label="Style et réglages"><Text style={{ fontSize: 18 }}>⚙️</Text></GoldSquare>
+                    </View>
+                )}
+            />
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-                {/* Carte joueur */}
-                <Animated.View entering={FadeIn.duration(250)} style={styles.card}>
-                    <Pressable onPress={() => setPickAvatar(!pickAvatar)} accessibilityLabel="Changer de portrait">
-                        <PlayerAvatar name={name} variant={myAvatar} size={86} />
-                        <Text style={styles.editAvatar}>✏️</Text>
-                    </Pressable>
-                    {!pickAvatar && <Text style={styles.avatarHint}>Touche ton portrait pour en choisir un autre</Text>}
-                    {pickAvatar && (
-                        <View style={styles.avatarGrid}>
-                            {/* 12 portraits offerts, puis ceux débloqués (boutique, coffres) */}
-                            {[...Array.from({ length: 12 }, (_, i) => i + 1), ...(profile?.unlocks || []).filter((k) => k.startsWith('avatar:')).map((k) => Number(k.split(':')[1])).sort((x, y) => x - y)].map((v) => (
-                                <Pressable key={v} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.setAvatar(v); }} style={[styles.avatarChoice, myAvatar === v && styles.avatarChoiceOn]}>
-                                    <PlayerAvatar name={name} variant={v} size={40} />
-                                </Pressable>
-                            ))}
-                            <Pressable onPress={() => { setPickAvatar(false); navigation.navigate('Shop'); }} style={styles.avatarMore}>
-                                <Text style={styles.avatarMoreText}>＋ Boutique</Text>
+                {/* Carte joueur : lauriers, pseudo, niveau, XP, rang, puis 4 statistiques */}
+                <Animated.View entering={FadeIn.duration(250)}>
+                    <LuxePanel style={styles.card} colors={['#6A1222', '#2A0710']}>
+                        <View style={styles.cardRow}>
+                            <Pressable onPress={() => setPickAvatar(!pickAvatar)} accessibilityLabel="Changer de portrait">
+                                <LaurelPortrait size={112}>
+                                    <PlayerAvatar name={name} variant={myAvatar} size={112 * 0.74} />
+                                </LaurelPortrait>
                             </Pressable>
+                            <View style={{ flex: 1, marginLeft: 8 }}>
+                                <Pressable onPress={() => setPickAvatar(!pickAvatar)} style={styles.nameRow}>
+                                    <Text style={styles.name} numberOfLines={1}>{name}</Text>
+                                    <View style={styles.editBtn}><Text style={{ fontSize: 12 }}>✏️</Text></View>
+                                </Pressable>
+                                {shownTitle ? <Text style={styles.titleTag}>« {shownTitle} »</Text> : null}
+                                <View style={styles.levelRow}>
+                                    <LevelBadge level={(rank.index ?? 0) + 1} size={40} />
+                                    <View style={{ flex: 1, marginLeft: 6 }}>
+                                        <XpBar progress={rank.levelProgress} />
+                                        <Text style={styles.xpText}>{xp}{rank.next ? ` / ${rank.next.min}` : ''} XP</Text>
+                                    </View>
+                                </View>
+                                <View style={styles.rankChip}>
+                                    <Image source={LUXE_IMG.trophy} style={{ width: 32, height: 20 }} />
+                                    <Text style={styles.rankText} numberOfLines={1}>{rank.emoji} {rank.name}</Text>
+                                </View>
+                            </View>
                         </View>
-                    )}
-                    <Text style={styles.name}>{name}</Text>
-                    {shownTitle ? <Text style={styles.titleTag}>« {shownTitle} »</Text> : null}
-                    <Text style={styles.rank}>{rank.emoji} {rank.name}</Text>
-                    <Text style={styles.xp}>{xp} XP{profile?.binga ? `  ·  💰 ${profile.binga.balance.toLocaleString('fr-FR')} binga` : ''}</Text>
-                    <Bar value={rank.levelProgress} />
-                    {rank.next && <Text style={styles.dim}>Prochain rang : {rank.next.emoji} {rank.next.name} à {rank.next.min} XP</Text>}
-                    {profile && (
-                        <Text style={[styles.dim, { marginTop: 4 }]}>Saison {profile.season.id} : {profile.season.xp} XP · fin le {new Date(profile.season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
-                    )}
-                    {profile?.badges?.length > 0 && (
-                        <View style={styles.badges}>
-                            {profile.badges.map((b) => <Text key={b.id} style={styles.badge}>🏅 {b.label}</Text>)}
-                        </View>
-                    )}
+                        {!pickAvatar && <Text style={styles.avatarHint}>Touche ton portrait pour en choisir un autre</Text>}
+                        {pickAvatar && (
+                            <View style={styles.avatarGrid}>
+                                {/* 12 portraits offerts, puis ceux débloqués (boutique, coffres) */}
+                                {[...Array.from({ length: 12 }, (_, i) => i + 1), ...(profile?.unlocks || []).filter((k) => k.startsWith('avatar:')).map((k) => Number(k.split(':')[1])).sort((x, y) => x - y)].map((v) => (
+                                    <Pressable key={v} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.setAvatar(v); }} style={[styles.avatarChoice, myAvatar === v && styles.avatarChoiceOn]}>
+                                        <PlayerAvatar name={name} variant={v} size={40} />
+                                    </Pressable>
+                                ))}
+                                <Pressable onPress={() => { setPickAvatar(false); navigation.navigate('Shop'); }} style={styles.avatarMore}>
+                                    <Text style={styles.avatarMoreText}>＋ Collection</Text>
+                                </Pressable>
+                            </View>
+                        )}
+                        {rank.next && <Text style={styles.cardDim}>Prochain rang : {rank.next.emoji} {rank.next.name} à {rank.next.min} XP</Text>}
+                        {profile && (
+                            <Text style={styles.cardDim}>Saison {profile.season.id} : {profile.season.xp} XP · fin le {new Date(profile.season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
+                        )}
+                        {profile?.badges?.length > 0 && (
+                            <View style={styles.badges}>
+                                {profile.badges.map((b) => <Text key={b.id} style={styles.badge}>🏅 {b.label}</Text>)}
+                            </View>
+                        )}
+                    </LuxePanel>
                 </Animated.View>
+
+                {/* 4 statistiques (toutes les parties) */}
+                {(() => {
+                    const all = GAME_ORDER.map((g) => (profile ? profile.stats[g] : local.perGame[g]) || {});
+                    const played = all.reduce((n, x) => n + (x.played || 0), 0);
+                    const wins = all.reduce((n, x) => n + (x.wins || 0), 0);
+                    const best = profile ? Math.max(0, ...all.map((x) => x.best || 0)) : '—';
+                    return (
+                        <View style={styles.statTiles}>
+                            {[[STAT_ICONS.wins, wins, 'Victoires'], [STAT_ICONS.best, best, 'Série max'], [STAT_ICONS.rate, `${played ? Math.round((wins / played) * 100) : 0}%`, 'Taux de victoire'], [STAT_ICONS.played, played, 'Parties jouées']].map(([icon, v, label]) => (
+                                <LuxePanel key={label} style={styles.statTile}>
+                                    <Image source={icon} style={{ width: 26, height: 24 }} resizeMode="contain" />
+                                    <Text style={styles.statValue}>{v}</Text>
+                                    <Text style={styles.statLabel} numberOfLines={1}>{label}</Text>
+                                </LuxePanel>
+                            ))}
+                        </View>
+                    );
+                })()}
 
                 {/* Compte */}
                 <Section title="🔐 Compte" delay={60}>
@@ -252,11 +285,11 @@ export default function ProfileScreen({ navigation }) {
                 {profile?.binga ? (
                     <Section title="💰 Binga" right={<Text style={styles.dim}>Missions nouvelles dans {untilTomorrow()}</Text>} delay={90}>
                         <View style={styles.bingaRow}>
-                            <BingaIcon size={34} />
+                            <BingaIcon size={40} />
                             <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
                         </View>
                         <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                            <GameButton small title="Boutique : dos, effets, réactions" icon="🛍️" onPress={() => navigation.navigate('Shop')} />
+                            <GameButton small title="Ma collection : dos, effets, réactions" icon="🛍️" onPress={() => navigation.navigate('Shop')} />
                         </View>
                         <Text style={[styles.dim, { textAlign: 'center' }]}>Partie finie : +10 même en perdant, +25 en gagnant (+20 contre l'ordinateur). Les binga se gagnent en jouant : ils ne s'achètent pas et ne valent pas d'argent.</Text>
 
@@ -388,44 +421,45 @@ export default function ProfileScreen({ navigation }) {
                 onClose={() => setCustomize(false)}
                 onOpenLegal={(doc) => { setCustomize(false); navigation.navigate('Legal', { doc }); }}
             />
-        </ImageBackground>
+        </View>
     );
 }
 
 const styles = StyleSheet.create({
+    sectionBody: { padding: 14 },
+    cardRow: { flexDirection: 'row', alignItems: 'center' },
+    nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    editBtn: { width: 26, height: 26, borderRadius: 8, borderWidth: 1.5, borderColor: LUXE.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
+    levelRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    xpText: { color: LUXE.cream, fontWeight: '800', fontSize: 11, marginTop: 3, textAlign: 'right' },
+    rankChip: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, marginTop: 6, paddingRight: 10, paddingLeft: 2, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: LUXE.gold },
+    rankText: { color: LUXE.goldLight, fontWeight: '900', fontSize: 12 },
+    cardDim: { color: '#E9D9C0', fontSize: 11, fontWeight: '700', textAlign: 'center', marginTop: 6 },
+    statTiles: { flexDirection: 'row', gap: 8, marginBottom: 14 },
+    statTile: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 2 },
+    statValue: { color: LUXE.cream, fontWeight: '900', fontSize: 18, marginTop: 4 },
+    statLabel: { color: LUXE.dim, fontWeight: '800', fontSize: 9.5, marginTop: 1 },
     legalBtns: { flexDirection: 'row', gap: 10 },
     deleteBox: { marginTop: 14, paddingTop: 12, borderTopWidth: 1, borderTopColor: 'rgba(248,113,113,0.3)', alignItems: 'flex-start', gap: 6 },
     deleteHint: { color: '#FCA5A5', fontSize: 11 },
     blockedRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
-    container: { flex: 1, backgroundColor: theme.bg },
-    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 44, paddingHorizontal: 14, paddingBottom: 8, backgroundColor: 'rgba(18,8,11,0.85)' },
-    headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
-    headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
-    title: { color: theme.goldLight, fontSize: 20, fontWeight: '900' },
+    container: { flex: 1, backgroundColor: LUXE.night },
     scroll: { padding: 14, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
-    card: { alignItems: 'center', backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 20, borderWidth: 1.5, borderColor: theme.gold, padding: 16, marginBottom: 12 },
-    editAvatar: { position: 'absolute', right: -4, bottom: -2, fontSize: 16 },
-    avatarHint: { color: theme.textDim, fontSize: 12, marginTop: 6 },
+    card: { padding: 14, marginBottom: 12 },
+    avatarHint: { color: LUXE.dim, fontSize: 11, marginTop: 6, textAlign: 'center' },
     avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 10, gap: 6 },
     avatarChoice: { padding: 3, borderRadius: 24, borderWidth: 2, borderColor: 'transparent' },
     avatarChoiceOn: { borderColor: theme.gold },
     avatarMore: { width: 46, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.gold, alignItems: 'center', justifyContent: 'center', margin: 3 },
     avatarMoreText: { color: theme.goldLight, fontSize: 8, fontWeight: '900', textAlign: 'center' },
-    name: { color: theme.cream, fontSize: 22, fontWeight: '900', marginTop: 8 },
+    name: { color: LUXE.cream, fontSize: 22, fontWeight: '900', flexShrink: 1, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
     titleTag: { color: theme.mint, fontWeight: '800', fontStyle: 'italic', marginTop: 2 },
-    rank: { color: theme.goldLight, fontSize: 16, fontWeight: '900', marginTop: 6 },
-    xp: { color: theme.cream, fontWeight: '800', marginBottom: 6 },
     badges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 8, gap: 6 },
     badge: { color: theme.goldLight, fontSize: 12, fontWeight: '800', backgroundColor: 'rgba(212,175,55,0.15)', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-    section: { backgroundColor: 'rgba(28,15,19,0.92)', borderRadius: 18, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)', padding: 14, marginBottom: 12 },
-    sectionHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-    sectionTitle: { color: theme.goldLight, fontSize: 16, fontWeight: '900' },
     text: { color: theme.cream, fontSize: 13, fontWeight: '700', flexShrink: 1 },
-    dim: { color: theme.textDim, fontSize: 11, flexShrink: 1 },
+    dim: { color: LUXE.dim, fontSize: 11, flexShrink: 1 },
     error: { color: '#F87171', fontWeight: '800', marginTop: 6 },
     rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10 },
-    track: { width: '100%', height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', marginVertical: 5 },
-    fill: { height: '100%', borderRadius: 3 },
     modeRow: { flexDirection: 'row', marginVertical: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderRadius: 12, padding: 3 },
     modeBtn: { flex: 1, paddingVertical: 8, alignItems: 'center', borderRadius: 10 },
     modeBtnOn: { backgroundColor: theme.gold },
@@ -433,13 +467,6 @@ const styles = StyleSheet.create({
     input: { backgroundColor: 'rgba(0,0,0,0.35)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)', borderRadius: 12, color: theme.cream, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8, fontWeight: '700' },
     checkRow: { flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 6 },
     check: { color: theme.gold, fontSize: 18 },
-    challenge: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 10 },
-    challengeDone: { opacity: 0.75 },
-    challengeRight: { alignItems: 'flex-end' },
-    challengeCount: { color: theme.cream, fontWeight: '900' },
-    challengeXp: { color: theme.goldLight, fontSize: 11, fontWeight: '800' },
-    titleRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 8, borderRadius: 12, marginBottom: 4 },
-    titleRowOn: { backgroundColor: 'rgba(52,211,153,0.12)', borderWidth: 1, borderColor: theme.mint },
     statBlock: { paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)' },
     gameName: { fontWeight: '900', fontSize: 14 },
     statLine: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 4 },
@@ -448,12 +475,6 @@ const styles = StyleSheet.create({
     histRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8 },
     histXp: { color: theme.goldLight, fontWeight: '900', fontSize: 12 },
     bingaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-    bingaBalance: { color: theme.goldLight, fontSize: 28, fontWeight: '900', textAlign: 'center', marginBottom: 4 },
+    bingaBalance: { color: LUXE.goldLight, fontSize: 30, fontWeight: '900', textAlign: 'center', marginBottom: 4, textShadowColor: '#000', textShadowRadius: 4 },
     bingaSub: { color: theme.cream, fontWeight: '900', fontSize: 13, marginTop: 14, marginBottom: 4 },
-    loginRow: { flexDirection: 'row', gap: 4, marginBottom: 6 },
-    loginDay: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 10, backgroundColor: 'rgba(0,0,0,0.3)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.25)' },
-    loginDayGot: { backgroundColor: 'rgba(52,211,153,0.15)', borderColor: theme.mint },
-    loginDayToday: { borderColor: theme.gold, borderWidth: 2 },
-    loginDayN: { color: theme.textDim, fontSize: 10, fontWeight: '800' },
-    loginDayAmount: { color: theme.goldLight, fontSize: 11, fontWeight: '900' },
 });

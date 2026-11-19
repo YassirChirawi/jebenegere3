@@ -207,6 +207,54 @@ export function GoldSquare({ children, onPress, label, style, badge }) {
     );
 }
 
+/** Fond des écrans de menu : dégradé bleu nuit et halo. */
+export function LuxeBackdrop() {
+    return (
+        <>
+            <Gradient colors={['#12234A', LUXE.night, '#060C18']} />
+            <Glow color="#2A4D9C" style={{ height: 420 }} />
+        </>
+    );
+}
+
+/** En-tête d'écran : bouton retour, titre doré, élément à droite (solde de binga…). */
+export function ScreenHeader({ title, onBack, right }) {
+    return (
+        <View style={styles.sh}>
+            {onBack ? (
+                <PressableScale onPress={onBack} style={styles.shBack} accessibilityLabel="Retour">
+                    <Text style={styles.shBackText}>‹</Text>
+                </PressableScale>
+            ) : <View style={{ width: 40 }} />}
+            <Text style={styles.shTitle} numberOfLines={1}>{title}</Text>
+            {right || <View style={{ width: 40 }} />}
+        </View>
+    );
+}
+
+/** Solde de binga (pastille dorée). */
+export function BingaPill({ amount, icon }) {
+    return (
+        <View style={styles.pill}>
+            {icon}
+            <Text style={styles.pillText}>{amount}</Text>
+        </View>
+    );
+}
+
+/** Bandeau rouge en tête d'une section (icône, titre, texte à droite). */
+export function SectionHead({ icon, emoji, title, right }) {
+    return (
+        <View style={styles.head}>
+            <Gradient colors={['#8E1624', '#4A0912']} horizontal />
+            {icon ? <Image source={icon} style={styles.headIcon} resizeMode="contain" /> : null}
+            {emoji ? <Text style={styles.headEmoji}>{emoji}</Text> : null}
+            <Text style={styles.headTitle} numberOfLines={1}>{title}</Text>
+            {right ? (typeof right === 'string' ? <Text style={styles.headRight}>{right}</Text> : right) : null}
+        </View>
+    );
+}
+
 const goldEdge = { borderWidth: 1.5, borderColor: LUXE.gold };
 
 const styles = StyleSheet.create({
@@ -229,5 +277,16 @@ const styles = StyleSheet.create({
     ribbon: { paddingHorizontal: 26, paddingVertical: 6, borderRadius: 22, overflow: 'hidden', borderWidth: 2, borderColor: LUXE.gold, marginHorizontal: 6 },
     ribbonText: { color: LUXE.goldLight, fontWeight: '900', fontSize: 19, letterSpacing: 0.5, textShadowColor: '#000', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
     ribbonDiamond: { width: 10, height: 10, backgroundColor: '#D0283A', borderWidth: 1.5, borderColor: LUXE.goldLight, transform: [{ rotate: '45deg' }] },
+    sh: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6, gap: 8 },
+    shBack: { width: 40, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: LUXE.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
+    shBackText: { color: LUXE.goldLight, fontSize: 28, fontWeight: '900', marginTop: -4 },
+    shTitle: { flex: 1, textAlign: 'center', color: LUXE.goldLight, fontSize: 24, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
+    pill: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: LUXE.gold, backgroundColor: 'rgba(0,0,0,0.4)' },
+    pillText: { color: LUXE.cream, fontWeight: '900', fontSize: 15 },
+    head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: 1.5, borderBottomColor: LUXE.gold, overflow: 'hidden' },
+    headIcon: { width: 30, height: 28 },
+    headEmoji: { fontSize: 20 },
+    headTitle: { color: LUXE.goldLight, fontWeight: '900', fontSize: 17, flex: 1, textShadowColor: '#000', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
+    headRight: { color: LUXE.cream, fontWeight: '800', fontSize: 11 },
     square: { width: 42, height: 42, borderRadius: 12, ...goldEdge, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
 });

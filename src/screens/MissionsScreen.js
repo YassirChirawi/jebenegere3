@@ -12,7 +12,7 @@ import audioService from '../network/audioService';
 import { GameButton, PressableScale } from '../components/ui';
 import { BingaIcon } from '../components/Decor';
 import AppNav from '../components/AppNav';
-import { LUXE, Gradient, Glow, LuxePanel, XpBar } from '../components/Luxe';
+import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
 import { BINGA } from '../../server/progress/defs';
 
 const IMG = {
@@ -42,17 +42,6 @@ function untilTomorrow() {
     const next = Math.ceil(now / 86400000) * 86400000;
     const m = Math.round((next - now) / 60000);
     return `${Math.floor(m / 60)} h ${String(m % 60).padStart(2, '0')}`;
-}
-
-function Header({ icon, title, right }) {
-    return (
-        <View style={styles.head}>
-            <Gradient colors={['#8E1624', '#4A0912']} horizontal />
-            <Image source={icon} style={styles.headIcon} resizeMode="contain" />
-            <Text style={styles.headTitle}>{title}</Text>
-            {right ? <Text style={styles.headRight}>{right}</Text> : null}
-        </View>
-    );
 }
 
 function Row({ icon, label, progress, target, done, reward }) {
@@ -98,18 +87,12 @@ export default function MissionsScreen({ navigation }) {
     const login = profile?.binga?.login;
     return (
         <View style={styles.container}>
-            <Gradient colors={['#12234A', LUXE.night, '#060C18']} />
-            <Glow color="#2A4D9C" style={{ height: 420 }} />
-            <View style={styles.top}>
-                <PressableScale onPress={() => navigation.goBack()} style={styles.back} accessibilityLabel="Retour">
-                    <Text style={styles.backText}>‹</Text>
-                </PressableScale>
-                <Text style={styles.title}>Missions</Text>
-                <View style={styles.coins}>
-                    <BingaIcon size={20} />
-                    <Text style={styles.coinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
-                </View>
-            </View>
+            <LuxeBackdrop />
+            <ScreenHeader
+                title="Missions"
+                onBack={() => navigation.goBack()}
+                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'} />}
+            />
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 {!profile ? (
@@ -124,7 +107,7 @@ export default function MissionsScreen({ navigation }) {
                         {login && (
                             <Animated.View entering={FadeInDown.springify().damping(16)}>
                                 <LuxePanel style={styles.panel} inner={false}>
-                                    <Header icon={IMG.gift} title="Récompense quotidienne" right={`Jour ${login.streak}/${login.days}`} />
+                                    <SectionHead icon={IMG.gift} title="Récompense quotidienne" right={`Jour ${login.streak}/${login.days}`} />
                                     <View style={styles.days}>
                                         {BINGA.login.map((amount, i) => {
                                             const day = i + 1;
@@ -154,7 +137,7 @@ export default function MissionsScreen({ navigation }) {
                         {profile.binga && (
                             <Animated.View entering={FadeInDown.delay(80).springify().damping(16)}>
                                 <LuxePanel style={styles.panel} inner={false}>
-                                    <Header icon={IMG.target} title="Missions" right={`Nouvelles dans ${untilTomorrow()}`} />
+                                    <SectionHead icon={IMG.target} title="Missions" right={`Nouvelles dans ${untilTomorrow()}`} />
                                     {profile.binga.missions.map((m, i) => (
                                         <Row
                                             key={m.id}
@@ -177,7 +160,7 @@ export default function MissionsScreen({ navigation }) {
                         {/* Défis du jour : XP + dos de cartes ou tapis */}
                         <Animated.View entering={FadeInDown.delay(140).springify().damping(16)}>
                             <LuxePanel style={styles.panel} inner={false}>
-                                <Header icon={IMG.cards} title="Défis du jour" right={`${profile.daily.list.filter((c) => c.done).length}/${profile.daily.list.length}`} />
+                                <SectionHead icon={IMG.cards} title="Défis du jour" right={`${profile.daily.list.filter((c) => c.done).length}/${profile.daily.list.length}`} />
                                 {profile.daily.list.map((c, i) => (
                                     <Row
                                         key={c.id}
@@ -196,7 +179,7 @@ export default function MissionsScreen({ navigation }) {
                         {/* Succès et badges : les titres */}
                         <Animated.View entering={FadeInDown.delay(200).springify().damping(16)}>
                             <LuxePanel style={styles.panel} inner={false}>
-                                <Header icon={IMG.crown} title="Succès et badges" right={`${profile.titles.filter((t) => t.unlocked).length}/${profile.titles.length}`} />
+                                <SectionHead icon={IMG.crown} title="Succès et badges" right={`${profile.titles.filter((t) => t.unlocked).length}/${profile.titles.length}`} />
                                 <Text style={[styles.note, { marginTop: 8 }]}>Touche un badge gagné pour l'afficher à côté de ton nom.</Text>
                                 <View style={styles.badges}>
                                     {profile.titles.map((t) => {
@@ -222,18 +205,8 @@ export default function MissionsScreen({ navigation }) {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: LUXE.night },
-    top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 14, paddingTop: 14, paddingBottom: 6 },
-    back: { width: 40, height: 40, borderRadius: 12, borderWidth: 1.5, borderColor: LUXE.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
-    backText: { color: LUXE.goldLight, fontSize: 28, fontWeight: '900', marginTop: -4 },
-    title: { color: LUXE.goldLight, fontSize: 24, fontWeight: '900', textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
-    coins: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, height: 34, borderRadius: 17, borderWidth: 1.5, borderColor: LUXE.gold, backgroundColor: 'rgba(0,0,0,0.4)' },
-    coinsText: { color: LUXE.cream, fontWeight: '900', fontSize: 15 },
     scroll: { padding: 14, paddingBottom: 24, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
     panel: { paddingBottom: 4 },
-    head: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, gap: 8, borderBottomWidth: 1.5, borderBottomColor: LUXE.gold, overflow: 'hidden' },
-    headIcon: { width: 30, height: 28 },
-    headTitle: { color: LUXE.goldLight, fontWeight: '900', fontSize: 17, flex: 1, textShadowColor: '#000', textShadowRadius: 3, textShadowOffset: { width: 0, height: 1 } },
-    headRight: { color: LUXE.cream, fontWeight: '800', fontSize: 11 },
     days: { flexDirection: 'row', gap: 4, paddingHorizontal: 8, paddingTop: 10 },
     day: { flex: 1, alignItems: 'center', paddingVertical: 6, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(232,184,74,0.35)', backgroundColor: 'rgba(14,26,58,0.85)' },
     dayGot: { borderColor: '#3FCF6B', backgroundColor: 'rgba(22,128,58,0.35)' },
