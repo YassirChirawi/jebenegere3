@@ -334,9 +334,14 @@ Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage 
 | Dos (11 + Classique offert) | Cuivre martelé, Velours rouge (Commun) · Thé à la menthe, Rose de Kelaa, Zellige, Sahara (Rare) · Océan, Néon (Épique) · Or, Saison (Légendaire) · Champion (Légendaire, réservé au gagnant d'un tournoi : ni boutique, ni coffre) |
 | Effets de victoire et de coup spécial (6 + Drapeau offert) | Confettis, Étoiles (Commun) · Menthe, Feu (Rare) · Tonnerre (Épique) · Or (Légendaire) |
 | Réactions (12, en plus des 4 offertes 😂 😡 😱 👏) | Rire, Bravo, Aïe, Merci, Triste, Surpris (Commun) · Bien joué, Dors, Chat, Feu (Rare) · Menthe (Épique) · Couronne (Légendaire) |
-| Tapis | Tadelakt, Safran, Braise, Lavande (Rare). Les nouveaux tapis seront fournis par Yassir ; le tapis actuel reste celui par défaut. |
-| Portraits | 6 nouveaux portraits à venir, fournis par Yassir. Les 12 actuels restent offerts. |
+| Tables (8, images de Yassir) | Vert classique, Velours rouge (Commun) · Cuivre sculpté, Zellige, Turquoise (Rare) · Nuit (marbre noir), Sahara (Épique) · Pourpre royal (Légendaire). Une table choisie remplace la table de chaque jeu, pour les 4 jeux ; sans choix, chaque jeu garde sa table. |
+| Couleurs de tapis | Tadelakt, Safran, Braise, Lavande (Rare) : teinte du tapis d'une table de jeu. |
+| Portraits (16, en plus des 12 offerts) | Touareg, Dame voilée, Cheval noir, As couronné, Bouffon, Pacha, Capuche rouge (Commun) · Roi, Reine, Sage, Aigle, Loup (Rare) · Lion couronné, Tigre blanc (Épique) · Phénix, Dragon d'or (Légendaire). Portraits 13 à 28 : le serveur refuse un portrait qu'on ne possède pas. |
 
+- **Tables et portraits :**
+  - découpés dans les planches de Yassir par `python scripts/build-table-skins.py <planche.png>` et `python scripts/build-avatars.py <planche.png> 4 4 12 0.85` ;
+  - environ 60 Ko par table, en version paysage et en version tournée pour les écrans en hauteur ; seule la table choisie est chargée ;
+  - le portrait tiré du pseudo reste choisi parmi les 12 offerts : aucun joueur ne change de portrait.
 - **Chaque dos a son propre dessin**, en vectoriel et sans fichier à charger (`src/components/BackArt.js`) : feuilles de menthe, cuivre martelé, étoiles de zellige, dunes et soleil, vagues, néon, velours, arabesques dorées, rayons.
 - **Effets** (`src/components/WinEffects.js`) :
   - ils se déclenchent à la victoire, et sur ses propres Darba, Hbel, Boug et Missa en Ronda, en version courte ;

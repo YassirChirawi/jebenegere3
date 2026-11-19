@@ -14,7 +14,9 @@ import Animated, {
 // Réactions d'avatar : petit saut quand on joue, émotions sur les moments forts
 const MOOD_EMOJI = { lose: '😭', kdoub: '😤', khasser: '🤡', win: '😎', proud: '😎', shock: '😱' };
 
-// 12 portraits dessinés pour le jeu (scripts/build-avatars.py), embarqués dans l'appli : rien n'est chargé d'un autre site
+// Portraits dessinés pour le jeu (scripts/build-avatars.py), embarqués dans l'appli : rien n'est chargé d'un autre site.
+// 1 à 12 : offerts ; 13 à 28 : boutique et coffres (deuxième planche)
+export const FREE_AVATARS = 12;
 export const AVATARS = [
     require('../../assets/avatars/avatar_00.webp'), require('../../assets/avatars/avatar_01.webp'),
     require('../../assets/avatars/avatar_02.webp'), require('../../assets/avatars/avatar_03.webp'),
@@ -22,14 +24,22 @@ export const AVATARS = [
     require('../../assets/avatars/avatar_06.webp'), require('../../assets/avatars/avatar_07.webp'),
     require('../../assets/avatars/avatar_08.webp'), require('../../assets/avatars/avatar_09.webp'),
     require('../../assets/avatars/avatar_10.webp'), require('../../assets/avatars/avatar_11.webp'),
+    require('../../assets/avatars/avatar_12.webp'), require('../../assets/avatars/avatar_13.webp'),
+    require('../../assets/avatars/avatar_14.webp'), require('../../assets/avatars/avatar_15.webp'),
+    require('../../assets/avatars/avatar_16.webp'), require('../../assets/avatars/avatar_17.webp'),
+    require('../../assets/avatars/avatar_18.webp'), require('../../assets/avatars/avatar_19.webp'),
+    require('../../assets/avatars/avatar_20.webp'), require('../../assets/avatars/avatar_21.webp'),
+    require('../../assets/avatars/avatar_22.webp'), require('../../assets/avatars/avatar_23.webp'),
+    require('../../assets/avatars/avatar_24.webp'), require('../../assets/avatars/avatar_25.webp'),
+    require('../../assets/avatars/avatar_26.webp'), require('../../assets/avatars/avatar_27.webp'),
 ];
 
-/** Portrait d'un joueur : variant 1 à 12 = portrait choisi dans le Profil ; 0 = tiré du pseudo. */
+/** Portrait d'un joueur : variant 1 à 28 = portrait choisi dans le Profil ; 0 = tiré du pseudo (parmi les 12 offerts). */
 export function avatarIndex(name, variant = 0) {
     if (variant >= 1) return (variant - 1) % AVATARS.length;
     let h = 0;
     for (const c of String(name || 'Joueur')) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-    return h % AVATARS.length;
+    return h % FREE_AVATARS; // inchangé : le portrait tiré du pseudo reste le même qu'avant
 }
 
 export default function PlayerAvatar({ name, size = 40, active = false, mood, variant = 0 }) {

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Image, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { theme } from './ui';
-import { useCosmetics, feltFor } from '../utils/cosmetics';
+import { useCosmetics, feltFor, tableFor } from '../utils/cosmetics';
 
 // Ambiance par jeu : couleur de la vignette (bords de l'écran)
 const MOOD = { hezz2: '#0B1A0E', ronda: '#1A0406', kdoub: '#1F0D04', sota: '#05030F' };
@@ -47,9 +47,11 @@ function rotateFelt(f) {
 export default function TableBackground({ children, onSize, tint, game = 'hezz2', feltOverride }) {
     const [size, setSize] = useState(null);
     const cos = useCosmetics();
-    const felt = feltOverride || feltFor(game, cos);
+    // Table de la boutique choisie par le joueur : remplace la table du jeu (son tapis fait partie de l'image)
+    const skin = feltOverride ? null : tableFor(cos);
+    const felt = skin ? null : (feltOverride || feltFor(game, cos));
     const mood = MOOD[game] || '#000';
-    const table = TABLES[game] || TABLES.hezz2;
+    const table = skin || TABLES[game] || TABLES.hezz2;
 
     let img = null;
     let zone = null;
@@ -62,8 +64,10 @@ export default function TableBackground({ children, onSize, tint, game = 'hezz2'
         const h = ih * scale;
         img = { source: portrait ? table.portrait : table.src, width: w, height: h, left: (size.w - w) / 2, top: (size.h - h) / 2 };
         // Zone du tapis à l'écran (pour la teinte)
-        const f = portrait ? rotateFelt(table.felt) : table.felt;
-        if (f.circle) {
+        const f = !table.felt ? null : portrait ? rotateFelt(table.felt) : table.felt;
+        if (!f) {
+            zone = null;
+        } else if (f.circle) {
             const r = f.r * w;
             zone = { left: img.left + f.cx * w - r, top: img.top + f.cy * h - r, width: 2 * r, height: 2 * r, borderRadius: r };
         } else {

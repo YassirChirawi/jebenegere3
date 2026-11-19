@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
-const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS } = defs;
+const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS, FREE_AVATARS, MAX_AVATAR } = defs;
 const { rollChest, pityLeft } = require('./chests');
 const CHEST_HISTORY_MAX = 50;
 const BINGA_LOG_MAX = 30;
@@ -125,6 +125,7 @@ function cleanEquipped(e) {
     const out = {};
     if (id(e.back)) out.back = e.back;
     if (id(e.effect)) out.effect = e.effect;
+    if (id(e.table)) out.table = e.table;
     if (e.felts && typeof e.felts === 'object') {
         out.felts = {};
         GAME_KEYS.forEach((g) => { if (id(e.felts[g])) out.felts[g] = e.felts[g]; });
@@ -255,7 +256,8 @@ function createProgress(store) {
     async function updateMe(user, { title, avatar, equipped }) {
         return withUser(user.id, async (u) => {
             if (title === null || (typeof title === 'string' && u.titles.includes(title))) u.title = title;
-            if (Number.isInteger(avatar) && avatar >= 0 && avatar <= 12) u.avatar = avatar; // 0 = tiré du pseudo, 1 à 12 = portrait choisi
+            // 0 = tiré du pseudo, 1 à 12 = portraits offerts, 13 à 28 = portraits débloqués (boutique, coffres)
+            if (Number.isInteger(avatar) && avatar >= 0 && (avatar <= FREE_AVATARS || (avatar <= MAX_AVATAR && (u.unlocks || []).includes(`avatar:${avatar}`)))) u.avatar = avatar;
             if (equipped && typeof equipped === 'object') u.equipped = cleanEquipped(equipped);
             return profileOf(u);
         });

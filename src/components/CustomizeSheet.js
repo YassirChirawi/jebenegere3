@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal, ScrollView, Pressable, Switch } from 'react-native';
+import { View, Text, StyleSheet, Modal, ScrollView, Pressable, Switch, Image } from 'react-native';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { CardBack } from './Card';
 import { theme, haptic } from './ui';
 import audioService from '../network/audioService';
 import { GAMES, GAME_ORDER } from '../games';
 import {
-    BACKS, FELTS, EFFECTS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
-    setBack, setFelt, setEffect, setVibration, backPalette,
+    BACKS, FELTS, EFFECTS, TABLE_SKINS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
+    setBack, setFelt, setEffect, setTable, setVibration, backPalette,
 } from '../utils/cosmetics';
 
 const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
@@ -67,6 +67,25 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
 
                         {tab === 'felts' && (
                             <>
+                                {/* Tables de la boutique possédées (remplacent la table de chaque jeu) */}
+                                {Object.keys(TABLE_SKINS).some((k) => (cos.unlocks || []).includes(`table:${k}`)) && (
+                                    <>
+                                        <Text style={styles.itemLabel}>Table (pour les 4 jeux)</Text>
+                                        <View style={[styles.grid, { marginTop: 6 }]}>
+                                            {[null, ...Object.keys(TABLE_SKINS).filter((k) => (cos.unlocks || []).includes(`table:${k}`))].map((k) => {
+                                                const on = (cos.table || null) === k;
+                                                return (
+                                                    <Pressable key={k || 'jeu'} onPress={() => choose(setTable(k))} style={[styles.item, on && styles.itemOn]}>
+                                                        {k ? <Image source={TABLE_SKINS[k].src} style={styles.tableThumb} resizeMode="cover" /> : <View style={[styles.tableThumb, { backgroundColor: '#0E5A2E' }]} />}
+                                                        <Text style={styles.itemLabel}>{k ? TABLE_SKINS[k].label : 'Table du jeu'}</Text>
+                                                        <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisie' : 'Disponible'}</Text>
+                                                    </Pressable>
+                                                );
+                                            })}
+                                        </View>
+                                        <Text style={[styles.itemSub, { marginBottom: 8 }]}>Avec une table de la boutique, les couleurs de tapis ci-dessous ne s'appliquent pas.</Text>
+                                    </>
+                                )}
                                 <View style={styles.gameRow}>
                                     {GAME_ORDER.map((g) => (
                                         <Pressable key={g} onPress={() => setFeltGame(g)} style={[styles.gameChip, feltGame === g && { borderColor: GAMES[g].color, backgroundColor: 'rgba(255,255,255,0.08)' }]}>
@@ -157,6 +176,7 @@ const styles = StyleSheet.create({
     itemLocked: { opacity: 0.45 },
     itemLabel: { color: theme.cream, fontWeight: '800', fontSize: 12, marginTop: 6, textAlign: 'center' },
     itemSub: { color: theme.textDim, fontSize: 10, marginTop: 2, textAlign: 'center' },
+    tableThumb: { width: 96, height: 33, borderRadius: 6 },
     swatch: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#C9A23A', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     swatchPattern: { width: 30, height: 30, borderWidth: 1.5, borderColor: 'rgba(245,215,122,0.55)', transform: [{ rotate: '45deg' }] },
     gameRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 },

@@ -205,11 +205,15 @@ export default function ProfileScreen({ navigation }) {
                     {!pickAvatar && <Text style={styles.avatarHint}>Touche ton portrait pour en choisir un autre</Text>}
                     {pickAvatar && (
                         <View style={styles.avatarGrid}>
-                            {Array.from({ length: 12 }).map((_, i) => (
-                                <Pressable key={i} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.setAvatar(i + 1); }} style={[styles.avatarChoice, myAvatar === i + 1 && styles.avatarChoiceOn]}>
-                                    <PlayerAvatar name={name} variant={i + 1} size={40} />
+                            {/* 12 portraits offerts, puis ceux débloqués (boutique, coffres) */}
+                            {[...Array.from({ length: 12 }, (_, i) => i + 1), ...(profile?.unlocks || []).filter((k) => k.startsWith('avatar:')).map((k) => Number(k.split(':')[1])).sort((x, y) => x - y)].map((v) => (
+                                <Pressable key={v} onPress={async () => { setPickAvatar(false); audioService.playSound('pop'); await accountService.setAvatar(v); }} style={[styles.avatarChoice, myAvatar === v && styles.avatarChoiceOn]}>
+                                    <PlayerAvatar name={name} variant={v} size={40} />
                                 </Pressable>
                             ))}
+                            <Pressable onPress={() => { setPickAvatar(false); navigation.navigate('Shop'); }} style={styles.avatarMore}>
+                                <Text style={styles.avatarMoreText}>＋ Boutique</Text>
+                            </Pressable>
                         </View>
                     )}
                     <Text style={styles.name}>{name}</Text>
@@ -463,6 +467,8 @@ const styles = StyleSheet.create({
     avatarGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', marginTop: 10, gap: 6 },
     avatarChoice: { padding: 3, borderRadius: 24, borderWidth: 2, borderColor: 'transparent' },
     avatarChoiceOn: { borderColor: theme.gold },
+    avatarMore: { width: 46, height: 46, borderRadius: 23, borderWidth: 1.5, borderStyle: 'dashed', borderColor: theme.gold, alignItems: 'center', justifyContent: 'center', margin: 3 },
+    avatarMoreText: { color: theme.goldLight, fontSize: 8, fontWeight: '900', textAlign: 'center' },
     name: { color: theme.cream, fontSize: 22, fontWeight: '900', marginTop: 8 },
     titleTag: { color: theme.mint, fontWeight: '800', fontStyle: 'italic', marginTop: 2 },
     rank: { color: theme.goldLight, fontSize: 16, fontWeight: '900', marginTop: 6 },

@@ -3,7 +3,8 @@
  * Visuels seulement : aucun avantage en partie. Les légendaires ne s'achètent pas (coffre Or).
  */
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, Image } from 'react-native';
+import PlayerAvatar from '../components/PlayerAvatar';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { CardBack } from '../components/Card';
 import { WinEffect } from '../components/WinEffects';
@@ -13,7 +14,7 @@ import { GameButton, PressableScale, theme, haptic } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
-import { BACKS, EFFECTS, FELTS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt } from '../utils/cosmetics';
+import { BACKS, EFFECTS, FELTS, TABLE_SKINS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt, setTable } from '../utils/cosmetics';
 import { COSMETICS, RARITIES, CHESTS, priceOf } from '../../server/progress/defs';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
@@ -21,9 +22,9 @@ const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting 
 const TABS = [
     ['chest', 'Coffres'],
     ['back', 'Dos'],
+    ['table', 'Tables'],
     ['effect', 'Effets'],
-    ['emote', 'Réactions'],
-    ['felt', 'Tapis'],
+    ['emote', 'Réac.'],
     ['avatar', 'Portraits'],
 ];
 const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
@@ -32,6 +33,7 @@ const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menth
 const FREE = {
     back: [{ id: 'back:classic', kind: 'back', label: 'Classique', rarity: 'commun', free: true }],
     effect: [{ id: 'effect:drapeau', kind: 'effect', label: 'Drapeau', rarity: 'commun', free: true }],
+    table: [{ id: 'table:jeu', kind: 'table', label: 'Table du jeu', rarity: 'commun', free: true }],
 };
 
 const keyOf = (item) => item.id.split(':').pop();
@@ -47,6 +49,14 @@ function Preview({ item, onPreviewEffect }) {
                     <Text style={styles.seeText}>▶ Voir</Text>
                 </Pressable>
             );
+        case 'table': {
+            const k = keyOf(item);
+            return TABLE_SKINS[k]
+                ? <Image source={TABLE_SKINS[k].src} style={styles.tableThumb} resizeMode="cover" />
+                : <View style={[styles.tableThumb, styles.tableDefault]}><Text style={styles.tableDefaultText}>Table de chaque jeu</Text></View>;
+        }
+        case 'avatar':
+            return <PlayerAvatar name="?" variant={Number(keyOf(item))} size={70} />;
         case 'emote':
             return <View style={styles.emoteBox}><ReactionGlyph type={item.id} size={34} textColor={theme.cream} /></View>;
         case 'felt': {
@@ -70,7 +80,7 @@ export default function ShopScreen({ navigation }) {
 
     const owned = (item) => {
         if (item.free) return true;
-        if (item.kind === 'emote') return (cos.unlocks || []).includes(item.id);
+        if (item.kind === 'emote' || item.kind === 'table' || item.kind === 'avatar') return (cos.unlocks || []).includes(item.id);
         if (item.kind === 'back') return itemUnlocked(BACKS[keyOf(item)], item.id, cos);
         if (item.kind === 'effect') return itemUnlocked(EFFECTS[keyOf(item)], item.id, cos);
         if (item.kind === 'felt') {
@@ -84,11 +94,15 @@ export default function ShopScreen({ navigation }) {
         if (item.kind === 'back') return cos.back === k;
         if (item.kind === 'effect') return (cos.effect || 'drapeau') === k;
         if (item.kind === 'felt') return cos.felts?.[item.game] === k;
+        if (item.kind === 'table') return (cos.table || 'jeu') === k;
+        if (item.kind === 'avatar') return accountService.myAvatar() === Number(k);
         return false;
     };
     const use = (item) => {
         const k = keyOf(item);
-        const ok = item.kind === 'back' ? setBack(k) : item.kind === 'effect' ? setEffect(k) : item.kind === 'felt' ? setFelt(item.game, k) : false;
+        if (item.kind === 'avatar') { accountService.setAvatar(Number(k)); audioService.playSound('coin'); haptic('light'); return; }
+        const ok = item.kind === 'back' ? setBack(k) : item.kind === 'effect' ? setEffect(k) : item.kind === 'felt' ? setFelt(item.game, k)
+            : item.kind === 'table' ? setTable(k === 'jeu' ? null : k) : false;
         audioService.playSound(ok ? 'coin' : 'error');
         haptic(ok ? 'light' : 'warning');
     };
@@ -166,7 +180,8 @@ export default function ShopScreen({ navigation }) {
         return left === 1 ? `Le prochain donne un ${what} garanti` : `Plus que ${left} coffres avant un ${what} garanti`;
     };
 
-    const list = tab === 'avatar' || tab === 'chest' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab)];
+    // Onglet Tables : les tables, puis les couleurs de tapis des défis du jour
+    const list = tab === 'chest' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab || (tab === 'table' && c.kind === 'felt'))];
 
     return (
         <ImageBackground source={BG} style={styles.container} resizeMode="cover">
@@ -203,8 +218,8 @@ export default function ShopScreen({ navigation }) {
                     ))}
                 </View>
 
-                {tab === 'felt' && <Text style={styles.soon}>Les tapis des défis du jour sont ici. De nouveaux tapis arrivent bientôt.</Text>}
-                {tab === 'avatar' && <Text style={styles.soon}>6 nouveaux portraits arrivent bientôt, dans le même style que les 12 actuels (toujours offerts).</Text>}
+                {tab === 'table' && <Text style={styles.soon}>Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.</Text>}
+                {tab === 'avatar' && <Text style={styles.soon}>16 portraits en plus des 12 offerts. Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
                 {tab === 'emote' && <Text style={styles.soon}>Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.</Text>}
 
                 {tab === 'chest' && (
@@ -300,6 +315,9 @@ const styles = StyleSheet.create({
     oddsFill: { height: '100%' },
     oddsPct: { width: 34, textAlign: 'right', color: theme.cream, fontSize: 11, fontWeight: '800' },
     pity: { color: theme.goldLight, fontSize: 11, fontWeight: '800', marginTop: 4 },
+    tableThumb: { width: 104, height: 36, borderRadius: 8, borderWidth: 1, borderColor: 'rgba(212,175,55,0.5)' },
+    tableDefault: { backgroundColor: '#0E5A2E', alignItems: 'center', justifyContent: 'center' },
+    tableDefaultText: { color: theme.cream, fontSize: 9, fontWeight: '800' },
     swatch: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#C9A23A', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     swatchPattern: { width: 30, height: 30, borderWidth: 1.5, borderColor: 'rgba(245,215,122,0.55)', transform: [{ rotate: '45deg' }] },
 });

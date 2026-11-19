@@ -4,14 +4,15 @@
  * puis s'ouvre et le cosmétique apparaît avec son nom et sa rareté.
  */
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Modal } from 'react-native';
+import { View, Text, StyleSheet, Modal, Image } from 'react-native';
+import PlayerAvatar from './PlayerAvatar';
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, withSpring, ZoomIn, FadeIn, cancelAnimation } from 'react-native-reanimated';
 import Svg, { Path, Rect, Circle, G, Defs, LinearGradient, Stop } from 'react-native-svg';
 import { CardBack } from './Card';
 import ReactionGlyph from './ReactionGlyph';
 import { GameButton, theme, haptic } from './ui';
 import audioService from '../network/audioService';
-import { BACKS, FELTS } from '../utils/cosmetics';
+import { BACKS, FELTS, TABLE_SKINS } from '../utils/cosmetics';
 import { CHESTS, RARITIES } from '../../server/progress/defs';
 
 const EFFECT_ICONS = { confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
@@ -63,6 +64,8 @@ function ItemVisual({ item }) {
     if (item.kind === 'back') return <CardBack width={74} height={108} palette={BACKS[k]} />;
     if (item.kind === 'emote') return <ReactionGlyph type={item.id} size={46} textColor={theme.cream} />;
     if (item.kind === 'effect') return <Text style={{ fontSize: 64 }}>{EFFECT_ICONS[k]}</Text>;
+    if (item.kind === 'table') return <Image source={TABLE_SKINS[k]?.src} style={{ width: 210, height: 69, borderRadius: 10 }} resizeMode="cover" />;
+    if (item.kind === 'avatar') return <PlayerAvatar name="?" variant={Number(k)} size={100} />;
     if (item.kind === 'felt') {
         const game = item.id.split(':')[1];
         const f = (FELTS[game] || []).find((x) => x.id === k);
@@ -71,7 +74,7 @@ function ItemVisual({ item }) {
     return null;
 }
 
-const KIND = { back: 'Dos de cartes', effect: 'Effet de victoire', emote: 'Réaction', felt: 'Tapis' };
+const KIND = { back: 'Dos de cartes', effect: 'Effet de victoire', emote: 'Réaction', felt: 'Couleur de tapis', table: 'Table', avatar: 'Portrait' };
 
 /**
  * open : promesse qui renvoie la réponse du serveur ({ result, profile } ou { error }).
@@ -141,7 +144,7 @@ export default function ChestOpening({ chest, request, onClose, onUse }) {
                     {res?.error && <Text style={styles.error}>{res.error}</Text>}
                     {phase === 'done' && (
                         <Animated.View entering={FadeIn.duration(200)} style={styles.buttons}>
-                            {item && !res.result.duplicate && ['back', 'effect', 'felt'].includes(item.kind) && onUse && (
+                            {item && !res.result.duplicate && ['back', 'effect', 'felt', 'table', 'avatar'].includes(item.kind) && onUse && (
                                 <GameButton small title="Utiliser" variant="outline" onPress={() => { onUse(item); onClose(); }} />
                             )}
                             <GameButton small title={item ? 'Super !' : 'Fermer'} onPress={onClose} />

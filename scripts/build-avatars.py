@@ -1,10 +1,12 @@
 """
 Les 12 avatars des joueurs, découpés dans la planche (4 colonnes x 3 lignes de médaillons dorés sur fond bleu nuit).
 
-    python scripts/build-avatars.py <planche.png>
+    python scripts/build-avatars.py <planche.png> [colonnes lignes premier_numero]
 
 Sortie : assets/avatars/avatar_00.webp à avatar_11.webp (160 px, disque sans le cadre doré, coins transparents),
 dans l'ordre de lecture de la planche (de gauche à droite, puis de haut en bas).
+Deuxième planche (16 portraits de la boutique, 4 x 4, anneau plus épais) : python scripts/build-avatars.py <planche2.png> 4 4 12 0.85
+-> avatar_12.webp à avatar_27.webp.
 """
 import os
 import sys
@@ -13,7 +15,9 @@ from PIL import Image, ImageDraw, ImageFilter
 ROOT = os.path.join(os.path.dirname(__file__), '..')
 OUT = os.path.join(ROOT, 'assets', 'avatars')
 SIZE = 160
-COLS, ROWS = 4, 3
+COLS, ROWS = (int(sys.argv[2]), int(sys.argv[3])) if len(sys.argv) > 3 else (4, 3)
+FIRST = int(sys.argv[4]) if len(sys.argv) > 4 else 0
+KEEP = float(sys.argv[5]) if len(sys.argv) > 5 else 0.93  # part du rayon gardée (sans l'anneau doré)
 
 src = Image.open(sys.argv[1]).convert('RGB')
 W, H = src.size
@@ -26,7 +30,7 @@ for corner in [(0, 0), (W - 1, 0), (0, H - 1), (W - 1, H - 1)]:
     ImageDraw.floodfill(dark, corner, 128)
 medals = dark.point(lambda v: 0 if v == 128 else 255)  # médaillons (intérieur compris) en blanc
 
-k = 0
+k = FIRST
 for row in range(ROWS):
     for col in range(COLS):
         # Médaillon de la case : la tache blanche qui contient le milieu de la case
@@ -36,7 +40,11 @@ for row in range(ROWS):
         l, t, r, b = one.point(lambda v: 255 if v == 200 else 0).getbbox()
         cx, cy = (l + r) / 2, (t + b) / 2
         radius = min(r - l, b - t) / 2
-        inner = radius * 0.93  # on garde l'intérieur, sans l'anneau doré
+        # Médaillons d'une colonne qui se touchent (une seule tache haute) : on la découpe en ROWS disques
+        n = round((b - t) / (r - l))
+        if n > 1:
+            cy = t + radius + row * (b - t - 2 * radius) / (n - 1)
+        inner = radius * KEEP  # on garde l'intérieur, sans l'anneau doré
         box = (round(cx - inner), round(cy - inner), round(cx + inner), round(cy + inner))
         face = src.crop(box).resize((SIZE * 2, SIZE * 2), Image.LANCZOS)
         mask = Image.new('L', face.size, 0)

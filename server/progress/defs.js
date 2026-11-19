@@ -217,7 +217,35 @@ const COSMETICS = [
     { id: 'emote:menthe', kind: 'emote', label: 'Menthe', rarity: 'epique', emoji: '🍵', text: 'Atay ?', image: 'menthe' },
     { id: 'emote:couronne', kind: 'emote', label: 'Couronne', rarity: 'legendaire', emoji: '👑', text: 'Sultan !' },
 
-    // Tapis des défis du jour (les nouveaux tapis viendront de Yassir)
+    // Tables (images de Yassir) : remplacent la table du jeu, pour les 4 jeux
+    { id: 'table:vert', kind: 'table', label: 'Vert classique', rarity: 'commun' },
+    { id: 'table:velours', kind: 'table', label: 'Velours rouge', rarity: 'commun' },
+    { id: 'table:cuivre', kind: 'table', label: 'Cuivre sculpté', rarity: 'rare' },
+    { id: 'table:zellige', kind: 'table', label: 'Zellige', rarity: 'rare' },
+    { id: 'table:turquoise', kind: 'table', label: 'Turquoise', rarity: 'rare' },
+    { id: 'table:nuit', kind: 'table', label: 'Nuit (marbre noir)', rarity: 'epique' },
+    { id: 'table:sahara', kind: 'table', label: 'Sahara', rarity: 'epique' },
+    { id: 'table:pourpre', kind: 'table', label: 'Pourpre royal', rarity: 'legendaire' },
+
+    // Portraits 13 à 28 (planche de Yassir) ; les 12 premiers restent offerts
+    { id: 'avatar:13', kind: 'avatar', label: 'Roi', rarity: 'rare' },
+    { id: 'avatar:14', kind: 'avatar', label: 'Reine', rarity: 'rare' },
+    { id: 'avatar:15', kind: 'avatar', label: 'Lion couronné', rarity: 'epique' },
+    { id: 'avatar:16', kind: 'avatar', label: 'Tigre blanc', rarity: 'epique' },
+    { id: 'avatar:17', kind: 'avatar', label: 'Sage', rarity: 'rare' },
+    { id: 'avatar:18', kind: 'avatar', label: 'Aigle', rarity: 'rare' },
+    { id: 'avatar:19', kind: 'avatar', label: 'Touareg', rarity: 'commun' },
+    { id: 'avatar:20', kind: 'avatar', label: 'Dame voilée', rarity: 'commun' },
+    { id: 'avatar:21', kind: 'avatar', label: 'Cheval noir', rarity: 'commun' },
+    { id: 'avatar:22', kind: 'avatar', label: 'Loup', rarity: 'rare' },
+    { id: 'avatar:23', kind: 'avatar', label: 'As couronné', rarity: 'commun' },
+    { id: 'avatar:24', kind: 'avatar', label: 'Bouffon', rarity: 'commun' },
+    { id: 'avatar:25', kind: 'avatar', label: 'Pacha', rarity: 'commun' },
+    { id: 'avatar:26', kind: 'avatar', label: 'Capuche rouge', rarity: 'commun' },
+    { id: 'avatar:27', kind: 'avatar', label: 'Phénix', rarity: 'legendaire' },
+    { id: 'avatar:28', kind: 'avatar', label: "Dragon d'or", rarity: 'legendaire' },
+
+    // Tapis des défis du jour (couleur du tapis d'une table de jeu)
     { id: 'felt:hezz2:tadelakt', kind: 'felt', game: 'hezz2', label: 'Tadelakt (Hezz2)', rarity: 'rare' },
     { id: 'felt:ronda:safran', kind: 'felt', game: 'ronda', label: 'Safran (Ronda)', rarity: 'rare' },
     { id: 'felt:kdoub:braise', kind: 'felt', game: 'kdoub', label: 'Braise (Kdoub)', rarity: 'rare' },
@@ -230,9 +258,12 @@ function priceOf(item) {
     return RARITIES[item.rarity]?.price ?? null;
 }
 const cosmetic = (id) => COSMETICS.find((c) => c.id === id) || null;
+// Portraits : 1 à 12 offerts, 13 à 28 à débloquer (boutique, coffres)
+const FREE_AVATARS = 12;
+const MAX_AVATAR = 28;
 
 module.exports = {
-    RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND,
+    RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND, FREE_AVATARS, MAX_AVATAR,
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
     TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
 };

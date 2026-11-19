@@ -45,6 +45,21 @@ export const BACKS = {
     tournoi: { label: 'Champion', unlock: 'tournament', pattern: 'sunburst', bg: '#8E0E1C', frame: '#A3132A', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.32)', medal: '#5E0A12', medalBorder: '#FFE08A', star: '#F5D77A', crown: true },
 };
 
+// Tables de la boutique (images de Yassir, scripts/build-table-skins.py) : remplacent la table du jeu, pour les 4 jeux.
+// Le tapis fait partie de l'image : pas de teinte par-dessus.
+export const TABLE_SKINS = {
+    vert: { label: 'Vert classique', src: require('../../assets/tables/skins/vert.jpg'), portrait: require('../../assets/tables/skins/vert-portrait.jpg') },
+    velours: { label: 'Velours rouge', src: require('../../assets/tables/skins/velours.jpg'), portrait: require('../../assets/tables/skins/velours-portrait.jpg') },
+    cuivre: { label: 'Cuivre sculpté', src: require('../../assets/tables/skins/cuivre.jpg'), portrait: require('../../assets/tables/skins/cuivre-portrait.jpg') },
+    zellige: { label: 'Zellige', src: require('../../assets/tables/skins/zellige.jpg'), portrait: require('../../assets/tables/skins/zellige-portrait.jpg') },
+    turquoise: { label: 'Turquoise', src: require('../../assets/tables/skins/turquoise.jpg'), portrait: require('../../assets/tables/skins/turquoise-portrait.jpg') },
+    nuit: { label: 'Nuit (marbre noir)', src: require('../../assets/tables/skins/nuit.jpg'), portrait: require('../../assets/tables/skins/nuit-portrait.jpg') },
+    sahara: { label: 'Sahara', src: require('../../assets/tables/skins/sahara.jpg'), portrait: require('../../assets/tables/skins/sahara-portrait.jpg') },
+    pourpre: { label: 'Pourpre royal', src: require('../../assets/tables/skins/pourpre.jpg'), portrait: require('../../assets/tables/skins/pourpre-portrait.jpg') },
+};
+const SKIN_W = 760;
+const SKIN_H = 248;
+
 // Effets de victoire et de coup spécial (visuels seulement). « Drapeau » : les confettis d'origine, offerts.
 export const EFFECTS = {
     drapeau: { label: 'Drapeau', unlock: 'free' },
@@ -98,15 +113,15 @@ export const isUnlocked = (unlock, xp) => (xp || 0) >= (UNLOCK[unlock]?.xp ?? 0)
 // boutique, coffre). key : 'back:menthe', 'effect:feu' ou 'felt:hezz2:tadelakt'
 export const itemUnlocked = (item, key, s = state) => (s.unlocks || []).includes(key) || isUnlocked(item.unlock, s.xp);
 
-let state = { back: 'classic', felts: {}, effect: 'drapeau', xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
+let state = { back: 'classic', felts: {}, effect: 'drapeau', table: null, xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
 // Choix gardés aussi dans le compte (retrouvés après une réinstallation) : voir accountService
 let syncHandler = null;
 export function setSyncHandler(fn) { syncHandler = fn; }
-const equipped = () => ({ back: state.back, effect: state.effect, felts: state.felts });
+const equipped = () => ({ back: state.back, effect: state.effect, felts: state.felts, ...(state.table ? { table: state.table } : {}) });
 const save = (sync = true) => {
-    AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, effect: state.effect, vibration: state.vibration })).catch(() => {});
+    AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, effect: state.effect, table: state.table, vibration: state.vibration })).catch(() => {});
     if (sync && syncHandler) syncHandler(equipped());
 };
 export const currentEquipped = equipped;
@@ -117,6 +132,7 @@ export function applyEquipped(e) {
     const next = { ...state };
     if (e.back && BACKS[e.back]) next.back = e.back;
     if (e.effect && EFFECTS[e.effect]) next.effect = e.effect;
+    next.table = e.table && TABLE_SKINS[e.table] ? e.table : null;
     if (e.felts) next.felts = { ...next.felts, ...e.felts };
     state = next;
     save(false);
@@ -164,6 +180,22 @@ export function setFelt(game, id) {
     save();
     emit();
     return true;
+}
+
+// Table de la boutique (null = la table du jeu)
+export function setTable(id) {
+    if (id !== null && (!TABLE_SKINS[id] || !(state.unlocks || []).includes(`table:${id}`))) return false;
+    state = { ...state, table: id };
+    save();
+    emit();
+    return true;
+}
+
+// Table choisie (si elle est toujours possédée) : { src, portrait, w, h }, sinon null
+export function tableFor(s = state) {
+    const id = s.table;
+    if (!id || !TABLE_SKINS[id] || !(s.unlocks || []).includes(`table:${id}`)) return null;
+    return { ...TABLE_SKINS[id], w: SKIN_W, h: SKIN_H };
 }
 
 export function setEffect(id) {
