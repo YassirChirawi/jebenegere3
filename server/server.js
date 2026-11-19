@@ -59,6 +59,20 @@ app.post('/api/daily-login', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (user) res.json(await progress.dailyLogin(user));
 }));
+// Boutique : achat d'un cosmétique en binga (prix, solde et possession vérifiés par le serveur)
+app.post('/api/shop/buy', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.buy(user, req.body?.id);
+    if (r.success) {
+        // Réactions achetées : utilisables tout de suite dans les parties en cours
+        for (const s of io.sockets.sockets.values()) {
+            if (s.data.user?.userId === user.id) s.data.emotes = emotesOf(r.profile.unlocks);
+        }
+    }
+    res.status(r.error ? 400 : 200).json(r);
+}));
+const emotesOf = (unlocks) => new Set((unlocks || []).filter((k) => k.startsWith('emote:')));
 app.post('/api/me', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (user) res.json({ profile: await progress.updateMe(user, req.body || {}) });
@@ -116,7 +130,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -595,6 +609,7 @@ io.on('connection', (socket) => {
         try {
             const user = data?.token ? await progress.userFromToken(data.token) : null;
             socket.data.user = user ? progress.publicInfo(user) : null;
+            socket.data.emotes = emotesOf(user?.unlocks);
             // Portrait choisi sans compte (0 = tiré du pseudo, 1 à 12), gardé sur l'appareil et renvoyé à chaque connexion
             socket.data.guestAvatar = Number.isInteger(data?.avatar) && data.avatar >= 0 && data.avatar <= 12 ? data.avatar : 0;
             callback && callback({ success: !!user || !data?.token, user: socket.data.user, key: keyOf(socket) });
@@ -985,7 +1000,15 @@ io.on('connection', (socket) => {
         const room = rooms[data?.roomId];
         if (!room) return;
         const playerIndex = playerIndexOf(room, socket.id);
-        const reactionType = String(data.reactionType || '').slice(0, 8);
+        // Réaction de la boutique (« emote:rire ») : seulement si le joueur la possède ; sinon emoji offert (8 caractères max)
+        const raw = String(data?.reactionType || '');
+        let reactionType;
+        if (raw.startsWith('emote:')) {
+            if (!socket.data.emotes?.has(raw)) return;
+            reactionType = raw;
+        } else {
+            reactionType = raw.slice(0, 8);
+        }
         if (playerIndex !== -1) {
             emitToRoomFrom(room, socket, 'player_reaction_broadcast', { playerIndex, reactionType });
             return;

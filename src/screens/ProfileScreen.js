@@ -252,6 +252,9 @@ export default function ProfileScreen({ navigation }) {
                 {profile?.binga ? (
                     <Section title="💰 Binga" right={<Text style={styles.dim}>Missions nouvelles dans {untilTomorrow()}</Text>} delay={90}>
                         <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                        <View style={{ alignItems: 'center', marginBottom: 8 }}>
+                            <GameButton small title="Boutique : dos, effets, réactions" icon="🛍️" onPress={() => navigation.navigate('Shop')} />
+                        </View>
                         <Text style={[styles.dim, { textAlign: 'center' }]}>Partie finie : +10 même en perdant, +25 en gagnant (+20 contre l'ordinateur). Les binga se gagnent en jouant : ils ne s'achètent pas et ne valent pas d'argent.</Text>
 
                         <Text style={styles.bingaSub}>Connexion du jour</Text>
@@ -293,11 +296,11 @@ export default function ProfileScreen({ navigation }) {
                             </View>
                         ))}
 
-                        {profile.binga.log?.length > 0 && <Text style={styles.bingaSub}>Derniers gains</Text>}
+                        {profile.binga.log?.length > 0 && <Text style={styles.bingaSub}>Derniers gains et achats</Text>}
                         {(profile.binga.log || []).slice(0, 6).map((e, i) => (
                             <View key={`${e.at}-${i}`} style={styles.histRow}>
                                 <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{e.reason}</Text>
-                                <Text style={styles.histXp}>+{e.amount}</Text>
+                                <Text style={[styles.histXp, e.amount < 0 && { color: '#FCA5A5' }]}>{e.amount > 0 ? '+' : ''}{e.amount}</Text>
                             </View>
                         ))}
                     </Section>

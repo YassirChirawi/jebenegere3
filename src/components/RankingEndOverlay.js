@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ZoomIn, FadeInRight } from 'react-native-reanimated';
 import PlayerAvatar from './PlayerAvatar';
-import { Confetti } from './GameFx';
+import { WinEffect } from './WinEffects';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
@@ -26,7 +26,7 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
 
     return (
         <Animated.View entering={FadeIn.duration(300)} style={styles.overlay}>
-            {won && <Confetti />}
+            {won && <WinEffect />}
             <Animated.View entering={ZoomIn.springify().damping(13).delay(150)} style={[styles.panel, lost && styles.panelLost, compact && styles.panelCompact]}>
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                     {!compact && emoji ? <Text style={styles.emoji}>{emoji}</Text> : null}

@@ -7,6 +7,9 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { dialog } from './Dialog';
 import { logMessage, shouldHide, isMine, openMessageMenu, useChatModeration } from '../utils/chatModeration';
+import ReactionGlyph, { reactionText } from './ReactionGlyph';
+import { useCosmetics } from '../utils/cosmetics';
+import { COSMETICS } from '../../server/progress/defs';
 
 // Rejouer : le serveur répond toujours (succès ou raison du refus), jamais de clic sans effet
 export function requestReplay(roomId) {
@@ -69,7 +72,7 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                 audioService.playSound('pop', { rate: 1.15 });
                 if (playerIndex === -1) {
                     const id = `spec-${Date.now()}-${Math.random()}`;
-                    setChatMessages((prev) => [...prev.slice(-3), { id, system: true, playerName: `👀 ${spectatorName || 'Spectateur'}`, message: reactionType }]);
+                    setChatMessages((prev) => [...prev.slice(-3), { id, system: true, playerName: `👀 ${spectatorName || 'Spectateur'}`, message: reactionText(reactionType) }]);
                     whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== id)), 3000));
                     return;
                 }
@@ -153,7 +156,16 @@ export function ChatBubbles({ messages, top = 130 }) {
     );
 }
 
+// Réactions de la boutique possédées par le joueur (dans l'ordre du catalogue)
+export function useOwnedEmotes() {
+    const cos = useCosmetics();
+    const owned = new Set(cos.unlocks || []);
+    return COSMETICS.filter((c) => c.kind === 'emote' && owned.has(c.id));
+}
+
 export function ReactionBar({ onSend, land }) {
+    const emotes = useOwnedEmotes();
+    const [open, setOpen] = useState(false);
     return (
         <View style={[styles.reactionBar, land && styles.reactionBarLand]}>
             {REACTIONS.map((emoji) => (
@@ -161,6 +173,20 @@ export function ReactionBar({ onSend, land }) {
                     <Text style={styles.reactionBtnText}>{emoji}</Text>
                 </PressableScale>
             ))}
+            {emotes.length > 0 && (
+                <PressableScale sound={null} scaleTo={0.8} style={[styles.reactionBtn, open && styles.reactionBtnOn]} onPress={() => setOpen(!open)} accessibilityLabel="Mes réactions">
+                    <Text style={styles.reactionBtnText}>✨</Text>
+                </PressableScale>
+            )}
+            {open && (
+                <Animated.View entering={ZoomIn.springify().damping(14)} style={[styles.emotePanel, land && styles.emotePanelLand]}>
+                    {emotes.map((e) => (
+                        <PressableScale key={e.id} sound={null} scaleTo={0.85} style={styles.emoteBtn} onPress={() => { setOpen(false); onSend(e.id); }}>
+                            <ReactionGlyph type={e.id} size={22} textColor={theme.cream} />
+                        </PressableScale>
+                    ))}
+                </Animated.View>
+            )}
         </View>
     );
 }
@@ -246,7 +272,7 @@ export function ReactionBubble({ emoji, style }) {
     if (!emoji) return null;
     return (
         <Animated.View entering={ZoomIn.springify().damping(9)} exiting={FadeOut} style={[styles.reactionBubble, style]}>
-            <Text style={{ fontSize: 26 }}>{emoji}</Text>
+            <ReactionGlyph type={emoji} size={26} />
         </Animated.View>
     );
 }
@@ -344,6 +370,25 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
+    reactionBtnOn: { borderColor: theme.gold, backgroundColor: 'rgba(212,175,55,0.3)' },
+    emotePanel: {
+        position: 'absolute',
+        bottom: 44,
+        right: 0,
+        width: 236,
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        padding: 8,
+        borderRadius: 16,
+        backgroundColor: 'rgba(10,4,6,0.92)',
+        borderWidth: 1,
+        borderColor: theme.gold,
+        zIndex: 100,
+        elevation: 20,
+    },
+    emotePanelLand: { bottom: 0, right: 90 },
+    emoteBtn: { width: 50, paddingVertical: 4, alignItems: 'center', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.06)' },
     reactionBtnText: {
         fontSize: 18,
     },

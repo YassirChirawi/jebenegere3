@@ -441,8 +441,8 @@ export default function HomeScreen({ navigation }) {
                             </PressableScale>
                         )}
                         {profile?.binga && (
-                            <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
-                                <Text style={styles.rankText}>💰 {profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                            <PressableScale onPress={() => navigation.navigate('Shop')} style={[styles.rankChip, { marginTop: 8 }]}>
+                                <Text style={styles.rankText}>💰 {profile.binga.balance.toLocaleString('fr-FR')} binga · 🛍️ Boutique</Text>
                                 <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]} numberOfLines={1}>
                                     Missions {profile.binga.missions.filter((m) => m.done).length}/{profile.binga.missions.length}
                                     {profile.binga.login.claimed ? '' : ` · bonus du jour +${profile.binga.login.amount}`}

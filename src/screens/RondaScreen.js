@@ -33,6 +33,7 @@ import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
 import { GoldBurst } from '../components/Flights';
+import { WinEffect } from '../components/WinEffects';
 import { isPhoneWeb } from '../utils/fullscreen';
 import { TABLE_INSET } from '../components/MoroccanTable'; // marges de la zone de table (la table elle-même est l'image de fond)
 
@@ -257,6 +258,16 @@ export default function RondaScreen({ route, navigation }) {
     }, [showRotate]);
     const [burst, setBurst] = useState(null);
     const goldBurst = (color, size) => setBurst({ id: Date.now() + Math.random(), color, size });
+    // Coup spécial du joueur (Darba, Hbel, Boug, Missa) : son effet choisi, en version courte
+    const [specialFx, setSpecialFx] = useState(null);
+    const fxTimer = useRef(null);
+    const mySpecial = (player) => {
+        if (player !== me) return;
+        const id = Date.now();
+        setSpecialFx(id);
+        if (fxTimer.current) clearTimeout(fxTimer.current);
+        fxTimer.current = setTimeout(() => setSpecialFx(null), 2600);
+    };
     const [showEnd, setShowEnd] = useState(false);
     const [showRules, setShowRules] = useState(false);
     const [denounceOpen, setDenounceOpen] = useState(false);
@@ -420,7 +431,7 @@ export default function RondaScreen({ route, navigation }) {
                 later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
                     text: 'DARBA !', sub: `${who} prend la carte posée · +${e.points} ${teamWord(e.team)}`, color: '#EA580C', textColor: '#fff', duration: 2800, top: '13%',
-                    onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); goldBurst('#FDBA74', 200); },
+                    onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); goldBurst('#FDBA74', 200); mySpecial(e.player); },
                 });
                 break;
             }
@@ -431,7 +442,7 @@ export default function RondaScreen({ route, navigation }) {
                 later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
                     text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2800, top: '13%',
-                    onShow: () => { audioService.playSound('hbel'); haptic('double'); shake(14); goldBurst('#C4B5FD', 240); },
+                    onShow: () => { audioService.playSound('hbel'); haptic('double'); shake(14); goldBurst('#C4B5FD', 240); mySpecial(e.player); },
                 });
                 later(() => setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam }), SPOT_MS);
                 break;
@@ -441,7 +452,7 @@ export default function RondaScreen({ route, navigation }) {
                 react(e.player, 'proud');
                 pushBanner({
                     text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
-                    onShow: () => { audioService.playSound('bachra'); haptic('long'); shake(18); goldBurst('#FFE08A', 300); },
+                    onShow: () => { audioService.playSound('bachra'); haptic('long'); shake(18); goldBurst('#FFE08A', 300); mySpecial(e.player); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
                 break;
@@ -449,7 +460,7 @@ export default function RondaScreen({ route, navigation }) {
                 react(e.player, 'proud');
                 pushBanner({
                     text: 'MISSA !', sub: `${who} vide la table · +${e.points} ${teamWord(e.team)}`, color: '#0F766E', textColor: '#fff',
-                    onShow: () => { audioService.playSound('missa'); haptic('success'); goldBurst('#5EEAD4', 260); },
+                    onShow: () => { audioService.playSound('missa'); haptic('success'); goldBurst('#5EEAD4', 260); mySpecial(e.player); },
                 });
                 break;
             case 'announce':
@@ -817,6 +828,7 @@ export default function RondaScreen({ route, navigation }) {
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
+                {specialFx && <WinEffect key={specialFx} small />}
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 {!land && showRotate && (

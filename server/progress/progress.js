@@ -6,7 +6,7 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
-const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA } = defs;
+const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic } = defs;
 const BINGA_LOG_MAX = 30;
 const GAME_NAMES = { hezz2: 'Hezz2', ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota' };
 
@@ -114,6 +114,20 @@ function claimLogin(u, now = Date.now()) {
     b.login = { last: today, streak };
     credit(u, amount, `Connexion du jour (jour ${streak}/${BINGA.login.length})`, now);
     return { amount, streak, days: BINGA.login.length };
+}
+
+// Choix visibles (dos, effet, tapis par jeu), gardés avec le compte pour les retrouver après une réinstallation.
+// L'appli vérifie elle-même qu'un choix est débloqué avant de l'afficher.
+function cleanEquipped(e) {
+    const id = (v) => (typeof v === 'string' && /^[a-z0-9]{1,16}$/.test(v) ? v : undefined);
+    const out = {};
+    if (id(e.back)) out.back = e.back;
+    if (id(e.effect)) out.effect = e.effect;
+    if (e.felts && typeof e.felts === 'object') {
+        out.felts = {};
+        GAME_KEYS.forEach((g) => { if (id(e.felts[g])) out.felts[g] = e.felts[g]; });
+    }
+    return out;
 }
 
 function bingaView(u, now = Date.now()) {
@@ -236,11 +250,35 @@ function createProgress(store) {
         await withUser(user.id, (u) => { u.sessions = (u.sessions || []).filter((s) => s.h !== h); });
     }
 
-    async function updateMe(user, { title, avatar }) {
+    async function updateMe(user, { title, avatar, equipped }) {
         return withUser(user.id, async (u) => {
             if (title === null || (typeof title === 'string' && u.titles.includes(title))) u.title = title;
             if (Number.isInteger(avatar) && avatar >= 0 && avatar <= 12) u.avatar = avatar; // 0 = tiré du pseudo, 1 à 12 = portrait choisi
+            if (equipped && typeof equipped === 'object') u.equipped = cleanEquipped(equipped);
             return profileOf(u);
+        });
+    }
+
+    // ------------------------------------------------------------------ boutique
+    /**
+     * Achat d'un cosmétique en binga : le serveur vérifie le prix, le solde et qu'il n'est pas déjà possédé.
+     * Les légendaires et les exclusifs (Champion) ne s'achètent pas.
+     */
+    async function buy(user, id, now = Date.now()) {
+        const item = cosmetic(String(id || ''));
+        if (!item) return { error: "Cet objet n'existe pas." };
+        const price = priceOf(item);
+        if (price === null) {
+            return { error: item.source === 'tournament' ? "Ce dos est réservé au gagnant d'un tournoi." : "Les objets légendaires ne s'achètent pas : on les trouve seulement dans le coffre Or." };
+        }
+        return withUser(user.id, (u) => {
+            const b = bingaDay(u, now);
+            if ((u.unlocks || []).includes(item.id)) return { error: "Tu l'as déjà." };
+            if (b.balance < price) return { error: `Il te manque ${price - b.balance} binga.` };
+            b.balance -= price;
+            b.log = [{ at: now, amount: -price, reason: `Achat : ${item.label} (${RARITIES[item.rarity].label})` }, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
+            u.unlocks = [...(u.unlocks || []), item.id];
+            return { success: true, item: { id: item.id, label: item.label, kind: item.kind }, profile: profileOf(u, now) };
         });
     }
 
@@ -450,6 +488,7 @@ function createProgress(store) {
                 list: today.map((c) => ({ ...c, progress: u.daily.progress[c.id] || 0, done: u.daily.done.includes(c.id) })),
             },
             unlocks: u.unlocks,
+            equipped: u.equipped || {},
             titles: TITLES.map((t) => ({ id: t.id, label: t.label, desc: t.desc, target: t.target, progress: Math.min(t.target, u.counters[t.counter] || 0), unlocked: u.titles.includes(t.id) })),
             badges: u.badges || [],
             season: { id: season.id, end: season.end, xp: u.seasons?.[season.id]?.all || 0 },
@@ -479,7 +518,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

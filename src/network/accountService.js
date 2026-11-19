@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import socketService, { SOCKET_URL } from './socketService';
 import { Platform } from 'react-native';
-import { setUnlocks, loadCosmetics } from '../utils/cosmetics';
+import { setUnlocks, loadCosmetics, applyEquipped, currentEquipped, setSyncHandler } from '../utils/cosmetics';
 import { clearBlocked } from '../utils/chatModeration';
 
 const OUTDATED = "Le serveur du jeu n'est pas encore à jour : la suppression du compte n'est pas disponible pour l'instant. Ton compte n'a pas été supprimé, réessaie plus tard.";
@@ -29,6 +29,11 @@ const set = (patch) => {
 function syncLocal(profile) {
     if (!profile) { setUnlocks([], null); return; }
     setUnlocks(profile.unlocks || [], profile.xp);
+    // Choix (dos, effet, tapis) : ceux du compte s'il en a, sinon on y enregistre ceux de l'appareil
+    // (sauf juste après un changement sur l'appareil, pas encore arrivé au serveur)
+    const recent = equipTimer || Date.now() - lastEquipPush < 4000;
+    if (profile.equipped && Object.keys(profile.equipped).length) { if (!recent) applyEquipped(profile.equipped); }
+    else if (profile.equipped && state.token) pushEquipped(currentEquipped());
     AsyncStorage.setItem('playerXP', String(profile.xp)).catch(() => {});
     AsyncStorage.setItem('playerName', profile.name).catch(() => {});
 }
@@ -53,6 +58,19 @@ async function request(path, { method = 'GET', body, token = state.token, timeou
         if (t) clearTimeout(t);
     }
 }
+
+// Envoi des choix au compte (regroupés : plusieurs changements rapides = un seul envoi)
+let equipTimer = null;
+let lastEquipPush = 0;
+function pushEquipped(e) {
+    if (equipTimer) clearTimeout(equipTimer);
+    equipTimer = setTimeout(() => {
+        equipTimer = null;
+        lastEquipPush = Date.now();
+        if (state.token) request('/api/me', { method: 'POST', body: { equipped: e } });
+    }, 600);
+}
+setSyncHandler((e) => { if (state.token && state.profile) pushEquipped(e); });
 
 function authSocket() {
     socketService.setAuthToken(state.token);
@@ -192,6 +210,18 @@ const accountService = {
             // Repart d'une page propre (états en mémoire remis à zéro)
             setTimeout(() => window.location.replace('/'), 300);
         }
+    },
+
+    /** Achat d'un cosmétique en binga : le serveur vérifie tout et renvoie le profil à jour. */
+    async buy(id) {
+        if (!state.token) return { error: 'Crée ton compte pour acheter avec tes binga.' };
+        if (socketService.serverInfo && !socketService.supports('shop')) return { error: "Le serveur n'est pas encore à jour : la boutique n'est pas disponible pour l'instant." };
+        const r = await request('/api/shop/buy', { method: 'POST', body: { id } });
+        if (r.profile) {
+            set({ profile: r.profile });
+            AsyncStorage.setItem('authProfile', JSON.stringify(r.profile)).catch(() => {});
+        }
+        return r;
     },
 
     leaderboard(game = 'all') {

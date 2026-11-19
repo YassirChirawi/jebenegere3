@@ -149,7 +149,71 @@ const BINGA = {
     ],
 };
 
+// ----------------------------------------------------------------------------
+// Cosmétiques : visuels seulement, aucun effet sur le jeu. La rareté change seulement la fréquence
+// d'obtention (coffres) et le prix. Les légendaires ne s'achètent pas : coffre Or seulement.
+// L'identifiant est aussi la clé gardée dans la liste « unlocks » du compte.
+// ----------------------------------------------------------------------------
+const RARITIES = {
+    commun: { label: 'Commun', price: 100, color: '#CBD5E1' },
+    rare: { label: 'Rare', price: 250, color: '#60A5FA' },
+    epique: { label: 'Épique', price: 500, color: '#C084FC' },
+    legendaire: { label: 'Légendaire', price: null, color: '#F5D77A' }, // coffre Or seulement
+};
+
+const COSMETICS = [
+    // Dos de cartes (Classique, offert à tous, est le dos par défaut)
+    { id: 'back:cuivre', kind: 'back', label: 'Cuivre martelé', rarity: 'commun' },
+    { id: 'back:velours', kind: 'back', label: 'Velours rouge', rarity: 'commun' },
+    { id: 'back:menthe', kind: 'back', label: 'Thé à la menthe', rarity: 'rare' },
+    { id: 'back:rose', kind: 'back', label: 'Rose de Kelaa', rarity: 'rare' },
+    { id: 'back:zellige', kind: 'back', label: 'Zellige', rarity: 'rare' },
+    { id: 'back:sahara', kind: 'back', label: 'Sahara', rarity: 'rare' },
+    { id: 'back:ocean', kind: 'back', label: 'Océan', rarity: 'epique' },
+    { id: 'back:neon', kind: 'back', label: 'Néon', rarity: 'epique' },
+    { id: 'back:or', kind: 'back', label: 'Or', rarity: 'legendaire' },
+    { id: 'back:saison', kind: 'back', label: 'Saison', rarity: 'legendaire' },
+    // Champion : réservé au gagnant d'un tournoi (ni boutique, ni coffre)
+    { id: 'back:tournoi', kind: 'back', label: 'Champion', rarity: 'legendaire', source: 'tournament' },
+
+    // Effets de victoire et de coup spécial (l'effet « Drapeau » est offert à tous)
+    { id: 'effect:confettis', kind: 'effect', label: 'Confettis', rarity: 'commun' },
+    { id: 'effect:etoiles', kind: 'effect', label: 'Étoiles', rarity: 'commun' },
+    { id: 'effect:menthe', kind: 'effect', label: 'Menthe', rarity: 'rare' },
+    { id: 'effect:feu', kind: 'effect', label: 'Feu', rarity: 'rare' },
+    { id: 'effect:tonnerre', kind: 'effect', label: 'Tonnerre', rarity: 'epique' },
+    { id: 'effect:or', kind: 'effect', label: 'Or', rarity: 'legendaire' },
+
+    // Réactions (en plus des 4 réactions offertes : 😂 😡 😱 👏)
+    { id: 'emote:rire', kind: 'emote', label: 'Rire', rarity: 'commun', emoji: '😂', text: 'Hhhhh' },
+    { id: 'emote:bravo', kind: 'emote', label: 'Bravo', rarity: 'commun', emoji: '👏', text: 'Bravo !' },
+    { id: 'emote:aie', kind: 'emote', label: 'Aïe', rarity: 'commun', emoji: '😖', text: 'Aïe !' },
+    { id: 'emote:merci', kind: 'emote', label: 'Merci', rarity: 'commun', emoji: '🙏', text: 'Choukran' },
+    { id: 'emote:triste', kind: 'emote', label: 'Triste', rarity: 'commun', emoji: '😢', text: 'Hchouma…' },
+    { id: 'emote:surpris', kind: 'emote', label: 'Surpris', rarity: 'commun', emoji: '😮', text: 'Waaa !' },
+    { id: 'emote:bienjoue', kind: 'emote', label: 'Bien joué', rarity: 'rare', emoji: '👍', text: 'Mzyana !' },
+    { id: 'emote:dors', kind: 'emote', label: 'Dors', rarity: 'rare', emoji: '😴', text: 'Fi9 !' },
+    { id: 'emote:chat', kind: 'emote', label: 'Chat', rarity: 'rare', emoji: '🐱', text: 'Miaou' },
+    { id: 'emote:feu', kind: 'emote', label: 'Feu', rarity: 'rare', emoji: '🔥', text: 'Nar !' },
+    { id: 'emote:menthe', kind: 'emote', label: 'Menthe', rarity: 'epique', emoji: '🍵', text: 'Atay ?', image: 'menthe' },
+    { id: 'emote:couronne', kind: 'emote', label: 'Couronne', rarity: 'legendaire', emoji: '👑', text: 'Sultan !' },
+
+    // Tapis des défis du jour (les nouveaux tapis viendront de Yassir)
+    { id: 'felt:hezz2:tadelakt', kind: 'felt', game: 'hezz2', label: 'Tadelakt (Hezz2)', rarity: 'rare' },
+    { id: 'felt:ronda:safran', kind: 'felt', game: 'ronda', label: 'Safran (Ronda)', rarity: 'rare' },
+    { id: 'felt:kdoub:braise', kind: 'felt', game: 'kdoub', label: 'Braise (Kdoub)', rarity: 'rare' },
+    { id: 'felt:sota:lavande', kind: 'felt', game: 'sota', label: 'Lavande (Sota)', rarity: 'rare' },
+];
+
+// Prix en binga (null = ne s'achète pas : légendaire ou exclusif)
+function priceOf(item) {
+    if (!item || item.source) return null;
+    return RARITIES[item.rarity]?.price ?? null;
+}
+const cosmetic = (id) => COSMETICS.find((c) => c.id === id) || null;
+
 module.exports = {
+    RARITIES, COSMETICS, priceOf, cosmetic,
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
     TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
 };

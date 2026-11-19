@@ -14,9 +14,11 @@ export const UNLOCK = {
     fchkel: { xp: 501, label: 'Rang fchkel 🥈' },
     chdid: { xp: 1001, label: 'Rang chdid 🥇' },
     // Récompenses de défis, de saison et de tournoi (liste "unlocks" du compte)
-    challenge: { xp: Infinity, label: 'Défi du jour 🎯' },
-    season: { xp: Infinity, label: 'Top 10 de la saison 🏆' },
+    challenge: { xp: Infinity, label: 'Défi du jour ou boutique' },
+    season: { xp: Infinity, label: 'Top 10 saison ou coffre Or' },
     tournament: { xp: Infinity, label: 'Gagner un tournoi 🏅' },
+    shop: { xp: Infinity, label: 'Boutique 💰' },
+    chest: { xp: Infinity, label: 'Coffre Or' },
 };
 
 // Palettes de dos : fond, cadre, filets, médaillon, étoile
@@ -24,14 +26,31 @@ export const BACKS = {
     classic: { label: 'Classique', unlock: 'free', bg: '#7A1420', frame: '#8E1B28', border: '#C9A23A', line: 'rgba(245, 215, 122, 0.75)', lattice: 'rgba(245, 215, 122, 0.28)', medal: '#5E0F18', medalBorder: '#E3BF5A', star: '#D4AF37' },
     game: { label: 'Couleurs du jeu', unlock: 'free', perGame: true },
     gold: { label: 'Doré', unlock: 'free', bg: '#A67C1A', frame: '#C9A23A', border: '#FFF1B8', line: 'rgba(90, 50, 5, 0.6)', lattice: 'rgba(90, 50, 5, 0.25)', medal: '#5B3A0A', medalBorder: '#FFE08A', star: '#FFE08A' },
-    zellige: { label: 'Zellige', unlock: 'fchkel', bg: '#0E4D5C', frame: '#11606F', border: '#F5D77A', line: 'rgba(255, 255, 255, 0.55)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#0A3540', medalBorder: '#6EE7B7', star: '#F5D77A' },
+    zellige: { label: 'Zellige', unlock: 'fchkel', alsoShop: true, pattern: 'zellige', bg: '#0E4D5C', frame: '#11606F', border: '#F5D77A', line: 'rgba(255, 255, 255, 0.55)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#0A3540', medalBorder: '#6EE7B7', star: '#F5D77A' },
     nuit: { label: 'Nuit étoilée', unlock: 'chdid', bg: '#0F0A2A', frame: '#1A1340', border: '#E3BF5A', line: 'rgba(227, 191, 90, 0.7)', lattice: 'rgba(196, 181, 253, 0.3)', medal: '#2E1065', medalBorder: '#C4B5FD', star: '#FDE68A' },
-    menthe: { label: 'Thé à la menthe', unlock: 'challenge', bg: '#0F5E3A', frame: '#13704A', border: '#E5E7EB', line: 'rgba(209, 250, 229, 0.7)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#C0C0C0', medalBorder: '#F9FAFB', star: '#0F5E3A' },
-    cuivre: { label: 'Cuivre martelé', unlock: 'challenge', bg: '#7C3A12', frame: '#94481A', border: '#FCD9B6', line: 'rgba(252, 217, 182, 0.65)', lattice: 'rgba(252, 217, 182, 0.3)', medal: '#4A2008', medalBorder: '#F59E0B', star: '#FCD9B6' },
+    menthe: { label: 'Thé à la menthe', unlock: 'challenge', pattern: 'leaf', medalIcon: 'leaf', bg: '#0F5E3A', frame: '#13704A', border: '#E5E7EB', line: 'rgba(209, 250, 229, 0.7)', lattice: 'rgba(110, 231, 183, 0.35)', medal: '#C0C0C0', medalBorder: '#F9FAFB', star: '#0F5E3A' },
+    cuivre: { label: 'Cuivre martelé', unlock: 'challenge', pattern: 'hammered', bg: '#7C3A12', frame: '#94481A', border: '#FCD9B6', line: 'rgba(252, 217, 182, 0.65)', lattice: 'rgba(252, 217, 182, 0.3)', medal: '#4A2008', medalBorder: '#F59E0B', star: '#FCD9B6' },
     rose: { label: 'Rose de Kelaa', unlock: 'challenge', bg: '#9D174D', frame: '#B01E5A', border: '#FBCFE8', line: 'rgba(251, 207, 232, 0.7)', lattice: 'rgba(251, 207, 232, 0.3)', medal: '#5B0B2C', medalBorder: '#F9A8D4', star: '#FDE68A' },
-    saison: { label: 'Saison (top 10)', unlock: 'season', bg: '#1E1B4B', frame: '#2E2A6B', border: '#FDE68A', line: 'rgba(253, 230, 138, 0.85)', lattice: 'rgba(253, 230, 138, 0.35)', medal: '#B45309', medalBorder: '#FDE68A', star: '#FFFBEB' },
+    saison: { label: 'Saison', unlock: 'season', pattern: 'sunburst', medalIcon: 'moon', bg: '#1E1B4B', frame: '#2E2A6B', border: '#FDE68A', line: 'rgba(253, 230, 138, 0.85)', lattice: 'rgba(253, 230, 138, 0.35)', medal: '#B45309', medalBorder: '#FDE68A', star: '#FFFBEB' },
+    // Dos de la boutique (lot 2) : dessins propres à chacun
+    velours: { label: 'Velours rouge', unlock: 'shop', pattern: 'velvet', bg: '#5C0A16', frame: '#7A0E1E', border: '#E8C26A', line: 'rgba(232, 194, 106, 0.8)', lattice: 'rgba(0, 0, 0, 0.35)', medal: '#3D0610', medalBorder: '#E8C26A', star: '#E8C26A' },
+    sahara: { label: 'Sahara', unlock: 'shop', pattern: 'dunes', medalIcon: 'sun', bg: '#B8742C', frame: '#D08A3A', border: '#FFF1D6', line: 'rgba(255, 241, 214, 0.75)', lattice: '#9A5A1E', medal: '#7C3F12', medalBorder: '#FFE4B5', star: '#FFD27A' },
+    ocean: { label: 'Océan', unlock: 'shop', pattern: 'waves', medalIcon: 'wave', bg: '#063B5C', frame: '#0A4F78', border: '#A5F3FC', line: 'rgba(165, 243, 252, 0.75)', lattice: 'rgba(103, 232, 249, 0.55)', medal: '#04263D', medalBorder: '#67E8F9', star: '#E0FBFF' },
+    neon: { label: 'Néon', unlock: 'shop', pattern: 'neon', medalIcon: 'ring', bg: '#07030F', frame: '#0D0620', border: '#F0ABFC', line: 'rgba(240, 171, 252, 0.9)', lattice: '#22D3EE', medal: '#12062A', medalBorder: '#F472B6', star: '#22D3EE' },
+    or: { label: 'Or', unlock: 'chest', pattern: 'arabesque', medalIcon: 'crown', bg: '#8A6410', frame: '#B8891E', border: '#FFF6C9', line: 'rgba(255, 246, 201, 0.9)', lattice: 'rgba(255, 236, 160, 0.75)', medal: '#5A3E06', medalBorder: '#FFF1A8', star: '#FFE9A0' },
     // Dos « Champion » : rouge et or, couronne au centre (réservé aux vainqueurs de tournoi)
-    tournoi: { label: 'Champion', unlock: 'tournament', bg: '#8E0E1C', frame: '#A3132A', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.32)', medal: '#5E0A12', medalBorder: '#FFE08A', star: '#F5D77A', crown: true },
+    tournoi: { label: 'Champion', unlock: 'tournament', pattern: 'sunburst', bg: '#8E0E1C', frame: '#A3132A', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.32)', medal: '#5E0A12', medalBorder: '#FFE08A', star: '#F5D77A', crown: true },
+};
+
+// Effets de victoire et de coup spécial (visuels seulement). « Drapeau » : les confettis d'origine, offerts.
+export const EFFECTS = {
+    drapeau: { label: 'Drapeau', unlock: 'free' },
+    confettis: { label: 'Confettis', unlock: 'shop' },
+    etoiles: { label: 'Étoiles', unlock: 'shop' },
+    menthe: { label: 'Menthe', unlock: 'shop' },
+    feu: { label: 'Feu', unlock: 'shop' },
+    tonnerre: { label: 'Tonnerre', unlock: 'shop' },
+    or: { label: 'Or', unlock: 'chest' },
 };
 
 // Dos "couleurs du jeu"
@@ -72,16 +91,34 @@ export const FELTS = {
 
 export const isUnlocked = (unlock, xp) => (xp || 0) >= (UNLOCK[unlock]?.xp ?? 0);
 
-// Un élément est disponible si le rang est atteint, ou s'il figure dans les récompenses du compte
-// key : 'back:menthe' ou 'felt:hezz2:tadelakt'
-export const itemUnlocked = (item, key, s = state) => (
-    ['challenge', 'season', 'tournament'].includes(item.unlock) ? (s.unlocks || []).includes(key) : isUnlocked(item.unlock, s.xp)
-);
+// Un élément est disponible si le rang est atteint, ou s'il figure dans le compte (défi, saison, tournoi,
+// boutique, coffre). key : 'back:menthe', 'effect:feu' ou 'felt:hezz2:tadelakt'
+export const itemUnlocked = (item, key, s = state) => (s.unlocks || []).includes(key) || isUnlocked(item.unlock, s.xp);
 
-let state = { back: 'classic', felts: {}, xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
+let state = { back: 'classic', felts: {}, effect: 'drapeau', xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
-const save = () => AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, vibration: state.vibration })).catch(() => {});
+// Choix gardés aussi dans le compte (retrouvés après une réinstallation) : voir accountService
+let syncHandler = null;
+export function setSyncHandler(fn) { syncHandler = fn; }
+const equipped = () => ({ back: state.back, effect: state.effect, felts: state.felts });
+const save = (sync = true) => {
+    AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, effect: state.effect, vibration: state.vibration })).catch(() => {});
+    if (sync && syncHandler) syncHandler(equipped());
+};
+export const currentEquipped = equipped;
+
+// Choix enregistrés dans le compte : appliqués à l'appareil (sans renvoyer au serveur)
+export function applyEquipped(e) {
+    if (!e) return;
+    const next = { ...state };
+    if (e.back && BACKS[e.back]) next.back = e.back;
+    if (e.effect && EFFECTS[e.effect]) next.effect = e.effect;
+    if (e.felts) next.felts = { ...next.felts, ...e.felts };
+    state = next;
+    save(false);
+    emit();
+}
 
 export async function loadCosmetics() {
     try {
@@ -126,10 +163,24 @@ export function setFelt(game, id) {
     return true;
 }
 
+export function setEffect(id) {
+    if (!EFFECTS[id] || !itemUnlocked(EFFECTS[id], `effect:${id}`)) return false;
+    state = { ...state, effect: id };
+    save();
+    emit();
+    return true;
+}
+
+// Effet choisi, s'il est toujours débloqué (sinon l'effet offert)
+export function effectFor(s = state) {
+    const id = s.effect;
+    return EFFECTS[id] && itemUnlocked(EFFECTS[id], `effect:${id}`, s) ? id : 'drapeau';
+}
+
 export function setVibration(on) {
     state = { ...state, vibration: !!on };
     setHapticsEnabled(!!on);
-    save();
+    save(false);
     emit();
 }
 

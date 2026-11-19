@@ -316,6 +316,38 @@ Le binga se **gagne en jouant**. Il ne s'achète pas avec de l'argent et ne se c
 - **Pas de vidéo récompensée :** il n'y en a pas dans l'appli pour l'instant (prévue à 50 binga, 3 fois par jour au plus).
 - Les montants sont regroupés dans `BINGA`, dans `server/progress/defs.js`. Ils ont été décidés par Yassir : ne pas les changer sans lui demander.
 
+## Boutique : cosmétiques en binga
+
+La boutique s'ouvre depuis la ligne 💰 de l'accueil, ou depuis la section Binga du Profil.
+
+Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage en partie. La rareté change seulement le prix, et plus tard la fréquence dans les coffres.
+
+| Rareté | Prix |
+|---|---|
+| Commun | 100 binga |
+| Rare | 250 binga |
+| Épique | 500 binga |
+| Légendaire | ne s'achète pas : coffre Or seulement |
+
+| Type | Objets (rareté) |
+|---|---|
+| Dos (11 + Classique offert) | Cuivre martelé, Velours rouge (Commun) · Thé à la menthe, Rose de Kelaa, Zellige, Sahara (Rare) · Océan, Néon (Épique) · Or, Saison (Légendaire) · Champion (Légendaire, réservé au gagnant d'un tournoi : ni boutique, ni coffre) |
+| Effets de victoire et de coup spécial (6 + Drapeau offert) | Confettis, Étoiles (Commun) · Menthe, Feu (Rare) · Tonnerre (Épique) · Or (Légendaire) |
+| Réactions (12, en plus des 4 offertes 😂 😡 😱 👏) | Rire, Bravo, Aïe, Merci, Triste, Surpris (Commun) · Bien joué, Dors, Chat, Feu (Rare) · Menthe (Épique) · Couronne (Légendaire) |
+| Tapis | Tadelakt, Safran, Braise, Lavande (Rare). Les nouveaux tapis seront fournis par Yassir ; le tapis actuel reste celui par défaut. |
+| Portraits | 6 nouveaux portraits à venir, fournis par Yassir. Les 12 actuels restent offerts. |
+
+- **Chaque dos a son propre dessin**, en vectoriel et sans fichier à charger (`src/components/BackArt.js`) : feuilles de menthe, cuivre martelé, étoiles de zellige, dunes et soleil, vagues, néon, velours, arabesques dorées, rayons.
+- **Effets** (`src/components/WinEffects.js`) :
+  - ils se déclenchent à la victoire, et sur ses propres Darba, Hbel, Boug et Missa en Ronda, en version courte ;
+  - chacun a son dessin et son mouvement : canons à confettis, étoiles qui scintillent, feuilles de menthe, braises et flammes, éclairs, pluie de pièces ;
+  - chacun dure 3 secondes au plus, et on peut le voir dans la boutique avant de l'acheter.
+- **Réactions :** en partie, le bouton ✨ à côté des réactions offertes ouvre celles qu'on possède, avec un petit texte (« Hhhhh », « Mzyana ! », « Atay ? »…). Le serveur refuse une réaction de la boutique envoyée par quelqu'un qui ne la possède pas.
+- **L'achat est vérifié par le serveur** (`POST /api/shop/buy`) : existence de l'objet, prix, solde suffisant, objet pas déjà possédé, légendaires refusés. L'objet rejoint la liste `unlocks` du compte, déjà utilisée pour les défis, la saison et les tournois.
+- **Gardé pour toujours avec le compte :** les objets possédés et les choix (dos, effet, tapis) sont enregistrés dans le compte. Après une réinstallation, il suffit de se reconnecter pour tout retrouver.
+- **Les anciens déblocages restent valables :** Zellige au rang fchkel, les dos et tapis des défis du jour, le dos de Saison pour le top 10, Champion pour le gagnant d'un tournoi.
+- Le catalogue (`COSMETICS`, `RARITIES`) est dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
+
 ## Premium, phase 2 : progression et récompenses
 
 - **Compte** : un pseudo de 3 à 16 caractères et un mot de passe d'au moins 6 caractères, sans email.

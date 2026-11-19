@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Image, Pressable } from 'react-native';
 import Svg, { Path, Circle } from 'react-native-svg';
 import { useCosmetics, backPalette } from '../utils/cosmetics';
+import { BackPattern, MedalIcon } from './BackArt';
 
 // Couronne du dos « Champion » (vectorielle : nette à toutes les tailles, aucun fichier à charger)
 function Crown({ size, color, jewel }) {
@@ -83,7 +84,9 @@ export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style, pale
     return (
         <View style={[styles.back, { width, height, borderRadius: radius, backgroundColor: pal.bg, borderColor: pal.border }, style]}>
             <View style={[styles.backFrame, { top: inset, left: inset, right: inset, bottom: inset, borderRadius: radius * 0.6, backgroundColor: pal.frame, borderColor: pal.line }]}>
-                {!tiny && (
+                {/* Dos de la boutique : motif propre (zellige, vagues, dunes, néon…) */}
+                {pal.pattern && !tiny && <BackPattern pal={pal} width={width - inset * 2} height={height - inset * 2} />}
+                {!tiny && !pal.pattern && (
                     <View style={styles.lattice} pointerEvents="none">
                         {Array.from({ length: 12 }).map((_, i) => (
                             <View
@@ -105,6 +108,8 @@ export function CardBack({ width = CARD_WIDTH, height = CARD_HEIGHT, style, pale
                 <View style={[styles.medal, { width: medal, height: medal, borderRadius: medal / 2, backgroundColor: pal.medal, borderColor: pal.medalBorder }]}>
                     {pal.crown && !tiny ? (
                         <Crown size={medal * 0.68} color={pal.star} jewel={pal.bg} />
+                    ) : pal.medalIcon && !tiny ? (
+                        <MedalIcon icon={pal.medalIcon} size={medal * 0.82} pal={pal} />
                     ) : (
                         <>
                             <View style={[styles.medalStar, { width: medal * 0.5, height: medal * 0.5, backgroundColor: pal.star }]} />

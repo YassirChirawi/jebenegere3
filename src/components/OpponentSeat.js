@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import ReactionGlyph from './ReactionGlyph';
 import { View, Text, StyleSheet, Image } from 'react-native';
 import Animated, {
     ZoomIn,
@@ -54,7 +55,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
                         exiting={FadeOut}
                         style={[styles.reaction, position === 'top' ? styles.reactionBelow : styles.reactionAbove]}
                     >
-                        <Text style={styles.reactionText}>{reaction}</Text>
+                        <ReactionGlyph type={reaction} size={26} />
                     </Animated.View>
                 ) : null}
             </View>

@@ -6,9 +6,12 @@ import { theme, haptic } from './ui';
 import audioService from '../network/audioService';
 import { GAMES, GAME_ORDER } from '../games';
 import {
-    BACKS, FELTS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
-    setBack, setFelt, setVibration, backPalette,
+    BACKS, FELTS, EFFECTS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
+    setBack, setFelt, setEffect, setVibration, backPalette,
 } from '../utils/cosmetics';
+
+const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
+const lockLabel = (item) => `🔒 ${UNLOCK[item.unlock].label}${item.alsoShop ? ' ou boutique' : ''}`;
 
 /**
  * Personnalisation : dos de cartes, tapis par jeu, vibrations.
@@ -35,10 +38,10 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                         <Text style={styles.title}>🎨 Personnaliser</Text>
                         <Pressable onPress={onClose} hitSlop={10}><Text style={styles.close}>✕</Text></Pressable>
                     </View>
-                    <Text style={styles.xp}>{cos.xp} XP · les rangs, les défis du jour et les saisons débloquent de nouveaux dos et tapis</Text>
+                    <Text style={styles.xp}>{cos.xp} XP · les rangs, les défis du jour, les saisons et la boutique (en binga) débloquent de nouveaux dos, tapis et effets</Text>
 
                     <View style={styles.tabs}>
-                        {[['backs', 'Dos de cartes'], ['felts', 'Tapis'], ['settings', 'Réglages']].map(([k, label]) => (
+                        {[['backs', 'Dos'], ['felts', 'Tapis'], ['effects', 'Effets'], ['settings', 'Réglages']].map(([k, label]) => (
                             <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
                                 <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{label}</Text>
                             </Pressable>
@@ -55,7 +58,7 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                         <Pressable key={id} onPress={() => choose(setBack(id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>
                                             <CardBack width={54} height={78} palette={b.perGame ? backPalette({ ...cos, back: 'game' }, cos.game) : b} />
                                             <Text style={styles.itemLabel}>{b.label}</Text>
-                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : `🔒 ${UNLOCK[b.unlock].label}`}</Text>
+                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : lockLabel(b)}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -82,13 +85,29 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                                 </View>
                                                 <Text style={styles.itemLabel}>{f.label}</Text>
                                                 <Text style={[styles.itemSub, on && { color: theme.mint }]}>
-                                                    {on ? '✓ Choisi' : open ? (i === 0 ? 'Par défaut' : 'Disponible') : `🔒 ${UNLOCK[f.unlock].label}`}
+                                                    {on ? '✓ Choisi' : open ? (i === 0 ? 'Par défaut' : 'Disponible') : lockLabel(f)}
                                                 </Text>
                                             </Pressable>
                                         );
                                     })}
                                 </View>
                             </>
+                        )}
+
+                        {tab === 'effects' && (
+                            <View style={styles.grid}>
+                                {Object.entries(EFFECTS).map(([id, e]) => {
+                                    const open = itemUnlocked(e, `effect:${id}`, cos);
+                                    const on = (cos.effect || 'drapeau') === id;
+                                    return (
+                                        <Pressable key={id} onPress={() => choose(setEffect(id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>
+                                            <Text style={{ fontSize: 34 }}>{EFFECT_ICONS[id]}</Text>
+                                            <Text style={styles.itemLabel}>{e.label}</Text>
+                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : lockLabel(e)}</Text>
+                                        </Pressable>
+                                    );
+                                })}
+                            </View>
                         )}
 
                         {tab === 'settings' && (

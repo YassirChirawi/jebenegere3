@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, useWindowDimensions } from 'react-native';
 import Animated, { FadeIn, ZoomIn, FadeInUp } from 'react-native-reanimated';
-import { Confetti } from './GameFx';
+import { WinEffect } from './WinEffects';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
@@ -57,7 +57,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
 
     return (
         <Animated.View entering={FadeIn.duration(300)} style={styles.overlay}>
-            {(iWonGame || (!gameOver && iWonManche)) && <Confetti count={gameOver ? 70 : 30} />}
+            {(iWonGame || (!gameOver && iWonManche)) && <WinEffect small={!gameOver} count={gameOver ? 70 : 30} />}
             <Animated.View entering={ZoomIn.springify().damping(13).delay(150)} style={[styles.panel, gameOver && !iWonGame && !spectator && styles.panelLost, compact && styles.panelCompact]}>
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                     {!compact && <Text style={styles.emoji}>{emoji}</Text>}
