@@ -377,6 +377,24 @@ Les **parties classiques restent gratuites**. La mise est une option des salons 
   - le gagnant qui a payé reçoit, en plus de Champion, le dos exclusif **Sultan** (vert et or, ni en boutique ni en coffre), le titre **« Sultan dyal l'binga »** (nom proposé, à valider) et le double d'XP. Jamais d'argent.
 - Les montants (`stakes`, `tournamentEntry`) sont regroupés dans `BINGA`, dans `server/progress/defs.js`.
 
+## Effets spéciaux des jeux
+
+Une icône lumineuse (planche de Yassir, `python scripts/build-fx-icons.py <planche.png>`, `assets/fx/`) apparaît 1,8 s au centre de la table sur les coups marquants. C'est **visuel seulement** : les règles des 4 jeux ne changent pas.
+
+| Jeu | Coup (règle actuelle) | Effet |
+|---|---|---|
+| Hezz2 | 1 : le suivant passe son tour, sauf s'il contre avec un 1 | Restriction (cadenas) |
+| Hezz2 | 2 : le suivant pioche +2 (cumulable), sauf s'il contre avec un 2 | Attaque +2 |
+| Hezz2 | 7 : nouvelle famille demandée | Choix ultime |
+| Ronda | Ronda annoncée et gagnée (2 cartes semblables) | Effet Ronda |
+| Ronda | Tringa annoncée et gagnée (3 cartes semblables) | Effet Tringa |
+| Ronda | Dernière carte du donneur, prise avec le 12 (Rey, +5) | Effet Royal |
+| Ronda | Dernière carte du donneur sans rien prendre (+5 pour l'adversaire) | Effet Flop |
+| Sota Ghamla | Tu pioches la Sota (le 10) : toi seul la vois | 10 secret (vu seulement par toi) |
+| Kdoub | Menteur démasqué (il ramasse le tas) | Pinocchio |
+
+La fiche « Effets spéciaux » de Yassir décrit parfois d'autres règles : le 7 qui « attaque, change le sens ou fait piocher », le 12 qui « gagne la manche directement », la Ronda qui « relance le tour ». Elles n'ont **pas** été appliquées : les règles restent celles du jeu, à changer seulement sur décision explicite de Yassir.
+
 ## Roue du jour et décor du binga
 
 - **Roue du jour** (accueil, ou Boutique → Coffres) :

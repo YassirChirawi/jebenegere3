@@ -22,6 +22,7 @@ import { haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import TableBackground from '../components/TableBackground';
 import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
+import { useSpecialFx, SpecialFxOverlay } from '../components/SpecialFx';
 import socketService from '../network/socketService';
 import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
@@ -83,6 +84,8 @@ export default function GameScreen({ route, navigation }) {
     const [showEnd, setShowEnd] = useState(false);
     const [banner, setBanner] = useState(null);
     const [toast, setToast] = useState(null);
+    // Effets spéciaux (icône au centre de la table, visuel seulement)
+    const [specialFx, showFx] = useSpecialFx();
     const [moods, setMoods] = useState({});
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [lastFrom, setLastFrom] = useState('none');
@@ -235,17 +238,20 @@ export default function GameScreen({ route, navigation }) {
             audioService.playSound('card_play');
             const who = nameOf(by);
             if (newTop.value === 2) {
+                showFx('plus2', `Le joueur suivant pioche +${gameState.drawPenalty || 2}, sauf s'il contre avec un 2`);
                 later(() => audioService.playSound('plus_two'), 120);
                 shake(10);
                 haptic('heavy');
                 if (by !== me) showToast(`${who} joue un 2 ! +${gameState.drawPenalty || 2} 🔥`, '#F87171');
             } else if (newTop.value === 1) {
+                showFx('restriction', "Le joueur suivant passe son tour, sauf s'il contre avec un 1");
                 later(() => audioService.playSound('skip'), 120);
                 shake(8);
                 if (by !== me) showToast(`${who} joue un 1 ! ⛔`, '#60A5FA');
             } else if (newTop.value === 7) {
                 later(() => audioService.playSound('change_suit'), 120);
                 const info = SUIT_INFO[gameState.activeSuitOverride];
+                showFx('choix', info ? `Famille demandée : ${info.emoji} ${info.label}` : 'Nouvelle famille demandée');
                 if (by !== me && info) showToast(`${who} demande ${info.emoji} ${info.label}`, info.color);
             }
         }
@@ -524,6 +530,7 @@ export default function GameScreen({ route, navigation }) {
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
+                <SpecialFxOverlay fx={specialFx} />
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 {/* Joueur local */}

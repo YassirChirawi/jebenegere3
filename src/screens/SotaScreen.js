@@ -27,6 +27,7 @@ import { CardFace, CardBack } from '../components/Card';
 import { ActionToast, TurnBanner } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
 import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
+import { useSpecialFx, SpecialFxOverlay } from '../components/SpecialFx';
 import { PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -111,6 +112,8 @@ export default function SotaScreen({ route, navigation }) {
     const [state, setState] = useState(initialGameState);
     const [timeLeft, setTimeLeft] = useState(30);
     const [toast, setToast] = useState(null);
+    // Effets spéciaux (icône au centre de la table, visuel seulement)
+    const [specialFx, showFx] = useSpecialFx();
     const [moods, setMoods] = useState({});
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [banner, setBanner] = useState(null);
@@ -216,6 +219,7 @@ export default function SotaScreen({ route, navigation }) {
                 setPickFly({ id: e.id, count: 1, to: seats[e.by] || 'bottom', cards: e.card && (e.by === me) ? [e.card] : undefined, scale: land ? 0.5 : 0.85 });
                 if (e.by === me && e.card) {
                     haptic('light');
+                    if (e.card.value === 10) showFx('dix', 'Tu as pioché la Sota : toi seul la vois');
                     setLastDrawn({ id: e.id, card: e.card });
                     later(() => setLastDrawn((d) => (d && d.id === e.id ? null : d)), 2200);
                 } else if (e.from === me && e.card) {
@@ -414,6 +418,7 @@ export default function SotaScreen({ route, navigation }) {
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
+                <SpecialFxOverlay fx={specialFx} />
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>

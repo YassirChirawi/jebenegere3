@@ -28,6 +28,7 @@ import { CardFace, CardBack } from '../components/Card';
 import { ActionToast } from '../components/GameFx';
 import { seatMap, TopRow } from '../components/SeatRing';
 import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
+import { useSpecialFx, SpecialFxOverlay } from '../components/SpecialFx';
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -163,6 +164,8 @@ export default function KdoubScreen({ route, navigation }) {
     const [timeLeft, setTimeLeft] = useState(40);
     const [selected, setSelected] = useState([]);
     const [toast, setToast] = useState(null);
+    // Effets spéciaux (icône au centre de la table, visuel seulement)
+    const [specialFx, showFx] = useSpecialFx();
     const [moods, setMoods] = useState({});
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
@@ -284,6 +287,7 @@ export default function KdoubScreen({ route, navigation }) {
                     shake(e.truthful ? 6 : 14);
                     haptic(e.truthful ? 'success' : 'error');
                     audioService.playSound(e.truthful ? 'vrai' : 'menteur');
+                    if (!e.truthful) showFx('pinocchio', e.target === me ? 'Tu as menti : tu ramasses le tas' : `${nameOf(e.target)} a menti : il ramasse le tas`);
                     setBurst({ id: e.id, color: e.truthful ? '#6EE7B7' : '#FCA5A5' });
                     react(e.loser, 'lose');
                     audioService.playSound(e.truthful ? 'coin' : 'penalty');
@@ -521,6 +525,7 @@ export default function KdoubScreen({ route, navigation }) {
                     <View style={styles.sideArea}>{renderSeat('right')}</View>
                 </View>
 
+                <SpecialFxOverlay fx={specialFx} />
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>

@@ -26,6 +26,7 @@ import TableBackground from '../components/TableBackground';
 import { CardFace, CardBack } from '../components/Card';
 import { TurnBanner, ActionToast } from '../components/GameFx';
 import { requestReplay, useRoomChat, TopBar, ChatBubbles, ReactionBar, ChatSheet, ReactionBubble, changeGameHandler } from '../components/GameChrome';
+import { useSpecialFx, SpecialFxOverlay } from '../components/SpecialFx';
 import { GameButton, PressableScale, haptic, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
@@ -244,6 +245,8 @@ export default function RondaScreen({ route, navigation }) {
     const [selectedId, setSelectedId] = useState(null);
     const [banner, setBanner] = useState(null);
     const [toast, setToast] = useState(null);
+    // Effets spéciaux (icône au centre de la table, visuel seulement)
+    const [eventFx, showFx] = useSpecialFx();
     const [moods, setMoods] = useState({});
     const react = (i, type) => { if (i !== null && i !== undefined && i >= 0) setMoods((m) => ({ ...m, [i]: { id: Date.now() + Math.random(), type } })); };
     const [fly, setFly] = useState(null);
@@ -473,7 +476,7 @@ export default function RondaScreen({ route, navigation }) {
                     text: e.combo === 'tringa' ? 'TRINGA !' : 'RONDA !',
                     sub: `${who} · ${e.combo} de ${valueName(e.value)} · +${e.points} ${teamWord(e.team)}`,
                     color: e.combo === 'tringa' ? '#9333EA' : theme.gold, textColor: e.combo === 'tringa' ? '#fff' : theme.bg,
-                    onShow: () => { audioService.playSound('announce'); haptic('medium'); },
+                    onShow: () => { audioService.playSound('announce'); haptic('medium'); showFx(e.combo === 'tringa' ? 'tringa' : 'ronda'); },
                 });
                 break;
             case 'ronda_tie':
@@ -512,14 +515,14 @@ export default function RondaScreen({ route, navigation }) {
                 });
                 break;
             case 'rey':
-                pushBanner({ text: '9A3A REY !', sub: `${who} mange avec un Roi · +5 ${teamWord(e.team)}`, color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); goldBurst('#F5D77A', 240); } });
+                pushBanner({ text: '9A3A REY !', sub: `${who} mange avec un Roi · +5 ${teamWord(e.team)}`, color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); goldBurst('#F5D77A', 240); showFx('royal', 'Dernière carte avec le 12'); } });
                 break;
             case 'as':
                 pushBanner({
                     text: '9A3A AS !',
                     sub: `${e.missed ? `${who} n'a rien mangé` : `${who} a mangé avec un As`} · +5 ${teamWord(e.team)}`,
                     color: '#475569', textColor: '#fff',
-                    onShow: () => { audioService.playSound('penalty'); haptic('heavy'); },
+                    onShow: () => { audioService.playSound('penalty'); haptic('heavy'); if (e.missed) showFx('flop', 'Dernière carte sans rien prendre'); },
                 });
                 break;
             case 'table_rest':
@@ -829,6 +832,7 @@ export default function RondaScreen({ route, navigation }) {
                 </View>
 
                 {specialFx && <WinEffect key={specialFx} small />}
+                <SpecialFxOverlay fx={eventFx} />
                 <ChatBubbles messages={chatMessages} top={land ? 56 : 130} />
 
                 {!land && showRotate && (
