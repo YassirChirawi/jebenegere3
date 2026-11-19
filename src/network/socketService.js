@@ -1,8 +1,12 @@
 import { io } from 'socket.io-client';
+import { inDiscord, DISCORD_SERVER_PREFIX } from '../utils/discord';
 
 // Replace with the computer's actual local IPv4 address so your phone can reach it on the Wi-Fi
 // Serveur de prod sur render.com ; surcharge possible avec EXPO_PUBLIC_SOCKET_URL (ex : http://192.168.1.10:3000)
-export const SOCKET_URL = process.env.EXPO_PUBLIC_SOCKET_URL || 'https://jebenegere3.onrender.com/';
+// Dans Discord : le serveur passe par l'adresse « /server » de l'Activity (URL mapping), seule autorisée
+export const SOCKET_URL = inDiscord
+    ? `${window.location.origin}${DISCORD_SERVER_PREFIX}/`
+    : process.env.EXPO_PUBLIC_SOCKET_URL || 'https://jebenegere3.onrender.com/';
 
 class SocketService {
     socket;
@@ -13,7 +17,9 @@ class SocketService {
             if (!this.socket.connected) this.socket.connect();
             return;
         }
-        this.socket = io(SOCKET_URL);
+        this.socket = inDiscord
+            ? io(window.location.origin, { path: `${DISCORD_SERVER_PREFIX}/socket.io` })
+            : io(SOCKET_URL);
         this.serverInfo = null;
         // Le serveur annonce sa version à chaque connexion (absent = serveur pas à jour)
         this.socket.on('server_info', (info) => {
@@ -138,6 +144,11 @@ class SocketService {
 
     createBotRoom(playerName, botCount, gameType, callback, options = {}) {
         this._afterAuth(() => this._emitAck('create_bot_room', { playerName, botCount, gameType, ...options }, callback, 10000, 'Le serveur ne répond pas.'));
+    }
+
+    // Discord Activities : salon commun à tous les joueurs de la même partie Discord
+    discordRoom(instanceId, playerName, gameType, callback) {
+        this._afterAuth(() => this._emitAck('discord_room', { instanceId, playerName, gameType }, callback, 10000, 'Le serveur ne répond pas.'));
     }
 
     joinRoom(roomId, playerName, callback) {

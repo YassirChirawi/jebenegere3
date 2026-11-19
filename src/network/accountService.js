@@ -9,6 +9,7 @@ import socketService, { SOCKET_URL } from './socketService';
 import { Platform } from 'react-native';
 import { setUnlocks, loadCosmetics, applyEquipped, currentEquipped, setSyncHandler } from '../utils/cosmetics';
 import { clearBlocked } from '../utils/chatModeration';
+import { inDiscord, discordAuthCode } from '../utils/discord';
 
 const OUTDATED = "Le serveur du jeu n'est pas encore à jour : la suppression du compte n'est pas disponible pour l'instant. Ton compte n'a pas été supprimé, réessaie plus tard.";
 
@@ -98,6 +99,8 @@ const accountService = {
             const guest = parseInt((await AsyncStorage.getItem('guestAvatar')) || '0', 10);
             socketService.guestAvatar = Number.isInteger(guest) && guest >= 0 && guest <= 12 ? guest : 0;
             set({ guestAvatar: socketService.guestAvatar });
+            // Dans Discord : connexion par le compte Discord (silencieuse après le premier accord)
+            if (inDiscord && !(await accountService.discordSignIn()).error) return;
             const token = await AsyncStorage.getItem('authToken');
             if (!token) { set({ loading: false }); authSocket(); return; }
             const cached = JSON.parse((await AsyncStorage.getItem('authProfile')) || 'null');
@@ -143,6 +146,17 @@ const accountService = {
     onLoginReward(fn) {
         loginRewardListeners.add(fn);
         return () => loginRewardListeners.delete(fn);
+    },
+
+    /** Discord Activities : code Discord → compte L'Carta lié (créé au premier passage). */
+    async discordSignIn() {
+        set({ loading: true });
+        const code = await discordAuthCode();
+        if (!code) { set({ loading: false }); return { error: 'Connexion Discord refusée.' }; }
+        const r = await request('/api/discord/token', { method: 'POST', body: { code }, token: null });
+        if (r.error || !r.token) { set({ loading: false, error: r.error || null }); return { error: r.error || 'Connexion Discord impossible.' }; }
+        await accountService._signedIn(r);
+        return r;
     },
 
     async register(name, password, importXp) {

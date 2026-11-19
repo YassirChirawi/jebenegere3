@@ -25,6 +25,10 @@ import PlayerAvatar from '../components/PlayerAvatar';
 import { BingaIcon, Chip } from '../components/Decor';
 import DailyPopups from '../components/DailyPopups';
 import Onboarding from '../components/Onboarding';
+import { inDiscord, discordInstanceId } from '../utils/discord';
+
+// Discord Activities : on entre une seule fois tout seul dans le salon de la partie Discord
+let discordAutoJoined = false;
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
@@ -130,7 +134,7 @@ export default function HomeScreen({ navigation }) {
                 // Premier lancement : présentation guidée (elle remplace l'ouverture automatique des règles)
                 // (un joueur qui avait déjà vu les règles n'est pas un nouveau joueur : pas de présentation)
                 const onboarded = (await AsyncStorage.getItem('onboarded')) || (await AsyncStorage.getItem('rulesSeen'));
-                if (!onboarded) setShowOnboarding(true);
+                if (!onboarded && !inDiscord) setShowOnboarding(true); // dans Discord : direct au salon
             } catch (e) { /* ignore */ }
             setNameReady(true);
             // Ouvert depuis un lien d'invitation (…/salon/CODE)
@@ -255,6 +259,33 @@ export default function HomeScreen({ navigation }) {
             }
         });
     };
+
+    // Discord Activities : salon commun à tous les joueurs de la partie Discord (le premier en est l'hôte)
+    const joinDiscordRoom = async () => {
+        const instanceId = await discordInstanceId();
+        const playerName = (profile?.name || name).trim();
+        if (!instanceId || !playerName) return;
+        setJoining(true);
+        socketService.discordRoom(instanceId, playerName, game, (response) => {
+            setJoining(false);
+            if (response?.success) {
+                setShowRules(false);
+                if (response.gameState) {
+                    navigation.navigate('Game', { roomId: response.roomId, playerName, initialGameState: response.gameState, isHost: false });
+                } else {
+                    navigation.navigate('Lobby', { roomId: response.roomId, playerName, isHost: !!response.isHost, initialRoom: response.roomData });
+                }
+            } else {
+                audioService.playSound('error');
+                dialog.alert('Salon Discord', response?.message || 'Impossible de rejoindre le salon de la partie.');
+            }
+        });
+    };
+    useEffect(() => {
+        if (!inDiscord || discordAutoJoined || !isConnected || !profile?.name) return;
+        discordAutoJoined = true;
+        joinDiscordRoom();
+    }, [isConnected, profile?.name]);
 
     // Arrivée par un lien : on rejoint dès que le serveur est joignable (pseudo demandé s'il manque)
     useEffect(() => {
@@ -553,7 +584,11 @@ export default function HomeScreen({ navigation }) {
                                     <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
                                     {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
 
-                                    <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                    {inDiscord ? (
+                                        <GameButton title={isConnected ? 'SALON DE LA PARTIE DISCORD' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🎧' : undefined} variant="blue" onPress={joinDiscordRoom} disabled={!isConnected || !profile?.name} style={{ marginTop: 12 }} />
+                                    ) : (
+                                        <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                    )}
 
                                     <GameButton title="TOURNOIS" icon="🏆" variant="red" onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 12 }} />
                                     {lastChampion && (

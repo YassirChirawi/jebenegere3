@@ -156,6 +156,23 @@ Lecture pour Render :
 - **Visiteurs européens :** pour ceux de l'EEE, du Royaume-Uni et de la Suisse, Google exige un message de consentement. Il s'active dans AdSense → Confidentialité et messages, sans code à ajouter.
 - **Aucun effet sur le jeu :** la publicité ne donne ni binga ni avantage. Le pseudo, le compte et la progression ne sont pas transmis à Google.
 
+## Jouer dans Discord (Activity)
+
+L'Carta se lance dans un salon vocal Discord : les amis du vocal jouent ensemble sans quitter Discord.
+
+- **Application Discord :** Client ID `1572975413687226451` (public). Le **Client Secret** n'est jamais dans le dépôt : il va dans la variable `DISCORD_CLIENT_SECRET` du serveur sur Render.
+- **URL Mappings** (Developer Portal → Activities → URL Mappings) :
+  - `/server` → `jebenegere3.onrender.com` (à mettre **avant** `/`) ;
+  - `/` → `www.jebengere3.fun`.
+- **OAuth2 → Redirects :** `https://127.0.0.1` (adresse factice demandée par Discord, le SDK s'occupe du reste).
+- **Seulement dans Discord** ([src/utils/discord.js](src/utils/discord.js)) : la page est servie par `1572975413687226451.discordsays.com`. Le SDK Discord (`@discord/embedded-app-sdk`, ~200 Ko) est dans un fichier à part, chargé seulement là ; le site et les applis ne le téléchargent jamais.
+- **Connexion :** le joueur accepte une fois l'autorisation « identify » (identifiant + pseudo Discord). Le serveur échange le code contre un jeton auprès de Discord (`POST /api/discord/token`, [server/discord.js](server/discord.js)) et ouvre le compte L'Carta lié (`discord-<id>`, créé au premier passage avec le pseudo Discord nettoyé, sans mot de passe). Progression, binga et boutique marchent comme avec un compte normal.
+- **Salon commun :** tous les joueurs de la même partie Discord arrivent dans le même salon privé (événement `discord_room`). Le premier arrivé en est l'hôte, il choisit le jeu et ajoute des bots. Le bouton « Inviter sur Discord » ouvre la fenêtre d'invitation de Discord. Depuis l'accueil, « Salon de la partie Discord » y ramène.
+- **Réseau :** dans Discord, la page ne peut joindre que les adresses déclarées. L'appli passe par `/server` (API et Socket.io, chemin `/server/socket.io`). Le serveur enlève ce préfixe s'il arrive jusqu'à lui (`/server` ou `/.proxy/server`) et autorise l'origine `https://1572975413687226451.discordsays.com`.
+- **Site :** `vercel.json` autorise l'affichage dans Discord (`frame-ancestors` : discord.com et discordsays.com), et seulement là. Pas de service worker ni de publicité dans Discord (le bac à sable de Discord bloque AdSense).
+- **Pas d'achats Discord** pour l'instant : les binga ne s'achètent pas en argent.
+- **Tester :** activer le mode développeur dans Discord, puis lancer L'Carta depuis le lanceur d'Activities d'un salon vocal.
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
@@ -165,7 +182,7 @@ Le site est une **appli installable** : icône sur l'écran d'accueil, plein éc
   - `index.html` (modèle de la page), `manifest.webmanifest`, `icons/` ;
   - `sw.js` : service worker. Les pages passent toujours par le réseau (dernière version), le code et les images sont gardés en cache. Le serveur de jeu n'est jamais mis en cache. Pour forcer le vidage du cache chez tous les joueurs : changer `VERSION` dans `sw.js`.
 - **Plein écran sur téléphone** ([src/utils/fullscreen.js](src/utils/fullscreen.js)) : au lancement d'une partie (ou au premier toucher en jeu), la barre du navigateur disparaît. **La Ronda passe en paysage** : les 4 joueurs autour de la table en velours rouge et zellige (voir « Tables de jeu »). La zone de jeu prend toute la place libre entre les joueurs et les cartes posées prennent la plus grande taille qui tient (une ou deux rangées) ; les boutons « RONDA ! » et « Il est rondé ? » sont à gauche, au-dessus de « Toi », pour ne pas cacher la table. Le score, les cartes ramassées et la distribution tiennent dans une petite barre en haut à droite ; le tour (avec le chrono) et les réactions sont en bas à droite. La table garde ainsi toute la largeur. Sur Android, c'est automatique. Sur iPhone, Safari ne le permet pas : le plein écran passe par l'appli installée, et la Ronda propose de tourner le téléphone.
-- [vercel.json](vercel.json) : en-têtes de sécurité du site (HTTPS forcé, CSP, anti-iframe…). **Si le jeu charge un jour une ressource d'un autre domaine** (nouveau serveur, images externes), il faut l'ajouter dans la `Content-Security-Policy`, sinon le navigateur la bloque.
+- [vercel.json](vercel.json) : en-têtes de sécurité du site (HTTPS forcé, CSP, affichage en cadre autorisé seulement pour Discord…). **Si le jeu charge un jour une ressource d'un autre domaine** (nouveau serveur, images externes), il faut l'ajouter dans la `Content-Security-Policy`, sinon le navigateur la bloque.
 
 ## Applis mobiles : build iOS et Android (EAS)
 

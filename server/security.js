@@ -2,11 +2,16 @@
  * Sécurité du serveur : origines autorisées, en-têtes HTTP, limite de messages par connexion.
  *
  * Origines autorisées :
- * - jebengere3.fun (et www), les déploiements Vercel, localhost (développement) ;
+ * - jebengere3.fun (et www), l'Activity Discord, les déploiements Vercel, localhost (développement) ;
  * - pas d'origine du tout : appli installée sur téléphone, outils, tests ;
  * - ALLOWED_ORIGINS (variable d'environnement, séparées par des virgules) pour en ajouter.
  */
-const DEFAULT_ORIGINS = ['https://jebengere3.fun', 'https://www.jebengere3.fun'];
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID || '1572975413687226451';
+const DEFAULT_ORIGINS = [
+    'https://jebengere3.fun',
+    'https://www.jebengere3.fun',
+    `https://${DISCORD_CLIENT_ID}.discordsays.com`, // le jeu lancé dans Discord (Activity)
+];
 const PATTERNS = [
     /^https:\/\/[a-z0-9-]+\.vercel\.app$/i,
     /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i,

@@ -23,6 +23,13 @@ const scrypt = (password, salt) => new Promise((resolve, reject) => {
     crypto.scrypt(password, salt, 64, (err, key) => (err ? reject(err) : resolve(key.toString('hex'))));
 });
 
+// Pseudo Discord → pseudo L'Carta valide (3 à 16 caractères autorisés), ou null
+function discordName(raw) {
+    let n = String(raw || '').normalize('NFC').replace(/[^\p{L}\p{N} _.'-]/gu, '').trim().replace(/\s+/g, ' ').slice(0, 16).trim();
+    if (/^bot\b/i.test(n)) n = `J ${n}`.slice(0, 16);
+    return NAME_RE.test(n) ? n : null;
+}
+
 function blankUser(name) {
     return {
         id: crypto.randomUUID(),
@@ -226,7 +233,8 @@ function createProgress(store) {
         const key = `${String(name || '').toLowerCase()}|${ip}`;
         if (tooMany(key)) return { error: 'Trop d\'essais. Réessaie dans quelques minutes.' };
         const user = await store.getByName(name);
-        const hash = user ? await scrypt(String(password || ''), user.salt) : null;
+        // Compte créé par Discord : pas de mot de passe, pas de connexion par pseudo
+        const hash = user?.salt && user?.hash ? await scrypt(String(password || ''), user.salt) : null;
         const ok = user && hash && crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(user.hash, 'hex'));
         if (!ok) {
             fail(key);
@@ -235,6 +243,31 @@ function createProgress(store) {
         fails.delete(key);
         const token = await withUser(user.id, (u) => newSession(u));
         return { token, profile: await profileOf(await store.get(user.id)) };
+    }
+
+    // Discord Activities : compte lié à l'identité Discord (id vérifié par le serveur auprès de Discord).
+    // Premier passage : compte créé avec le pseudo Discord (nettoyé, rendu unique), sans mot de passe.
+    async function discordLogin(discord) {
+        const did = String(discord?.id || '');
+        if (!/^\d{5,25}$/.test(did)) return { error: 'Profil Discord invalide.' };
+        const id = `discord-${did}`;
+        let user = await store.get(id);
+        if (!user) {
+            const base = discordName(discord.global_name) || discordName(discord.username) || 'Joueur';
+            let name = base;
+            for (let i = 0; i < 12 && await store.getByName(name); i += 1) {
+                name = `${base.slice(0, 11)} ${crypto.randomInt(1000, 10000)}`;
+            }
+            if (await store.getByName(name)) return { error: 'Impossible de créer le compte, réessaie.' };
+            user = blankUser(name);
+            user.id = id;
+            user.discordId = did;
+            const token = await newSession(user);
+            await store.save(user);
+            return { token, profile: await profileOf(user), created: true };
+        }
+        const token = await withUser(id, (u) => newSession(u));
+        return { token, profile: await profileOf(await store.get(id)) };
     }
 
     async function userFromToken(token) {
@@ -657,7 +690,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, discordLogin, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

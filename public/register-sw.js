@@ -1,5 +1,6 @@
 // Enregistre le service worker : appli installable et démarrage rapide (fichiers en cache)
-if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+// (pas dans Discord : le jeu y est servi par discordsays.com, sans mise en cache hors ligne)
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !/\.discordsays\.com$/i.test(location.hostname)) {
   window.addEventListener('load', function () {
     navigator.serviceWorker.register('/sw.js').catch(function () { /* pas bloquant */ });
     // Première visite : le code a été chargé avant que le service worker soit actif ;

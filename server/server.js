@@ -11,6 +11,7 @@ const { createTournaments } = require('./tournaments');
 const { createStakes } = require('./stakes');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
 const moderation = require('./moderation');
+const discord = require('./discord');
 
 // Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
 const SERVER_VERSION = 3;
@@ -46,6 +47,21 @@ app.post('/api/register', api(async (req, res) => {
 app.post('/api/login', api(async (req, res) => {
     const r = await progress.login({ ...(req.body || {}), ip: req.ip });
     res.status(r.error ? 401 : 200).json(r);
+}));
+// Discord Activities : code donné par le SDK Discord → compte L'Carta lié au compte Discord.
+// Renvoie aussi le jeton Discord (l'appli s'en sert pour s'authentifier auprès du SDK).
+const discordTries = new Map(); // ip -> { n, at } : au plus 30 essais par 10 minutes
+app.post('/api/discord/token', api(async (req, res) => {
+    const now = Date.now();
+    const t = discordTries.get(req.ip);
+    if (!t || now - t.at > 10 * 60 * 1000) discordTries.set(req.ip, { n: 1, at: now });
+    else if (++t.n > 30) return res.status(429).json({ error: 'Trop d\'essais. Réessaie dans quelques minutes.' });
+    if (discordTries.size > 5000) discordTries.clear();
+    const d = await discord.exchangeCode(req.body?.code);
+    if (d.error) return res.status(d.status || 400).json({ error: d.error });
+    const r = await progress.discordLogin(d.user);
+    if (r.error) return res.status(400).json(r);
+    res.json({ access_token: d.accessToken, token: r.token, profile: r.profile });
 }));
 app.post('/api/logout', api(async (req, res) => {
     await progress.logout(bearer(req));
@@ -134,6 +150,17 @@ const io = new Server(server, {
 // (le chrono continue de jouer pour lui) ; un départ volontaire est immédiat
 const RECONNECT_GRACE_MS = process.env.RECONNECT_GRACE_MS !== undefined ? Number(process.env.RECONNECT_GRACE_MS) : 45000;
 const limitSocket = socketRateLimit();
+const discordRooms = new Map(); // instance Discord -> code du salon
+const discordLocks = new Map(); // instance Discord -> création/arrivée en cours (pas deux salons)
+// Discord Activities : le serveur est joint par l'adresse « /server » de l'Activity. Si le proxy de
+// Discord transmet ce préfixe (ou « /.proxy/server »), on l'enlève avant Socket.io et les routes.
+const stripDiscordPrefix = (req) => {
+    if (!/^(\/\.proxy)?\/server(?=[/?]|$)/.test(req.url)) return;
+    req.url = req.url.replace(/^(\/\.proxy)?\/server/, '');
+    if (!req.url.startsWith('/')) req.url = `/${req.url}`;
+};
+server.prependListener('request', stripDiscordPrefix);
+server.prependListener('upgrade', stripDiscordPrefix);
 
 /**
  * Room : {
@@ -158,7 +185,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -725,9 +752,9 @@ io.on('connection', (socket) => {
     });
 
     // --- SALON PRIVÉ ---
-    socket.on('create_room', async (data, callback) => {
+    async function createPrivateRoom(data) {
         const { playerName = 'Hôte', gameType } = data || {};
-        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
+        if (await nameReserved(socket, playerName)) return { success: false, message: RESERVED_NAME_MSG };
         const roomId = generateRoomCode();
         rooms[roomId] = {
             id: roomId,
@@ -740,7 +767,11 @@ io.on('connection', (socket) => {
         };
         socket.join(roomId);
         console.log(`${playerName} a créé la room ${roomId} (${rooms[roomId].gameType})`);
-        callback && callback({ success: true, roomId, roomData: publicRoom(rooms[roomId]) });
+        return { success: true, roomId, roomData: publicRoom(rooms[roomId]) };
+    }
+    socket.on('create_room', async (data, callback) => {
+        const r = await createPrivateRoom(data);
+        callback && callback(r);
     });
 
     // --- PARTIE CONTRE LES BOTS ---
@@ -778,15 +809,14 @@ io.on('connection', (socket) => {
         launchGame(roomId);
     });
 
-    socket.on('join_room', async (data, callback) => {
+    async function joinPrivateRoom(data) {
         const { playerName } = data || {};
-        if (await nameReserved(socket, playerName)) return callback && callback({ success: false, message: RESERVED_NAME_MSG });
+        if (await nameReserved(socket, playerName)) return { success: false, message: RESERVED_NAME_MSG };
         // Code tapé ou collé (minuscules, espaces) : on le normalise
         const roomId = String(data?.roomId || '').trim().toUpperCase();
         const room = rooms[roomId];
         if (!room) {
-            callback && callback({ success: false, message: 'Salon introuvable' });
-            return;
+            return { success: false, message: 'Salon introuvable' };
         }
         const engine = getEngine(room.gameType);
         const newPlayer = playerOf(socket, playerName);
@@ -795,8 +825,7 @@ io.on('connection', (socket) => {
         if (already) {
             // Lien ouvert deux fois : pas de doublon, on renvoie simplement le salon
             const spectator = room.spectators.some((p) => p.id === socket.id);
-            callback && callback({ success: true, roomId, roomData: publicRoom(room), spectator, gameState: spectator && inGame ? stateFor(room, -1) : undefined });
-            return;
+            return { success: true, roomId, roomData: publicRoom(room), spectator, gameState: spectator && inGame ? stateFor(room, -1) : undefined };
         }
 
         const botSeat = !inGame ? room.activePlayers.map((p) => !!p.isBot).lastIndexOf(true) : -1;
@@ -807,22 +836,51 @@ io.on('connection', (socket) => {
         } else if (room.spectators.length < MAX_SPECTATORS) {
             room.spectators.push(newPlayer);
         } else {
-            callback && callback({ success: false, message: 'Le salon est plein (joueurs et spectateurs).' });
-            return;
+            return { success: false, message: 'Le salon est plein (joueurs et spectateurs).' };
         }
         socket.join(roomId);
         console.log(`${newPlayer.name} a rejoint la room ${roomId}`);
         broadcastRoomUpdate(roomId);
         const spectator = room.spectators.some((p) => p.id === socket.id);
         // Spectateur arrivé en pleine partie : il reçoit la partie en cours pour la regarder tout de suite
-        callback && callback({
+        return {
             success: true,
             roomId,
             roomData: publicRoom(room),
             spectator,
             gameState: spectator && inGame ? stateFor(room, -1) : undefined,
+        };
+    }
+    socket.on('join_room', async (data, callback) => {
+        const r = await joinPrivateRoom(data);
+        callback && callback(r);
+    });
+
+    // --- DISCORD ACTIVITIES : un salon commun par partie Discord (même salon vocal = même instance) ---
+    // Le premier arrivé crée le salon (il en est l'hôte), les suivants le rejoignent.
+    socket.on('discord_room', (data, callback) => {
+        const instanceId = String(data?.instanceId || '');
+        if (!/^[\w.:-]{1,128}$/.test(instanceId)) return callback && callback({ success: false, message: 'Partie Discord invalide.' });
+        const prev = discordLocks.get(instanceId) || Promise.resolve();
+        const run = prev.then(async () => {
+            const known = discordRooms.get(instanceId);
+            if (known && rooms[known]) return joinPrivateRoom({ roomId: known, playerName: data?.playerName });
+            const r = await createPrivateRoom({ playerName: data?.playerName, gameType: data?.gameType });
+            if (r.success) {
+                if (discordRooms.size > 5000) for (const [k, v] of discordRooms) if (!rooms[v]) discordRooms.delete(k);
+                discordRooms.set(instanceId, r.roomId);
+                r.isHost = true;
+            }
+            return r;
+        }).catch(() => ({ success: false, message: 'Erreur serveur, réessaie.' }));
+        discordLocks.set(instanceId, run);
+        run.then((r) => {
+            if (discordLocks.get(instanceId) === run) discordLocks.delete(instanceId);
+            callback && callback(r);
         });
     });
+
+
 
     // --- SALON PRIVÉ : bots et places (hôte seulement, avant le lancement) ---
     const lobbyOf = (data) => {

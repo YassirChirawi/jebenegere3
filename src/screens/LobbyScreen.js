@@ -10,6 +10,7 @@ import { dialog } from '../components/Dialog';
 import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
 import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
+import { inDiscord, discordInvite } from '../utils/discord';
 import { useAccount } from '../network/accountService';
 import { BINGA } from '../../server/progress/defs';
 
@@ -180,12 +181,23 @@ ${inviteUrl(roomId)}`);
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
                     <Text style={styles.codeLabel}>INVITE TES AMIS</Text>
-                    <Text style={styles.link} selectable numberOfLines={1}>{inviteUrl(roomId).replace(/^https?:\/\//, '')}</Text>
-                    <View style={styles.inviteBtns}>
-                        <GameButton small title={copied ? 'Lien copié ✓' : 'Copier le lien'} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
-                        <GameButton small title="Partager" icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
-                    </View>
-                    <Text style={styles.codeHint}>Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.</Text>
+                    {inDiscord ? (
+                        <>
+                            <View style={styles.inviteBtns}>
+                                <GameButton small title="Inviter sur Discord" icon="🎧" variant="gold" onPress={discordInvite} style={{ flex: 1 }} />
+                            </View>
+                            <Text style={styles.codeHint}>Tes amis qui lancent L'Carta dans ce salon vocal arrivent directement ici. Les joueurs en plus regardent en spectateurs.</Text>
+                        </>
+                    ) : (
+                        <>
+                            <Text style={styles.link} selectable numberOfLines={1}>{inviteUrl(roomId).replace(/^https?:\/\//, '')}</Text>
+                            <View style={styles.inviteBtns}>
+                                <GameButton small title={copied ? 'Lien copié ✓' : 'Copier le lien'} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
+                                <GameButton small title="Partager" icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
+                            </View>
+                            <Text style={styles.codeHint}>Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.</Text>
+                        </>
+                    )}
                 </Animated.View>
 
                 {lobbyGames && (
