@@ -27,6 +27,33 @@ export default function ProgressToaster() {
         setTimeout(() => { busy.current = false; pump(); }, 3200);
     };
 
+    // Parties à mise et tournois à entrée en binga
+    useEffect(() => {
+        const show = (it) => { queue.current.push(it); pump(); };
+        const offs = [
+            socketService.onStakeUpdate((d) => {
+                if (d.profile) accountService.applyProgress({ profile: d.profile });
+                show(d.paid
+                    ? { icon: '💰', title: `Mise de ${d.amount} binga`, text: 'Retirée de ton solde. Le gagnant prend le pot !', color: theme.goldLight, sound: 'coin' }
+                    : { icon: '🆓', title: 'Partie gratuite pour toi', text: d.reason || 'Tu joues sans miser.', color: theme.mint, sound: 'pop' });
+            }),
+            socketService.onStakeResult((d) => {
+                if (d.profile) accountService.applyProgress({ profile: d.profile });
+                if (d.gain === undefined) return; // spectateur
+                const text = d.refunded ? `Le gagnant n'avait pas misé : ta mise de ${d.amount} binga t'est rendue.`
+                    : d.gain > 0 ? `+${d.gain} binga : tu prends le pot !` : `Pot gagné par ${d.winners.join(' et ')}. Tu gardes tes autres binga.`;
+                setTimeout(() => show({ icon: d.gain > 0 ? '🏆' : '💸', title: d.gain > 0 && !d.refunded ? 'Pot gagné !' : 'Partie à mise', text, color: theme.goldLight, sound: d.gain > 0 ? 'victory' : 'pop' }), 1200); // avant les autres notifications de fin de partie
+            }),
+            socketService.onTournamentEntry((d) => {
+                if (d.profile) accountService.applyProgress({ profile: d.profile });
+                show(d.paid
+                    ? { icon: '🏆', title: `Entrée du tournoi : ${d.amount} binga`, text: 'Gagne-le pour le dos exclusif Sultan !', color: theme.goldLight, sound: 'coin' }
+                    : { icon: '🆓', title: 'Tournoi gratuit pour toi', text: d.reason || "Tu joues sans payer l'entrée.", color: theme.mint, sound: 'pop' });
+            }),
+        ];
+        return () => offs.forEach((off) => off && off());
+    }, []);
+
     // Connexion du jour : tout de suite
     useEffect(() => accountService.onLoginReward((r) => {
         queue.current.push({ icon: '💰', title: 'Connexion du jour', text: `+${r.amount} binga · série jour ${r.streak}/${r.days}`, color: theme.goldLight, sound: 'coin' });

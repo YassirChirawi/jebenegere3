@@ -142,6 +142,7 @@ export default function ShopScreen({ navigation }) {
             return <GameButton small title="Utiliser" variant="outline" onPress={() => use(item)} />;
         }
         if (item.source === 'tournament') return <Text style={styles.status}>🏅 Gagne un tournoi</Text>;
+        if (item.source === 'binga_tournament') return <Text style={styles.status}>🏆 Gagne un tournoi à entrée en binga</Text>;
         const price = priceOf(item);
         if (price === null) return <Text style={[styles.status, { color: RARITIES.legendaire.color }]}>🎁 Coffre Or seulement</Text>;
         return <GameButton small title={busy === item.id ? '…' : `💰 ${price}`} onPress={() => buy(item)} disabled={!!busy} variant={profile && balance >= price ? 'gold' : 'outline'} />;

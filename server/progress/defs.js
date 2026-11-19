@@ -59,6 +59,7 @@ const REWARDS = [
     { id: 'felt:sota:lavande', kind: 'felt', game: 'sota', label: 'Lavande', source: 'challenge' },
     { id: 'back:saison', kind: 'back', label: 'Saison (exclusif top 10)', source: 'season' },
     { id: 'back:tournoi', kind: 'back', label: 'Champion (rouge et or, couronne)', source: 'tournament' },
+    { id: 'back:sultan', kind: 'back', label: 'Sultan (vert et or, exclusif)', source: 'binga_tournament' },
 ];
 
 // ----------------------------------------------------------------------------
@@ -111,6 +112,7 @@ const TITLES = [
     { id: 'moul_missa', label: 'Moul Missa', desc: 'Réussir 25 Missa', counter: 'missa', target: 25 },
     { id: 'oeil_lynx', label: 'Se7ar', desc: 'Démasquer 10 menteurs en Kdoub', counter: 'kdoub_catch', target: 10 },
     { id: 'champion', label: 'Moul chi', desc: 'Gagner un tournoi', counter: 'tournament_win', target: 1 },
+    { id: 'sultan', label: "Sultan dyal l'binga", desc: 'Gagner un tournoi à entrée en binga', counter: 'binga_tournament_win', target: 1, proposed: true },
 ];
 
 // ----------------------------------------------------------------------------
@@ -142,6 +144,8 @@ const BINGA = {
     login: [50, 75, 100, 100, 100, 100, 150],
     rankUp: 100, // à chaque nouveau rang
     playDailyCap: 500, // plafond des binga gagnés en jouant par jour (hors missions et connexion)
+    stakes: [10, 50, 100], // parties à mise (salons privés, en option)
+    tournamentEntry: 50, // tournoi à entrée en binga
     missions: [
         { id: 'play3', label: 'Jouer 3 parties', metric: 'play', target: 3, binga: 30 },
         { id: 'win1', label: 'Gagner 1 partie', metric: 'win', target: 1, binga: 50 },
@@ -188,6 +192,8 @@ const COSMETICS = [
     { id: 'back:saison', kind: 'back', label: 'Saison', rarity: 'legendaire' },
     // Champion : réservé au gagnant d'un tournoi (ni boutique, ni coffre)
     { id: 'back:tournoi', kind: 'back', label: 'Champion', rarity: 'legendaire', source: 'tournament' },
+    // Sultan : réservé au gagnant d'un tournoi à entrée en binga (ni boutique, ni coffre)
+    { id: 'back:sultan', kind: 'back', label: 'Sultan', rarity: 'legendaire', source: 'binga_tournament' },
 
     // Effets de victoire et de coup spécial (l'effet « Drapeau » est offert à tous)
     { id: 'effect:confettis', kind: 'effect', label: 'Confettis', rarity: 'commun' },

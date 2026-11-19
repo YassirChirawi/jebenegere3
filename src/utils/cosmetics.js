@@ -18,6 +18,7 @@ export const UNLOCK = {
     season: { xp: Infinity, label: 'Top 10 saison ou coffre Or' },
     tournament: { xp: Infinity, label: 'Gagner un tournoi 🏅' },
     shop: { xp: Infinity, label: 'Boutique 💰' },
+    bingaTournament: { xp: Infinity, label: 'Tournoi à entrée en binga 🏆' },
     chest: { xp: Infinity, label: 'Coffre Or' },
 };
 
@@ -38,6 +39,8 @@ export const BACKS = {
     ocean: { label: 'Océan', unlock: 'shop', pattern: 'waves', medalIcon: 'wave', bg: '#063B5C', frame: '#0A4F78', border: '#A5F3FC', line: 'rgba(165, 243, 252, 0.75)', lattice: 'rgba(103, 232, 249, 0.55)', medal: '#04263D', medalBorder: '#67E8F9', star: '#E0FBFF' },
     neon: { label: 'Néon', unlock: 'shop', pattern: 'neon', medalIcon: 'ring', bg: '#07030F', frame: '#0D0620', border: '#F0ABFC', line: 'rgba(240, 171, 252, 0.9)', lattice: '#22D3EE', medal: '#12062A', medalBorder: '#F472B6', star: '#22D3EE' },
     or: { label: 'Or', unlock: 'chest', pattern: 'arabesque', medalIcon: 'crown', bg: '#8A6410', frame: '#B8891E', border: '#FFF6C9', line: 'rgba(255, 246, 201, 0.9)', lattice: 'rgba(255, 236, 160, 0.75)', medal: '#5A3E06', medalBorder: '#FFF1A8', star: '#FFE9A0' },
+    // Dos « Sultan » : réservé au gagnant d'un tournoi à entrée en binga
+    sultan: { label: 'Sultan', unlock: 'bingaTournament', pattern: 'zellige', medalIcon: 'crown', bg: '#0B4D2C', frame: '#0E6238', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.85)', lattice: 'rgba(245, 215, 122, 0.3)', medal: '#073B21', medalBorder: '#F5D77A', star: '#F5D77A' },
     // Dos « Champion » : rouge et or, couronne au centre (réservé aux vainqueurs de tournoi)
     tournoi: { label: 'Champion', unlock: 'tournament', pattern: 'sunburst', bg: '#8E0E1C', frame: '#A3132A', border: '#F5D77A', line: 'rgba(245, 215, 122, 0.9)', lattice: 'rgba(245, 215, 122, 0.32)', medal: '#5E0A12', medalBorder: '#FFE08A', star: '#F5D77A', crown: true },
 };

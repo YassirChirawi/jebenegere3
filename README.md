@@ -348,6 +348,30 @@ Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage 
 - **Les anciens déblocages restent valables :** Zellige au rang fchkel, les dos et tapis des défis du jour, le dos de Saison pour le top 10, Champion pour le gagnant d'un tournoi.
 - Le catalogue (`COSMETICS`, `RARITIES`) est dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
 
+## Parties à mise et tournois à entrée en binga
+
+Les **parties classiques restent gratuites**. La mise est une option des salons privés, jamais une obligation, et ne porte jamais sur de l'argent réel.
+
+- **Choix de la mise :** dans le salon, l'hôte choisit Gratuit, 10, 50 ou 100 binga, seulement entre deux parties. En fixant la mise, l'hôte mise lui-même.
+- **Chaque joueur décide :** il touche « Miser … binga » pour miser, et peut revenir en arrière. Les joueurs qui misent ont 💰 à côté de leur nom.
+- **Personne n'est forcé :** sans compte, sans assez de binga, ou sans avoir choisi de miser, on joue gratuitement, sans pénalité ni blocage. Une notification l'indique (« Partie gratuite pour toi »).
+- **Mise retirée au début de la partie**, pas à la fin. Le serveur vérifie le solde à ce moment-là (`server/stakes.js`).
+- **Fin de partie :**
+  - le gagnant prend le pot, c'est-à-dire la mise de chaque joueur qui a misé ;
+  - les perdants gardent leurs autres binga ;
+  - en Ronda à 2 contre 2, le pot est partagé dans l'équipe gagnante ;
+  - en Ronda, la mise couvre toute la partie, jusqu'au score final, et pas chaque manche ;
+  - si le gagnant n'avait pas misé (bot ou joueur gratuit), chacun récupère sa mise.
+- **Abandons et interruptions :**
+  - un abandon laisse sa mise dans le pot ;
+  - si tout le monde quitte le salon, les mises sont perdues, sinon on pourrait partir pour ne pas perdre ;
+  - si le serveur redémarre pendant la partie, les mises sont rendues à la reconnexion (« Mise rendue (partie interrompue) »).
+- **Tournoi à entrée en binga**, option à la création d'un tournoi :
+  - l'entrée est de 50 binga, retirée au début du tournoi, pas à l'inscription ;
+  - sans compte ou sans assez de binga, on joue gratuitement ;
+  - le gagnant qui a payé reçoit, en plus de Champion, le dos exclusif **Sultan** (vert et or, ni en boutique ni en coffre), le titre **« Sultan dyal l'binga »** (nom proposé, à valider) et le double d'XP. Jamais d'argent.
+- Les montants (`stakes`, `tournamentEntry`) sont regroupés dans `BINGA`, dans `server/progress/defs.js`.
+
 ## Coffres
 
 Les coffres s'ouvrent dans la Boutique, onglet Coffres, **seulement avec des binga gagnés en jouant**, jamais avec de l'argent réel. Chaque coffre contient **1 cosmétique**, jamais du binga seul.

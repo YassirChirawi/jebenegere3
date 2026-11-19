@@ -261,6 +261,56 @@ function createProgress(store) {
         });
     }
 
+    // ------------------------------------------------------------------ parties à mise
+    // Le serveur indique quelles parties existent encore (mises en attente d'une partie disparue = rendues)
+    let roomAlive = () => true;
+    function setRoomAlive(fn) { roomAlive = fn; }
+
+    /** Retire la mise au début de la partie (si le solde suffit). La mise reste « en attente » jusqu'au résultat. */
+    async function chargeStake(userId, roomId, amount, now = Date.now()) {
+        return withUser(userId, (u) => {
+            const b = bingaDay(u, now);
+            if (b.balance < amount) return { ok: false, balance: b.balance };
+            b.balance -= amount;
+            b.stakes = { ...(b.stakes || {}), [roomId]: { amount, at: now } };
+            b.log = [{ at: now, amount: -amount, reason: `Mise de partie (salon ${roomId})` }, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
+            return { ok: true, balance: b.balance, profile: profileOf(u, now) };
+        });
+    }
+
+    /** Résultat de la partie : gain (pot ou mise rendue), et la mise n'est plus en attente. */
+    async function settleStake(userId, roomId, gain, reason, now = Date.now()) {
+        return withUser(userId, (u) => {
+            const b = bingaDay(u, now);
+            if (!b.stakes || !b.stakes[roomId]) return { profile: profileOf(u, now) }; // déjà réglée
+            delete b.stakes[roomId];
+            if (gain > 0) credit(u, gain, reason || 'Partie à mise', now);
+            return { profile: profileOf(u, now) };
+        });
+    }
+
+    /** Entrée d'un tournoi en binga : retirée au début du tournoi (si le solde suffit, sinon il joue gratuitement). */
+    async function chargeEntry(userId, amount, reason, now = Date.now()) {
+        return withUser(userId, (u) => {
+            const b = bingaDay(u, now);
+            if (b.balance < amount) return { ok: false, balance: b.balance };
+            b.balance -= amount;
+            b.log = [{ at: now, amount: -amount, reason }, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
+            return { ok: true, balance: b.balance, profile: profileOf(u, now) };
+        });
+    }
+
+    // Mises d'une partie qui n'existe plus (serveur redémarré) : rendues
+    function refundStaleStakes(u, now = Date.now()) {
+        const b = u.binga;
+        if (!b || !b.stakes) return;
+        Object.entries(b.stakes).forEach(([roomId, s]) => {
+            if (roomAlive(roomId)) return;
+            delete b.stakes[roomId];
+            credit(u, s.amount, 'Mise rendue (partie interrompue)', now);
+        });
+    }
+
     // ------------------------------------------------------------------ coffres
     /**
      * Ouverture d'un coffre : le serveur vérifie le solde, retire le prix, tire le lot (crypto) et l'ajoute au compte.
@@ -483,14 +533,17 @@ function createProgress(store) {
     }
 
     // Tournoi gagné : dos « Champion » (exclusif), titre « Moul chi » (compteur tournament_win) et XP
-    async function awardTournament(userId, game, now = Date.now()) {
-        const r = await award(userId, { game, xp: TOURNAMENT_XP, record: false, counters: { tournament_win: 1 } }, now);
+    async function awardTournament(userId, game, now = Date.now(), { bingaEntry = false } = {}) {
+        const counters = bingaEntry ? { tournament_win: 1, binga_tournament_win: 1 } : { tournament_win: 1 };
+        const r = await award(userId, { game, xp: bingaEntry ? TOURNAMENT_XP * 2 : TOURNAMENT_XP, record: false, counters }, now);
         if (!r) return null;
         return withUser(userId, (u) => {
-            const reward = REWARDS.find((x) => x.id === 'back:tournoi');
-            const isNew = !u.unlocks.includes(reward.id);
-            if (isNew) u.unlocks.push(reward.id);
-            return { ...r, reward: isNew ? { id: reward.id, label: reward.label, kind: reward.kind } : null, profile: profileOf(u, now) };
+            // Dos « Champion » ; tournoi à entrée en binga : en plus, le dos exclusif « Sultan »
+            const ids = bingaEntry ? ['back:sultan', 'back:tournoi'] : ['back:tournoi'];
+            const fresh = ids.filter((id) => !u.unlocks.includes(id));
+            fresh.forEach((id) => u.unlocks.push(id));
+            const reward = fresh.length ? REWARDS.find((x) => x.id === fresh[0]) : null;
+            return { ...r, reward: reward ? { id: reward.id, label: reward.label, kind: reward.kind } : null, profile: profileOf(u, now) };
         });
     }
 
@@ -502,6 +555,7 @@ function createProgress(store) {
     // Connexion du jour (une fois par jour, le serveur décide) : { reward | null, profile }
     async function dailyLogin(user, now = Date.now()) {
         return withUser(user.id, (u) => {
+            refundStaleStakes(u, now);
             const reward = claimLogin(u, now);
             return { reward, profile: profileOf(u, now) };
         });
@@ -540,7 +594,7 @@ function createProgress(store) {
 
     async function profile(user, now = Date.now()) {
         const fresh = await settleSeasons(user, now);
-        return withUser(fresh.id, (u) => profileOf(u, now));
+        return withUser(fresh.id, (u) => { refundStaleStakes(u, now); return profileOf(u, now); });
     }
 
     // Suppression définitive du compte (après les écritures en cours de ce joueur)
@@ -560,7 +614,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

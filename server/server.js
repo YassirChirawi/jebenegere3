@@ -8,6 +8,7 @@ const { createStore } = require('./progress/store');
 const { createProgress } = require('./progress/progress');
 const { tallyEvents, gameResults } = require('./progress/results');
 const { createTournaments } = require('./tournaments');
+const { createStakes } = require('./stakes');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
 const moderation = require('./moderation');
 
@@ -129,6 +130,9 @@ const limitSocket = socketRateLimit();
  * }
  */
 const rooms = {};
+// Parties à mise en binga (salons privés, en option) : voir stakes.js
+const stakes = createStakes({ io, rooms, progress });
+progress.setRoomAlive(stakes.roomAlive);
 
 // Files de matchmaking par jeu et par taille : clé "ronda:2", "hezz2:4"...
 const matchmakingQueues = {};
@@ -142,7 +146,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -223,6 +227,7 @@ function publicRoom(room) {
         activePlayers: room.activePlayers,
         spectators: room.spectators,
         inGame: !!(room.gameState && !getEngine(room.gameType).isOver(room.gameState)),
+        ...stakes.publicInfo(room),
         maxPlayers: getEngine(room.gameType).maxPlayers,
         isPrivate: !!room.isPrivate,
     };
@@ -268,6 +273,8 @@ function startGame(roomId, prevState = null) {
         if (me !== -1) room.gameState = engine.rigSpecials(room.gameState, me, room.debugHand);
     }
     room.version = (room.version || 0) + 1;
+    // Partie à mise : les mises sont retirées maintenant, au début de la partie
+    stakes.onStart(room, prevState);
     // Pas de compte à rebours entre deux manches d'une même Ronda
     const continuing = room.gameType === 'ronda' && prevState && prevState.winnerTeam === null;
     launchGame(roomId, continuing ? 0 : START_COUNTDOWN_MS);
@@ -322,7 +329,10 @@ function commitState(roomId, prev, next) {
     if (room.tournament) tournaments.onState(room, prev, next);
 
     const justOver = engine.isOver(next) && !engine.isOver(prev);
-    if (justOver) awardProgress(room, next);
+    if (justOver) {
+        awardProgress(room, next);
+        stakes.onGameOver(room, next).catch((e) => console.error('[mise] résultat', e));
+    }
 
     if (engine.isOver(next)) {
         if (room.timerInterval) clearInterval(room.timerInterval);
@@ -587,6 +597,7 @@ function removePlayer(roomId, socketId) {
     if (humans.length === 0) {
         if (room.timerInterval) clearInterval(room.timerInterval);
         delete rooms[roomId];
+        stakes.onRoomGone(room).catch((e) => console.error('[mise] remboursement', e));
         console.log(`Room ${roomId} supprimée (plus aucun humain)`);
         return;
     }
@@ -903,6 +914,27 @@ io.on('connection', (socket) => {
         for (const key in matchmakingQueues) {
             matchmakingQueues[key] = matchmakingQueues[key].filter((p) => p.socketId !== socket.id);
         }
+    });
+
+    // --- PARTIES À MISE (salon privé, en option) ---
+    const betweenGames = (room) => !(room.gameState && !getEngine(room.gameType).isOver(room.gameState));
+    socket.on('set_stake', (data, callback) => {
+        const reply = (r) => callback && callback(r);
+        const room = rooms[data?.roomId];
+        if (!room) return reply({ success: false, message: "Ce salon n'existe plus." });
+        if (!betweenGames(room)) return reply({ success: false, message: 'La mise se change entre deux parties.' });
+        const r = stakes.setStake(room, socket, Number(data?.stake));
+        if (r.success) broadcastRoomUpdate(room.id);
+        reply(r);
+    });
+    socket.on('stake_opt', (data, callback) => {
+        const reply = (r) => callback && callback(r);
+        const room = rooms[data?.roomId];
+        if (!room) return reply({ success: false, message: "Ce salon n'existe plus." });
+        if (!betweenGames(room)) return reply({ success: false, message: 'Tu pourras changer à la prochaine partie.' });
+        const r = stakes.optIn(room, socket, !!data?.on);
+        if (r.success) broadcastRoomUpdate(room.id);
+        reply(r);
     });
 
     // --- DÉROULEMENT ---

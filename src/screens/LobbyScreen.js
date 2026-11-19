@@ -9,6 +9,8 @@ import { dialog } from '../components/Dialog';
 import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
 import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
+import { useAccount } from '../network/accountService';
+import { BINGA } from '../../server/progress/defs';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -134,6 +136,16 @@ ${inviteUrl(roomId)}`);
 
     const ack = (msg) => (r) => { setBusy(false); if (r && r.success === false && r.message) dialog.alert('Oups', r.message); else if (msg) audioService.playSound(msg); };
     const addBot = () => { setBusy(true); socketService.addBot(roomId, ack('pop')); };
+
+    // Partie à mise (option) : l'hôte choisit la mise, chacun choisit de miser ou non
+    const account = useAccount();
+    const myId = socketService.socket?.id;
+    const stake = room?.stake || 0;
+    const stakeIn = new Set(room?.stakeIn || []);
+    const balance = account.profile?.binga?.balance ?? 0;
+    const showStakes = socketService.supports('stakes') && room?.isPrivate !== false;
+    const setStake = (v) => { if (v === stake || busy) return; setBusy(true); socketService.setStake(roomId, v, ack('coin')); };
+    const toggleStake = () => { setBusy(true); socketService.stakeOpt(roomId, !stakeIn.has(myId), ack('coin')); };
     const lobbyGames = lobbyBots && socketService.supports('lobby_games') && room?.isPrivate !== false;
     const pickGame = (key) => {
         if (key === gameType || busy) return;
@@ -198,6 +210,46 @@ ${inviteUrl(roomId)}`);
                     </View>
                 )}
 
+                {showStakes && (amHost || stake > 0) && (
+                    <View style={[styles.panel, { marginBottom: 14 }]}>
+                        <Text style={styles.sectionTitle}>MISE EN BINGA (OPTION)</Text>
+                        {amHost ? (
+                            <View style={styles.gameChips}>
+                                {[0, ...BINGA.stakes].map((v) => (
+                                    <Pressable key={v} onPress={() => setStake(v)} disabled={busy || room?.inGame} style={[styles.gameChip, v === stake && { backgroundColor: theme.goldDark, borderColor: theme.goldLight }]}>
+                                        <Text style={[styles.gameChipText, v === stake && { color: '#fff' }]}>{v ? `💰 ${v}` : 'Gratuit'}</Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+                        ) : (
+                            <Text style={styles.stakeBig}>💰 {stake} binga par joueur</Text>
+                        )}
+                        <Text style={styles.stakeHint}>
+                            {stake === 0
+                                ? "Partie gratuite. Choisis une mise si vous voulez jouer pour des binga : chacun décide s'il mise."
+                                : `Chaque joueur qui mise paie ${stake} binga au début de la partie. Le gagnant prend le pot. Personne n'est obligé : sans miser, on joue gratuitement.`}
+                        </Text>
+                        {stake > 0 && (
+                            !account.profile ? (
+                                <Text style={styles.stakeHint}>🔐 Sans compte, tu joues gratuitement.</Text>
+                            ) : (
+                                <View style={styles.stakeRow}>
+                                    <GameButton
+                                        small
+                                        title={stakeIn.has(myId) ? `✓ Je mise ${stake} binga` : `Miser ${stake} binga`}
+                                        variant={stakeIn.has(myId) ? 'gold' : 'outline'}
+                                        onPress={toggleStake}
+                                        disabled={busy || room?.inGame}
+                                    />
+                                    <Text style={[styles.stakeHint, { flex: 1 }]}>
+                                        {balance < stake ? `Ton solde (${balance}) ne suffit pas : tu joueras gratuitement.` : `Ton solde : ${balance} binga.${stakeIn.has(myId) ? ' Touche pour jouer sans miser.' : ''}`}
+                                    </Text>
+                                </View>
+                            )
+                        )}
+                    </View>
+                )}
+
                 <View style={styles.panel}>
                     <Text style={styles.sectionTitle}>JOUEURS · {players.length}/{MAX_PLAYERS}</Text>
                     {lobbyBots && players.length >= 2 && (
@@ -230,6 +282,7 @@ ${inviteUrl(roomId)}`);
                                 {item.title ? <Text style={{ color: theme.mint, fontSize: 11, fontStyle: 'italic', marginLeft: 10 }} numberOfLines={1}>« {item.title} »</Text> : null}
                             </View>
                             {teams && <Text style={[styles.teamChip, { color: TEAM_COLORS[seat % 2], borderColor: TEAM_COLORS[seat % 2] }]}>ÉQ. {seat % 2 + 1}</Text>}
+                            {stake > 0 && stakeIn.has(item.id) && <Text style={styles.badge}>💰 {stake}</Text>}
                             {item.isBot ? (
                                 <Text style={styles.badge}>🤖 BOT</Text>
                             ) : item.id === room?.hostId ? (
@@ -349,6 +402,9 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 16,
     },
+    stakeBig: { color: theme.goldLight, fontWeight: '900', fontSize: 18, marginVertical: 4 },
+    stakeHint: { color: theme.textDim, fontSize: 12, marginTop: 6 },
+    stakeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },
     panel: {
         backgroundColor: theme.panel,
         borderRadius: 20,

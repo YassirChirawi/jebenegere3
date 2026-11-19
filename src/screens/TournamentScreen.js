@@ -170,6 +170,11 @@ export default function TournamentScreen({ route, navigation }) {
                     </Text>
                     {t.status === 'open' && <Text style={styles.countdown}>dans {formatCountdown(t.startsAt - serverNow)}</Text>}
                     {t.status === 'cancelled' && <Text style={styles.warn}>{t.reason}</Text>}
+                    {t.entry > 0 && (
+                        <Text style={styles.infoGame}>
+                            💰 Entrée : {t.entry} binga, retirée au début du tournoi (sans compte ou sans assez de binga, tu joues gratuitement). Le gagnant qui a payé reçoit le dos exclusif « Sultan », un titre et le double d'XP.
+                        </Text>
+                    )}
                 </View>
 
                 {t.status === 'done' && t.champion && (
@@ -262,7 +267,7 @@ export default function TournamentScreen({ route, navigation }) {
                     {t.entrants.length === 0 && <Text style={base.emptySmall}>Personne pour l'instant. Partage le lien !</Text>}
                     {t.entrants.map((e) => (
                         <View key={e.id} style={[styles.entrant, e.id === me && styles.entrantMe]}>
-                            <Text style={styles.entrantText}>{e.name}{e.id === me ? ' (toi)' : ''}</Text>
+                            <Text style={styles.entrantText}>{e.name}{e.id === me ? ' (toi)' : ''}{e.paid ? ' 💰' : ''}</Text>
                         </View>
                     ))}
                 </View>

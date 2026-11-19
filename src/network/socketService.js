@@ -149,6 +149,15 @@ class SocketService {
         this._emitAck('add_bot', { roomId }, callback, 6000, 'Le serveur ne répond pas.');
     }
 
+    // Partie à mise (salon privé) : l'hôte choisit la mise, chaque joueur choisit de miser ou non
+    setStake(roomId, stake, callback) {
+        this._emitAck('set_stake', { roomId, stake }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
+    stakeOpt(roomId, on, callback) {
+        this._emitAck('stake_opt', { roomId, on }, callback, 6000, 'Le serveur ne répond pas.');
+    }
+
     removeBot(roomId, playerId, callback) {
         this._emitAck('remove_bot', { roomId, playerId }, callback, 6000, 'Le serveur ne répond pas.');
     }
@@ -238,6 +247,9 @@ class SocketService {
     }
 
     onRoomUpdated(callback) { return this._listen('room_updated', callback); }
+    onStakeUpdate(callback) { return this._listen('stake_update', callback); }
+    onStakeResult(callback) { return this._listen('stake_result', callback); }
+    onTournamentEntry(callback) { return this._listen('tournament_entry', callback); }
     onMatchFound(callback) { return this._listen('match_found', callback); }
     onGameStarted(callback) { return this._listen('game_started', callback); }
     onGameStateUpdate(callback) { return this._listen('game_state_update', callback); }

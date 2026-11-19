@@ -14,6 +14,7 @@
  *    il peut réclamer sa récompense depuis le même appareil après s'être connecté).
  */
 const crypto = require('crypto');
+const { BINGA } = require('./progress/defs');
 
 const SHOWUP_MS = Number(process.env.TOURNAMENT_SHOWUP_MS) || 3 * 60 * 1000;
 const NEXT_MANCHE_MS = process.env.TOURNAMENT_NEXT_MANCHE_MS !== undefined ? Number(process.env.TOURNAMENT_NEXT_MANCHE_MS) : 8000;
@@ -130,7 +131,8 @@ function publicView(t, now = Date.now()) {
         startsAt: t.startsAt,
         status: t.status,
         reason: t.reason || null,
-        entrants: t.entrants.map((e) => ({ id: e.id, name: e.name })),
+        entry: t.entry || 0, // entrée en binga (0 = gratuit)
+        entrants: t.entrants.map((e) => ({ id: e.id, name: e.name, paid: !!e.paid })),
         round: t.round ?? null,
         rounds: (t.rounds || []).map((list) => ({
             label: roundLabel(list.length),
@@ -227,12 +229,34 @@ function createTournaments(deps) {
         seed(t);
         t.status = 'running';
         t.startedAt = now;
+        chargeEntries(t);
         openRound(t, 0, now);
         afterResults(t, now);
         save(t);
         broadcast(t);
         tryLaunch(t, now);
         return true;
+    }
+
+    /**
+     * Tournoi à entrée en binga : l'entrée est retirée au début du tournoi à chaque inscrit qui a un compte
+     * et assez de binga. Les autres jouent gratuitement, sans pénalité (ils ne gagnent pas le dos exclusif).
+     */
+    function chargeEntries(t) {
+        if (!t.entry) return;
+        t.entrants.forEach((e) => {
+            const s = socketOf(presence.get(t.id)?.get(e.id)) || socketOf(e.lastSocket);
+            if (!e.userId) {
+                if (s) s.emit('tournament_entry', { id: t.id, paid: false, amount: t.entry, reason: 'Sans compte, tu joues ce tournoi gratuitement.' });
+                return;
+            }
+            progress.chargeEntry(e.userId, t.entry, `Entrée du tournoi « ${t.name} »`).then((r) => {
+                e.paid = !!r?.ok;
+                save(t);
+                broadcast(t);
+                if (s) s.emit('tournament_entry', { id: t.id, paid: e.paid, amount: t.entry, profile: r?.profile, reason: e.paid ? null : `Pas assez de binga (${r?.balance ?? 0}) : tu joues gratuitement, sans pénalité.` });
+            }).catch((err) => console.error('[tournoi] entrée', err));
+        });
     }
 
     function launch(t, m, sides) {
@@ -330,7 +354,7 @@ function createTournaments(deps) {
             const userId = s?.data?.user?.userId || e.userId;
             if (userId) {
                 e.claimed = true;
-                progress.awardTournament(userId, t.gameType)
+                progress.awardTournament(userId, t.gameType, Date.now(), { bingaEntry: !!(t.entry && e.paid) })
                     .then((r) => { if (r && s) s.emit('progress', { ...r, game: t.gameType }); })
                     .catch((err) => console.error('[tournoi] récompense', err));
             }
@@ -416,6 +440,8 @@ function createTournaments(deps) {
             const gameType = data?.gameType;
             const size = Number(data?.size);
             const mode = data?.mode === 'duo' && gameType === 'ronda' ? 'duo' : 'solo';
+            // Entrée en binga (option) : toujours le même montant, jamais d'argent réel
+            const entry = data?.entry ? BINGA.tournamentEntry : 0;
             const startsAt = Number(data?.startsAt);
             const now = Date.now();
             if (name.length < 3) return reply(cb, { success: false, message: 'Donne un nom au tournoi (3 caractères au moins).' });
@@ -431,7 +457,7 @@ function createTournaments(deps) {
             const hostToken = token();
             const t = {
                 id: newCode((c) => all.has(c)),
-                name, gameType, size, mode,
+                name, gameType, size, mode, entry,
                 startsAt: Math.max(startsAt, now),
                 createdAt: now,
                 status: 'open',
@@ -544,7 +570,7 @@ function createTournaments(deps) {
             e.claimed = true;
             e.userId = userId;
             await save(t);
-            const r = await progress.awardTournament(userId, t.gameType);
+            const r = await progress.awardTournament(userId, t.gameType, Date.now(), { bingaEntry: !!(t.entry && e.paid) });
             if (r) socket.emit('progress', { ...r, game: t.gameType });
             reply(cb, { success: !!r });
         });

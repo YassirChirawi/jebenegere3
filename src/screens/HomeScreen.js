@@ -251,9 +251,13 @@ export default function HomeScreen({ navigation }) {
     // Arrivée par un lien : on rejoint dès que le serveur est joignable (pseudo demandé s'il manque)
     useEffect(() => {
         if (!inviteCode || !nameReady || !isConnected || joining) return;
-        if (name.trim()) joinByCode(inviteCode);
+        // Connecté à un compte sur un appareil neuf : on attend le pseudo du compte (chargé juste après
+        // le démarrage) au lieu de le demander, puis on rejoint
+        if (account.token && !profile?.name) return;
+        const playerName = (profile?.name || name).trim();
+        if (playerName) joinByCode(inviteCode, playerName);
         else setShowInvite(true);
-    }, [inviteCode, nameReady, isConnected]);
+    }, [inviteCode, nameReady, isConnected, profile?.name, account.token]);
 
     const handleCreateBotRoom = (count) => {
         if (!requireName() || !requireGameSupport()) return;

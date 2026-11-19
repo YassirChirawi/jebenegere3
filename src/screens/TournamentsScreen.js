@@ -5,6 +5,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { PressableScale, GameButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
+import { BINGA } from '../../server/progress/defs';
 import { myTournaments, remember, GAME_LABEL, formatWhen } from '../utils/tournaments';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
@@ -46,6 +47,7 @@ export default function TournamentsScreen({ navigation }) {
     const [gameType, setGameType] = useState('hezz2');
     const [mode, setMode] = useState('solo');
     const [size, setSize] = useState(4);
+    const [entry, setEntry] = useState(false);
     const [day, setDay] = useState(0);
     const [minutes, setMinutes] = useState(defaultTime);
     const [busy, setBusy] = useState(false);
@@ -64,7 +66,7 @@ export default function TournamentsScreen({ navigation }) {
         if (name.trim().length < 3) { dialog.alert('Nom du tournoi', 'Donne un nom au tournoi (3 caractères au moins).'); return; }
         if (tooSoon) { dialog.alert('Heure passée', 'Choisis une heure à venir.'); return; }
         setBusy(true);
-        socketService.tournamentCreate({ name: name.trim(), gameType, mode: gameType === 'ronda' ? mode : 'solo', size, startsAt }, async (r) => {
+        socketService.tournamentCreate({ name: name.trim(), gameType, mode: gameType === 'ronda' ? mode : 'solo', size, startsAt, entry }, async (r) => {
             setBusy(false);
             if (!r?.success) { dialog.alert('Oups', r?.message || 'Le serveur ne répond pas.'); return; }
             await remember(r.id, { hostToken: r.hostToken, name: r.tournament.name, gameType, startsAt: r.tournament.startsAt });
@@ -116,6 +118,13 @@ export default function TournamentsScreen({ navigation }) {
                                 )}
                                 <Text style={styles.label}>JOUEURS</Text>
                                 <Chips options={[[4, '4 joueurs'], [8, '8 joueurs']]} value={size} onChange={setSize} />
+                                {socketService.supports('stakes') && (
+                                    <>
+                                        <Text style={styles.label}>ENTRÉE</Text>
+                                        <Chips options={[[false, 'Gratuite'], [true, `${BINGA.tournamentEntry} binga`]]} value={entry} onChange={setEntry} />
+                                        {entry && <Text style={styles.hint}>L'entrée est retirée au début du tournoi. Le gagnant reçoit le dos exclusif « Sultan », un titre et le double d'XP. Sans compte ou sans assez de binga, on joue gratuitement.</Text>}
+                                    </>
+                                )}
                                 <Text style={styles.label}>JOUR</Text>
                                 <Chips options={[0, 1, 2, 3, 4, 5, 6].map((d) => [d, dayLabel(d)])} value={day} onChange={setDay} />
                                 <Text style={styles.label}>HEURE</Text>

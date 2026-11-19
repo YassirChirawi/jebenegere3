@@ -16,7 +16,9 @@ const kinds = (k) => COSMETICS.filter((c) => c.kind === k);
 
 test('catalogue : 10 dos (avec Classique offert), 6 effets, 12 réactions, raretés et prix', () => {
     // Classique (offert) + les 9 autres dos demandés, + Rose de Kelaa et Saison (déjà existants, repris)
-    assert.equal(kinds('back').length, 11);
+    // + Sultan (réservé au gagnant d'un tournoi à entrée en binga)
+    assert.equal(kinds('back').length, 12);
+    assert.equal(priceOf(COSMETICS.find((c) => c.id === 'back:sultan')), null);
     ['Cuivre martelé', 'Velours rouge', 'Thé à la menthe', 'Zellige', 'Sahara', 'Océan', 'Néon', 'Or', 'Champion'].forEach((l) => assert.ok(kinds('back').some((c) => c.label === l), l));
     assert.deepEqual(kinds('effect').map((c) => c.label), ['Confettis', 'Étoiles', 'Menthe', 'Feu', 'Tonnerre', 'Or']);
     assert.deepEqual(kinds('emote').map((c) => c.label), ['Rire', 'Bravo', 'Aïe', 'Merci', 'Triste', 'Surpris', 'Bien joué', 'Dors', 'Chat', 'Feu', 'Menthe', 'Couronne']);
