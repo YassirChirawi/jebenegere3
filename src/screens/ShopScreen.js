@@ -221,7 +221,7 @@ export default function ShopScreen({ navigation }) {
                 </View>
 
                 {tab === 'table' && <Text style={styles.soon}>Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.</Text>}
-                {tab === 'avatar' && <Text style={styles.soon}>16 portraits en plus des 12 offerts. Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
+                {tab === 'avatar' && <Text style={styles.soon}>24 portraits en plus des 12 offerts, dont 8 premium (Épique et Légendaire). Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
                 {tab === 'emote' && <Text style={styles.soon}>Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.</Text>}
 
                 {tab === 'chest' && (

@@ -133,8 +133,9 @@ test('en ligne : une réaction achetée est envoyée ; sans l\'avoir achetée, e
 test('tables et portraits : 8 tables, 16 portraits (13 à 28), avec rareté ; présents dans les coffres', () => {
     const { POOL } = require('../progress/chests');
     assert.deepEqual(kinds('table').map((c) => c.label), ['Vert classique', 'Velours rouge', 'Cuivre sculpté', 'Zellige', 'Turquoise', 'Nuit (marbre noir)', 'Sahara', 'Pourpre royal']);
-    assert.equal(kinds('avatar').length, 16);
-    assert.deepEqual(kinds('avatar').map((c) => c.id), Array.from({ length: 16 }, (_, i) => `avatar:${i + 13}`));
+    assert.equal(kinds('avatar').length, 24);
+    assert.deepEqual(kinds('avatar').map((c) => c.id), Array.from({ length: 24 }, (_, i) => `avatar:${i + 13}`));
+    assert.ok(kinds('avatar').slice(16).every((c) => ['epique', 'legendaire'].includes(c.rarity)), 'portraits premium : Épique ou Légendaire');
     assert.ok(POOL.some((c) => c.kind === 'table') && POOL.some((c) => c.kind === 'avatar'));
 });
 
@@ -144,6 +145,7 @@ test('portrait 13 à 28 : refusé tant qu\'il n\'est pas débloqué ; les 12 pre
     assert.equal((await p.updateMe(user, { avatar: 15 })).avatar, 7, 'Lion couronné pas encore à lui');
     assert.ok((await p.buy(user, 'avatar:19', DAY)).success); // Touareg, Commun
     assert.equal((await p.updateMe(user, { avatar: 19 })).avatar, 19);
-    assert.equal((await p.updateMe(user, { avatar: 29 })).avatar, 19, 'au-delà de 28 : refusé');
+    assert.equal((await p.updateMe(user, { avatar: 33 })).avatar, 19, 'portrait premium pas encore à lui');
+    assert.equal((await p.updateMe(user, { avatar: 37 })).avatar, 19, 'au-delà de 36 : refusé');
     assert.equal((await p.updateMe(user, { equipped: { table: 'sahara' } })).equipped.table, 'sahara');
 });

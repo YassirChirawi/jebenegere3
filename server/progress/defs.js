@@ -261,6 +261,15 @@ const COSMETICS = [
     { id: 'avatar:26', kind: 'avatar', label: 'Capuche rouge', rarity: 'commun' },
     { id: 'avatar:27', kind: 'avatar', label: 'Phénix', rarity: 'legendaire' },
     { id: 'avatar:28', kind: 'avatar', label: "Dragon d'or", rarity: 'legendaire' },
+    // Portraits premium 29 à 36 (deux planches de Yassir)
+    { id: 'avatar:29', kind: 'avatar', label: 'Lion roi', rarity: 'legendaire' },
+    { id: 'avatar:30', kind: 'avatar', label: 'Tigresse reine', rarity: 'epique' },
+    { id: 'avatar:31', kind: 'avatar', label: 'Aigle roi', rarity: 'epique' },
+    { id: 'avatar:32', kind: 'avatar', label: 'Grand mage', rarity: 'epique' },
+    { id: 'avatar:33', kind: 'avatar', label: 'Loup roi', rarity: 'legendaire' },
+    { id: 'avatar:34', kind: 'avatar', label: 'Renarde mage', rarity: 'epique' },
+    { id: 'avatar:35', kind: 'avatar', label: 'Ours roi', rarity: 'epique' },
+    { id: 'avatar:36', kind: 'avatar', label: 'Hibou mage', rarity: 'legendaire' },
 
     // Tapis des défis du jour (couleur du tapis d'une table de jeu)
     { id: 'felt:hezz2:tadelakt', kind: 'felt', game: 'hezz2', label: 'Tadelakt (Hezz2)', rarity: 'rare' },
@@ -275,9 +284,9 @@ function priceOf(item) {
     return RARITIES[item.rarity]?.price ?? null;
 }
 const cosmetic = (id) => COSMETICS.find((c) => c.id === id) || null;
-// Portraits : 1 à 12 offerts, 13 à 28 à débloquer (boutique, coffres)
+// Portraits : 1 à 12 offerts, 13 à 36 à débloquer (boutique, coffres)
 const FREE_AVATARS = 12;
-const MAX_AVATAR = 28;
+const MAX_AVATAR = 36;
 
 module.exports = {
     RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND, WHEEL, FREE_AVATARS, MAX_AVATAR,

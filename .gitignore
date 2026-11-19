@@ -42,3 +42,5 @@ yarn-error.*
 
 # Musique d'origine (5,3 Mo) : seule la version compressée assets/music/cava.mp3 est suivie
 assets/music/808xri-*.mp3
+# Planches originales de Yassir (plusieurs Mo) : seules les images découpées sont versionnées
+assets/sources/

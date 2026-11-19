@@ -336,7 +336,8 @@ Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage 
 | Réactions (12, en plus des 4 offertes 😂 😡 😱 👏) | Rire, Bravo, Aïe, Merci, Triste, Surpris (Commun) · Bien joué, Dors, Chat, Feu (Rare) · Menthe (Épique) · Couronne (Légendaire) |
 | Tables (8, images de Yassir) | Vert classique, Velours rouge (Commun) · Cuivre sculpté, Zellige, Turquoise (Rare) · Nuit (marbre noir), Sahara (Épique) · Pourpre royal (Légendaire). Une table choisie remplace la table de chaque jeu, pour les 4 jeux ; sans choix, chaque jeu garde sa table. |
 | Couleurs de tapis | Tadelakt, Safran, Braise, Lavande (Rare) : teinte du tapis d'une table de jeu. |
-| Portraits (16, en plus des 12 offerts) | Touareg, Dame voilée, Cheval noir, As couronné, Bouffon, Pacha, Capuche rouge (Commun) · Roi, Reine, Sage, Aigle, Loup (Rare) · Lion couronné, Tigre blanc (Épique) · Phénix, Dragon d'or (Légendaire). Portraits 13 à 28 : le serveur refuse un portrait qu'on ne possède pas. |
+| Portraits (16, en plus des 12 offerts) | Touareg, Dame voilée, Cheval noir, As couronné, Bouffon, Pacha, Capuche rouge (Commun) · Roi, Reine, Sage, Aigle, Loup (Rare) · Lion couronné, Tigre blanc (Épique) · Phénix, Dragon d'or (Légendaire). Portraits 13 à 36 : le serveur refuse un portrait qu'on ne possède pas. |
+| Portraits premium (8, planches de Yassir, portraits 29 à 36) | Tigresse reine, Aigle roi, Grand mage, Renarde mage, Ours roi (Épique) · Lion roi, Loup roi, Hibou mage (Légendaire, coffre Or). Découpés par `python scripts/build-avatars-premium.py assets/sources/avatars-premium-1.png assets/sources/avatars-premium-2.png`. |
 
 - **Tables et portraits :**
   - découpés dans les planches de Yassir par `python scripts/build-table-skins.py <planche.png>` et `python scripts/build-avatars.py <planche.png> 4 4 12 0.85` ;

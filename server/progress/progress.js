@@ -256,7 +256,7 @@ function createProgress(store) {
     async function updateMe(user, { title, avatar, equipped }) {
         return withUser(user.id, async (u) => {
             if (title === null || (typeof title === 'string' && u.titles.includes(title))) u.title = title;
-            // 0 = tiré du pseudo, 1 à 12 = portraits offerts, 13 à 28 = portraits débloqués (boutique, coffres)
+            // 0 = tiré du pseudo, 1 à 12 = portraits offerts, 13 à 36 = portraits débloqués (boutique, coffres)
             if (Number.isInteger(avatar) && avatar >= 0 && (avatar <= FREE_AVATARS || (avatar <= MAX_AVATAR && (u.unlocks || []).includes(`avatar:${avatar}`)))) u.avatar = avatar;
             if (equipped && typeof equipped === 'object') u.equipped = cleanEquipped(equipped);
             return profileOf(u);

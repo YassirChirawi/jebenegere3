@@ -15,7 +15,7 @@ import Animated, {
 const MOOD_EMOJI = { lose: '😭', kdoub: '😤', khasser: '🤡', win: '😎', proud: '😎', shock: '😱' };
 
 // Portraits dessinés pour le jeu (scripts/build-avatars.py), embarqués dans l'appli : rien n'est chargé d'un autre site.
-// 1 à 12 : offerts ; 13 à 28 : boutique et coffres (deuxième planche)
+// 1 à 12 : offerts ; 13 à 36 : boutique et coffres (planches suivantes)
 export const FREE_AVATARS = 12;
 export const AVATARS = [
     require('../../assets/avatars/avatar_00.webp'), require('../../assets/avatars/avatar_01.webp'),
@@ -32,9 +32,14 @@ export const AVATARS = [
     require('../../assets/avatars/avatar_22.webp'), require('../../assets/avatars/avatar_23.webp'),
     require('../../assets/avatars/avatar_24.webp'), require('../../assets/avatars/avatar_25.webp'),
     require('../../assets/avatars/avatar_26.webp'), require('../../assets/avatars/avatar_27.webp'),
+    // 29 à 36 : portraits premium (scripts/build-avatars-premium.py)
+    require('../../assets/avatars/avatar_28.webp'), require('../../assets/avatars/avatar_29.webp'),
+    require('../../assets/avatars/avatar_30.webp'), require('../../assets/avatars/avatar_31.webp'),
+    require('../../assets/avatars/avatar_32.webp'), require('../../assets/avatars/avatar_33.webp'),
+    require('../../assets/avatars/avatar_34.webp'), require('../../assets/avatars/avatar_35.webp'),
 ];
 
-/** Portrait d'un joueur : variant 1 à 28 = portrait choisi dans le Profil ; 0 = tiré du pseudo (parmi les 12 offerts). */
+/** Portrait d'un joueur : variant 1 à 36 = portrait choisi dans le Profil ; 0 = tiré du pseudo (parmi les 12 offerts). */
 export function avatarIndex(name, variant = 0) {
     if (variant >= 1) return (variant - 1) % AVATARS.length;
     let h = 0;
