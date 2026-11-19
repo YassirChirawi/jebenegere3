@@ -148,6 +148,14 @@ Lecture pour Render :
 
 **Limites fixées dans le jeu** : joueurs par partie (Hezz2 2 à 4, Ronda 2 ou 4, Kdoub 3 à 6, Sota 4 à 6) ; 6 spectateurs par salon ; 10 s d'attente en partie en ligne puis bots ; tournois de 4 ou 8, 300 ouverts au plus, jusqu'à 30 jours à l'avance, palmarès des 20 derniers ; 5 appareils connectés par compte ; historique des 30 dernières parties ; 8 essais de mot de passe ratés par 10 min ; 25 messages par seconde par joueur (exclusion au-delà de 120) ; signalements gardés 6 mois. Les parties en cours sont en mémoire : un redémarrage les coupe (les tournois reprennent).
 
+## Publicité (Google AdSense, site web seulement)
+
+- **Script :** le script AdSense du compte de Yassir (`ca-pub-1980774468513818`) est dans `public/index.html`. `public/ads.txt` déclare ce compte comme vendeur autorisé.
+- **Politique de sécurité :** la Content-Security-Policy de `vercel.json` autorise les domaines de Google AdSense (scripts, cadres des annonces, images). Sans ça, le navigateur bloquerait le script.
+- **Confidentialité :** la politique (`/privacy`) a une section « Publicité sur le site web » (cookies Google, refus de la publicité personnalisée).
+- **Visiteurs européens :** pour ceux de l'EEE, du Royaume-Uni et de la Suisse, Google exige un message de consentement. Il s'active dans AdSense → Confidentialité et messages, sans code à ajouter.
+- **Aucun effet sur le jeu :** la publicité ne donne ni binga ni avantage. Le pseudo, le compte et la progression ne sont pas transmis à Google.
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
