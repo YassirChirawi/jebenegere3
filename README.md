@@ -299,6 +299,19 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 - **Sota Ghamla** : une carte est piochée au hasard à la fin du chrono.
 - La fenêtre pour contrer un 1 en Hezz2 dure **5 s**.
 
+## Accueil
+
+- **Premier écran :** le logo, la carte du joueur et un seul gros bouton **JOUER**.
+  - La carte du joueur montre le portrait, le pseudo (saisi ici sans compte), le rang, la barre d'XP jusqu'au rang suivant, et le solde de binga (avec un « ＋ » qui ouvre la Boutique).
+  - Sous le bouton : 4 raccourcis, Roue (pastille rouge quand le tour gratuit est disponible), Boutique, Défis et Connexion (jour de la série).
+- **JOUER** ouvre le choix du jeu et du mode : en ligne, contre l'ordinateur, salon privé, tournois. Le bouton « ← Accueil » ramène à la carte. Le fonctionnement de chaque mode ne change pas.
+- **Fenêtres du jour** (`src/components/DailyPopups.js`) : une fois par jour chacune, l'une après l'autre, quand l'accueil est libre (pas pendant les règles, une invitation ou une recherche).
+  1. **Connexion du jour :** les binga reçus et le calendrier des 7 jours (jours passés cochés, jour 7 à 150).
+  2. **Roue du jour :** « 1 tour gratuit t'attend », si le tour n'a pas encore été fait.
+  3. **Boutique :** les nouveautés (portraits premium, coffres).
+  - **Sans compte :** une seule fenêtre « Crée ton compte, c'est gratuit », avec un bouton « Jouer sans compte ».
+  - Toutes se ferment d'un geste. Ce qui a déjà été vu est gardé sur l'appareil, pour le jour en cours (clé `dailyPopups`).
+
 ## Binga : la monnaie du jeu
 
 Le binga se **gagne en jouant**. Il ne s'achète pas avec de l'argent et ne se convertit jamais en argent. Il est réservé aux joueurs avec un compte, et il est stocké avec le compte dans PostgreSQL : il est donc retrouvé après un redémarrage du serveur ou sur un autre appareil. Il servira pour les cosmétiques, les coffres et les entrées de tournoi, jamais pour jouer une partie normale, qui reste gratuite.

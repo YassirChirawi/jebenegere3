@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, ImageBackground, ScrollView, Platform } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, ImageBackground, ScrollView, Platform, Pressable } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -22,7 +22,8 @@ import { initialInvite, clearInviteFromUrl, onInviteLink, initialTournament, onT
 import { remember as rememberTournament, claimPendingRewards, GAME_LABEL } from '../utils/tournaments';
 import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
-import { BingaIcon } from '../components/Decor';
+import { BingaIcon, Chip } from '../components/Decor';
+import DailyPopups from '../components/DailyPopups';
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
@@ -68,6 +69,8 @@ export default function HomeScreen({ navigation }) {
     const [lastChampion, setLastChampion] = useState(null); // palmarès : dernier tournoi gagné
     const [showRules, setShowRules] = useState(false);
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
+    // Accueil en deux temps : 'home' (carte du joueur + JOUER) puis 'play' (jeu et mode)
+    const [view, setView] = useState('home');
     const [game, setGame] = useState('hezz2');
     const selected = gameInfo(game);
     const [isMuted, setIsMuted] = useState(audioService.muted);
@@ -386,8 +389,8 @@ export default function HomeScreen({ navigation }) {
                     {/* Logo */}
                     <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.logo}>
                         <Animated.View style={[{ alignItems: 'center' }, titleStyle]}>
-                            <Image source={LOGO} style={styles.logoImage} accessibilityLabel="L'Carta" />
-                            <Text style={styles.tagline}>Le jeu de cartes marocain</Text>
+                            <Image source={LOGO} style={[styles.logoImage, view === 'play' && styles.logoSmall]} accessibilityLabel="L'Carta" />
+                            {view === 'home' && <Text style={styles.tagline}>Le jeu de cartes marocain</Text>}
                         </Animated.View>
                     </Animated.View>
 
@@ -409,114 +412,145 @@ export default function HomeScreen({ navigation }) {
                         </Animated.View>
                     )}
 
-                    <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.panel}>
-                        {/* Choix du jeu */}
-                        <GamePicker
-                            value={game}
-                            onChange={(g) => {
-                                setGame(g);
-                                setMenu(null);
-                                AsyncStorage.setItem('selectedGame', g).catch(() => {});
-                            }}
-                        />
-
-                        {/* Pseudo + rang */}
-                        <View style={styles.nameRow}>
-                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={52} />
-                            <View style={{ flex: 1, marginLeft: 12 }}>
-                                <Text style={styles.label}>{profile ? 'CONNECTÉ · TON COMPTE' : 'TON PSEUDO'}</Text>
-                                <TextInput
-                                    style={[styles.input, profile && { opacity: 0.8 }]}
-                                    placeholder="Ex : Yassir…"
-                                    placeholderTextColor={theme.textDim}
-                                    value={name}
-                                    onChangeText={setName}
-                                    editable={!profile}
-                                    maxLength={16}
-                                />
-                            </View>
-                        </View>
-                        {rankInfo && (
-                            <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.rankChip}>
-                                <Text style={styles.rankText}>{rankInfo.emoji} {rankInfo.name}</Text>
-                                <View style={styles.rankBar}>
-                                    <View style={[styles.rankFill, { width: `${Math.round(Math.min(1, rankInfo.levelProgress || 0) * 100)}%` }]} />
+                    {view === 'home' && !isSearching ? (
+                        <>
+                            {/* Carte du joueur : portrait, pseudo, rang, XP, binga */}
+                            <Animated.View entering={FadeInUp.delay(150).springify().damping(16)} style={styles.playerCard}>
+                                <View style={styles.cardTop}>
+                                    <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Mon profil">
+                                        <View style={styles.cardAvatar}>
+                                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={76} />
+                                        </View>
+                                    </Pressable>
+                                    <View style={{ flex: 1, marginLeft: 12 }}>
+                                        {profile ? (
+                                            <Text style={styles.cardName} numberOfLines={1}>{profile.name}</Text>
+                                        ) : (
+                                            <TextInput
+                                                style={styles.cardInput}
+                                                placeholder="Ton pseudo…"
+                                                placeholderTextColor={theme.textDim}
+                                                value={name}
+                                                onChangeText={setName}
+                                                maxLength={16}
+                                            />
+                                        )}
+                                        {rankInfo && <Text style={styles.cardRank} numberOfLines={1}>{rankInfo.emoji} {rankInfo.name}</Text>}
+                                    </View>
                                 </View>
-                                <Text style={styles.rankXp}>{rankInfo.currentXP} XP</Text>
-                            </PressableScale>
-                        )}
-                        {profile?.binga && (
-                            <PressableScale onPress={() => navigation.navigate('Shop')} style={[styles.rankChip, { marginTop: 8 }]}>
-                                <BingaIcon size={20} />
-                                <Text style={styles.rankText}>{profile.binga.balance.toLocaleString('fr-FR')} binga · 🛍️ Boutique</Text>
-                                <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]} numberOfLines={1}>
-                                    Missions {profile.binga.missions.filter((m) => m.done).length}/{profile.binga.missions.length}
-                                    {profile.binga.login.claimed ? '' : ` · bonus du jour +${profile.binga.login.amount}`}
-                                </Text>
-                            </PressableScale>
-                        )}
-                        {profile?.wheel && (
-                            <PressableScale onPress={() => navigation.navigate('Wheel')} style={[styles.rankChip, { marginTop: 8 }, profile.wheel.available && styles.wheelChipOn]}>
-                                <Text style={styles.rankText}>🎡 Roue du jour</Text>
-                                <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]}>{profile.wheel.available ? '1 tour gratuit !' : 'Reviens demain'}</Text>
-                            </PressableScale>
-                        )}
-                        <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
-                            {profile ? (
-                                <Text style={styles.rankText}>
-                                    🎯 Défis du jour : {profile.daily.list.filter((c) => c.done).length}/3
-                                    <Text style={{ color: theme.textDim, fontWeight: '700' }}>
-                                        {'  '}{(profile.daily.list.find((c) => !c.done) || {}).label || 'Tous relevés, bravo !'}
-                                    </Text>
-                                </Text>
-                            ) : (
-                                <Text style={styles.rankText}>🔐 Crée ton compte : binga, défis du jour, titres et classement</Text>
-                            )}
-                        </PressableScale>
-
-                        {isSearching ? (
-                            <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
-                                <SearchSpinner />
-                                <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
-                                    {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
-                                </Text>
-                                <Text style={styles.searchSub}>Partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
-                                <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
-                                <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
-                            </Animated.View>
-                        ) : (
-                            <>
-                                {isConnected && online && (
-                                    <View style={styles.onlineRow} accessibilityLabel="Joueurs en ligne">
-                                        <View style={styles.onlineDot} />
-                                        <Text style={styles.onlineText}>
-                                            {plural(online.online, 'joueur')} en ligne
-                                            {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
-                                        </Text>
+                                {rankInfo && (
+                                    <View style={styles.xpRow}>
+                                        <View style={styles.xpBar}>
+                                            <View style={[styles.xpFill, { width: `${Math.round(Math.min(1, rankInfo.levelProgress || 0) * 100)}%` }]} />
+                                        </View>
+                                        <Text style={styles.xpText}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>
                                     </View>
                                 )}
-                                <GameButton title={!isConnected ? '⏳ SERVEUR EN RÉVEIL…' : outdated ? 'EN LIGNE INDISPONIBLE' : `JOUER EN LIGNE · ${selected.label.toUpperCase()} ${menu === 'online' ? '▴' : '▾'}`} icon={isConnected ? '🌍' : undefined} variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected || outdated} style={{ marginTop: 16 }} />
-                                {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" showSearching />}
-
-                                <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
-                                {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
-
-                                <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
-
-                                <GameButton title="TOURNOIS" icon="🏆" variant="red" onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 12 }} />
-                                {lastChampion && (
-                                    <PressableScale onPress={() => navigation.navigate('Tournaments')} style={styles.championChip}>
-                                        <Text style={styles.championChipText} numberOfLines={1}>
-                                            👑 Dernier champion : {lastChampion.champion}
-                                            <Text style={{ color: theme.textDim, fontWeight: '700' }}>{'  '}{lastChampion.name} · {GAME_LABEL[lastChampion.gameType]}</Text>
-                                        </Text>
+                                {profile?.binga ? (
+                                    <PressableScale onPress={() => navigation.navigate('Shop')} style={styles.coinRow} accessibilityLabel="Boutique">
+                                        <BingaIcon size={34} />
+                                        <Text style={styles.coinText}>{profile.binga.balance.toLocaleString('fr-FR')}</Text>
+                                        <Text style={styles.coinLabel}>binga</Text>
+                                        <View style={styles.coinPlus}><Text style={styles.coinPlusText}>＋</Text></View>
+                                    </PressableScale>
+                                ) : (
+                                    <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.coinRow}>
+                                        <BingaIcon size={28} />
+                                        <Text style={[styles.coinLabel, { flex: 1 }]}>Crée ton compte pour gagner des binga</Text>
                                     </PressableScale>
                                 )}
+                            </Animated.View>
+
+                            {/* Un seul bouton : JOUER */}
+                            <PlayButton
+                                disabled={!isConnected}
+                                label={isConnected ? 'JOUER' : 'RÉVEIL DU SERVEUR…'}
+                                onPress={() => { if (!requireName()) return; setView('play'); }}
+                            />
+                            {isConnected && online && (
+                                <View style={[styles.onlineRow, { marginTop: 10 }]} accessibilityLabel="Joueurs en ligne">
+                                    <View style={styles.onlineDot} />
+                                    <Text style={styles.onlineText}>
+                                        {plural(online.online, 'joueur')} en ligne
+                                        {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
+                                    </Text>
+                                </View>
+                            )}
+
+                            {/* Raccourcis : roue, boutique, défis, connexion du jour */}
+                            <View style={styles.tiles}>
+                                <HomeTile icon="🎡" label="Roue" sub={profile?.wheel ? (profile.wheel.available ? '1 tour gratuit' : 'Demain') : 'Gratuite'} badge={profile?.wheel?.available} onPress={() => navigation.navigate('Wheel')} />
+                                <HomeTile chip="couronne" label="Boutique" sub="Coffres" onPress={() => navigation.navigate('Shop')} />
+                                <HomeTile icon="🎯" label="Défis" sub={profile ? `${profile.daily.list.filter((c) => c.done).length}/3 · missions ${profile.binga ? `${profile.binga.missions.filter((m) => m.done).length}/3` : ''}` : 'Avec un compte'} onPress={() => navigation.navigate('Profile')} />
+                                <HomeTile icon="📅" label="Connexion" sub={profile?.binga ? `Jour ${profile.binga.login.streak}/7` : '7 jours'} onPress={() => navigation.navigate('Profile')} />
+                            </View>
+                        </>
+                    ) : (
+                        <>
+                            <View style={styles.playHeader}>
+                                <PressableScale onPress={() => { if (isSearching) handleCancelSearch(); setMenu(null); setView('home'); }} style={styles.homeBack} hitSlop={8} accessibilityLabel="Retour à l'accueil">
+                                    <Text style={styles.homeBackText}>← Accueil</Text>
+                                </PressableScale>
+                                <Text style={styles.playTitle}>Choisis ton jeu</Text>
+                                <View style={{ width: 90 }} />
+                            </View>
+                        <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.panel}>
+                            {/* Choix du jeu */}
+                            <GamePicker
+                                value={game}
+                                onChange={(g) => {
+                                    setGame(g);
+                                    setMenu(null);
+                                    AsyncStorage.setItem('selectedGame', g).catch(() => {});
+                                }}
+                            />
+
+                            {isSearching ? (
+                                <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
+                                    <SearchSpinner />
+                                    <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
+                                        {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
+                                    </Text>
+                                    <Text style={styles.searchSub}>Partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
+                                    <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
+                                    <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
+                                </Animated.View>
+                            ) : (
+                                <>
+                                    {isConnected && online && (
+                                        <View style={styles.onlineRow} accessibilityLabel="Joueurs en ligne">
+                                            <View style={styles.onlineDot} />
+                                            <Text style={styles.onlineText}>
+                                                {plural(online.online, 'joueur')} en ligne
+                                                {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
+                                            </Text>
+                                        </View>
+                                    )}
+                                    <GameButton title={!isConnected ? '⏳ SERVEUR EN RÉVEIL…' : outdated ? 'EN LIGNE INDISPONIBLE' : `JOUER EN LIGNE · ${selected.label.toUpperCase()} ${menu === 'online' ? '▴' : '▾'}`} icon={isConnected ? '🌍' : undefined} variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected || outdated} style={{ marginTop: 16 }} />
+                                    {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" showSearching />}
+
+                                    <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                    {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
+
+                                    <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
+
+                                    <GameButton title="TOURNOIS" icon="🏆" variant="red" onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 12 }} />
+                                    {lastChampion && (
+                                        <PressableScale onPress={() => navigation.navigate('Tournaments')} style={styles.championChip}>
+                                            <Text style={styles.championChipText} numberOfLines={1}>
+                                                👑 Dernier champion : {lastChampion.champion}
+                                                <Text style={{ color: theme.textDim, fontWeight: '700' }}>{'  '}{lastChampion.name} · {GAME_LABEL[lastChampion.gameType]}</Text>
+                                            </Text>
+                                        </PressableScale>
+                                    )}
 
 
-                            </>
-                        )}
-                    </Animated.View>
+                                </>
+                            )}
+                        </Animated.View>
+
+                        </>
+                    )}
 
                     <PressableScale onPress={() => setShowRules(true)} style={styles.rulesLink}>
                         <Text style={styles.rulesLinkText}>📜 Lire les règles</Text>
@@ -536,6 +570,12 @@ export default function HomeScreen({ navigation }) {
             )}
 
             <RulesModal visible={showRules && !inviteCode} onClose={closeRules} gameType={game} />
+            <DailyPopups
+                profile={profile}
+                isGuest={!account.token && !account.loading}
+                ready={hasConnected && view === 'home' && !showRules && !showInvite && !inviteCode && !isSearching}
+                navigation={navigation}
+            />
             <InviteJoinSheet
                 visible={showInvite}
                 code={inviteCode}
@@ -546,6 +586,35 @@ export default function HomeScreen({ navigation }) {
                 onClose={() => { setShowInvite(false); setInviteCode(null); }}
             />
         </ImageBackground>
+    );
+}
+
+// Gros bouton JOUER, qui respire doucement
+function PlayButton({ label, onPress, disabled }) {
+    const t = useSharedValue(0);
+    useEffect(() => {
+        t.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.sin) }), -1, true);
+    }, []);
+    const style = useAnimatedStyle(() => ({ transform: [{ scale: disabled ? 1 : 1 + t.value * 0.035 }] }));
+    return (
+        <Animated.View entering={FadeInUp.delay(260).springify().damping(14)} style={[styles.playWrap, style]}>
+            <PressableScale onPress={onPress} disabled={disabled} scaleTo={0.94} style={[styles.playBtn, disabled && { opacity: 0.6 }]} accessibilityLabel="Jouer">
+                <Text style={styles.playIcon}>▶</Text>
+                <Text style={styles.playText}>{label}</Text>
+            </PressableScale>
+        </Animated.View>
+    );
+}
+
+// Raccourci de l'accueil (roue, boutique, défis, connexion)
+function HomeTile({ icon, chip, label, sub, badge, onPress }) {
+    return (
+        <PressableScale onPress={onPress} style={[styles.tile, badge && styles.tileOn]} accessibilityLabel={label}>
+            {chip ? <Chip name={chip} size={34} /> : <Text style={styles.tileIcon}>{icon}</Text>}
+            <Text style={styles.tileLabel}>{label}</Text>
+            <Text style={styles.tileSub} numberOfLines={1}>{sub}</Text>
+            {badge && <View style={styles.tileBadge}><Text style={styles.tileBadgeText}>1</Text></View>}
+        </PressableScale>
     );
 }
 
@@ -720,6 +789,38 @@ const styles = StyleSheet.create({
         fontSize: 17,
         fontWeight: '700',
     },
+    logoSmall: { width: 120, height: 120 },
+    playerCard: { width: '100%', maxWidth: 440, marginTop: 6, padding: 16, borderRadius: 22, borderWidth: 2, borderColor: theme.gold, backgroundColor: 'rgba(28,15,19,0.92)', shadowColor: '#F5D77A', shadowOpacity: 0.25, shadowRadius: 18, elevation: 8 },
+    cardTop: { flexDirection: 'row', alignItems: 'center' },
+    cardAvatar: { padding: 3, borderRadius: 46, borderWidth: 2, borderColor: '#F5D77A', backgroundColor: 'rgba(212,175,55,0.15)' },
+    cardName: { color: theme.cream, fontSize: 22, fontWeight: '900' },
+    cardInput: { color: theme.cream, fontSize: 18, fontWeight: '800', borderBottomWidth: 1.5, borderBottomColor: theme.gold, paddingVertical: 4 },
+    cardRank: { color: theme.goldLight, fontSize: 14, fontWeight: '900', marginTop: 4 },
+    xpRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 14 },
+    xpBar: { flex: 1, height: 10, borderRadius: 5, backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
+    xpFill: { height: '100%', backgroundColor: theme.gold, borderRadius: 5 },
+    xpText: { color: theme.cream, fontWeight: '800', fontSize: 12 },
+    coinRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 14, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 16, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.5)' },
+    coinText: { color: theme.goldLight, fontSize: 26, fontWeight: '900' },
+    coinLabel: { color: theme.cream, fontSize: 13, fontWeight: '800' },
+    coinPlus: { marginLeft: 'auto', width: 30, height: 30, borderRadius: 15, backgroundColor: theme.gold, alignItems: 'center', justifyContent: 'center' },
+    coinPlusText: { color: theme.bg, fontSize: 20, fontWeight: '900', marginTop: -2 },
+    playWrap: { width: '100%', maxWidth: 440, marginTop: 18 },
+    playBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 12, paddingVertical: 20, borderRadius: 24, backgroundColor: '#C9971E', borderWidth: 3, borderColor: '#FFE9A0', shadowColor: '#F5D77A', shadowOpacity: 0.6, shadowRadius: 18, elevation: 10 },
+    playIcon: { color: '#3B1D06', fontSize: 26, fontWeight: '900' },
+    playText: { color: '#3B1D06', fontSize: 34, fontWeight: '900', letterSpacing: 4 },
+    tiles: { flexDirection: 'row', gap: 8, width: '100%', maxWidth: 440, marginTop: 16 },
+    tile: { flex: 1, alignItems: 'center', paddingVertical: 10, paddingHorizontal: 4, borderRadius: 16, borderWidth: 1.5, borderColor: 'rgba(212,175,55,0.45)', backgroundColor: 'rgba(28,15,19,0.9)' },
+    tileOn: { borderColor: '#F5D77A', backgroundColor: 'rgba(212,175,55,0.22)' },
+    tileIcon: { fontSize: 28 },
+    tileLabel: { color: theme.goldLight, fontWeight: '900', fontSize: 12, marginTop: 4 },
+    tileSub: { color: theme.textDim, fontSize: 10, fontWeight: '700', marginTop: 1 },
+    tileBadge: { position: 'absolute', top: -6, right: -4, minWidth: 20, height: 20, borderRadius: 10, backgroundColor: '#DC2626', alignItems: 'center', justifyContent: 'center', borderWidth: 2, borderColor: '#FFF' },
+    tileBadgeText: { color: '#fff', fontSize: 11, fontWeight: '900' },
+    playHeader: { width: '100%', maxWidth: 440, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 },
+    playTitle: { color: theme.goldLight, fontSize: 18, fontWeight: '900' },
+    homeBack: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.18)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.5)' },
+    homeBackText: { color: theme.goldLight, fontWeight: '900', fontSize: 13 },
     rankChip: {
         flexDirection: 'row',
         alignItems: 'center',

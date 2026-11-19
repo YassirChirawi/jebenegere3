@@ -54,11 +54,7 @@ export default function ProgressToaster() {
         return () => offs.forEach((off) => off && off());
     }, []);
 
-    // Connexion du jour : tout de suite
-    useEffect(() => accountService.onLoginReward((r) => {
-        queue.current.push({ icon: '💰', title: 'Connexion du jour', text: `+${r.amount} binga · série jour ${r.streak}/${r.days}`, color: theme.goldLight, sound: 'coin' });
-        pump();
-    }), []);
+    // Connexion du jour : montrée par la fenêtre du calendrier sur l'accueil (DailyPopups)
 
     useEffect(() => socketService.onProgress((p) => {
         accountService.applyProgress(p);
