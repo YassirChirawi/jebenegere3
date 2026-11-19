@@ -374,15 +374,37 @@ export default function HomeScreen({ navigation }) {
                 </View>
             ) : (
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                    {/* En-tête */}
-                    <View style={styles.header}>
-                        <View style={styles.headerRight}>
-                            <IconButton icon="👤" onPress={() => navigation.navigate('Profile')} label="Profil" size={44} />
-                            <IconButton icon="🏆" onPress={() => navigation.navigate('Leaderboard')} label="Classement" size={44} />
-                        </View>
-                        <View style={styles.headerRight}>
-                            <IconButton icon={musicOn ? '🎵' : '🎶'} onPress={() => audioService.toggleMusic()} label="Musique" size={44} style={!musicOn && styles.iconOff} />
-                            <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={() => audioService.toggleMute()} label="Son" size={44} />
+                    {/* En-tête : portrait, pseudo, niveau, XP et binga du joueur, puis classement, musique, son */}
+                    <View style={styles.topBar}>
+                        <Pressable onPress={() => navigation.navigate('Profile')} style={styles.topProfile} accessibilityLabel="Mon profil">
+                            <View style={styles.topAvatar}>
+                                <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={48} />
+                                {rankInfo && <View style={styles.levelBadge}><Text style={styles.levelText}>{(rankInfo.index ?? 0) + 1}</Text></View>}
+                            </View>
+                            <View style={{ flex: 1, marginLeft: 8 }}>
+                                <Text style={styles.topName} numberOfLines={1}>{profile ? profile.name : (name.trim() || 'Invité')}</Text>
+                                {rankInfo && <Text style={styles.topRank} numberOfLines={1}>{rankInfo.emoji} {rankInfo.name}</Text>}
+                                {rankInfo && (
+                                    <View style={styles.topXpRow}>
+                                        <View style={styles.topXpBar}>
+                                            <View style={[styles.xpFill, { width: `${Math.round(Math.min(1, rankInfo.levelProgress || 0) * 100)}%` }]} />
+                                        </View>
+                                        <Text style={styles.topXpText}>{rankInfo.currentXP}{rankInfo.next ? `/${rankInfo.next.min}` : ''} XP</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </Pressable>
+                        <View style={styles.topRight}>
+                            <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.topCoins} accessibilityLabel="Binga">
+                                <BingaIcon size={22} />
+                                <Text style={styles.topCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
+                                <View style={styles.topPlus}><Text style={styles.topPlusText}>＋</Text></View>
+                            </PressableScale>
+                            <View style={styles.topIcons}>
+                                <IconButton icon="🏆" onPress={() => navigation.navigate('Leaderboard')} label="Classement" size={32} />
+                                <IconButton icon={musicOn ? '🎵' : '🎶'} onPress={() => audioService.toggleMusic()} label="Musique" size={32} style={!musicOn && styles.iconOff} />
+                                <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={() => audioService.toggleMute()} label="Son" size={32} />
+                            </View>
                         </View>
                     </View>
 
@@ -414,52 +436,24 @@ export default function HomeScreen({ navigation }) {
 
                     {view === 'home' && !isSearching ? (
                         <>
-                            {/* Carte du joueur : portrait, pseudo, rang, XP, binga */}
-                            <Animated.View entering={FadeInUp.delay(150).springify().damping(16)} style={styles.playerCard}>
-                                <View style={styles.cardTop}>
-                                    <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Mon profil">
-                                        <View style={styles.cardAvatar}>
-                                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={76} />
-                                        </View>
-                                    </Pressable>
-                                    <View style={{ flex: 1, marginLeft: 12 }}>
-                                        {profile ? (
-                                            <Text style={styles.cardName} numberOfLines={1}>{profile.name}</Text>
-                                        ) : (
-                                            <TextInput
-                                                style={styles.cardInput}
-                                                placeholder="Ton pseudo…"
-                                                placeholderTextColor={theme.textDim}
-                                                value={name}
-                                                onChangeText={setName}
-                                                maxLength={16}
-                                            />
-                                        )}
-                                        {rankInfo && <Text style={styles.cardRank} numberOfLines={1}>{rankInfo.emoji} {rankInfo.name}</Text>}
-                                    </View>
-                                </View>
-                                {rankInfo && (
-                                    <View style={styles.xpRow}>
-                                        <View style={styles.xpBar}>
-                                            <View style={[styles.xpFill, { width: `${Math.round(Math.min(1, rankInfo.levelProgress || 0) * 100)}%` }]} />
-                                        </View>
-                                        <Text style={styles.xpText}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>
-                                    </View>
-                                )}
-                                {profile?.binga ? (
-                                    <PressableScale onPress={() => navigation.navigate('Shop')} style={styles.coinRow} accessibilityLabel="Boutique">
-                                        <BingaIcon size={34} />
-                                        <Text style={styles.coinText}>{profile.binga.balance.toLocaleString('fr-FR')}</Text>
-                                        <Text style={styles.coinLabel}>binga</Text>
-                                        <View style={styles.coinPlus}><Text style={styles.coinPlusText}>＋</Text></View>
+                            {/* Invité : son pseudo (avec un compte, c'est celui du compte, affiché en haut) */}
+                            {!profile && (
+                                <Animated.View entering={FadeInUp.delay(150).springify().damping(16)} style={styles.guestBox}>
+                                    <Text style={styles.label}>TON PSEUDO</Text>
+                                    <TextInput
+                                        style={styles.cardInput}
+                                        placeholder="Ex : Yassir…"
+                                        placeholderTextColor={theme.textDim}
+                                        value={name}
+                                        onChangeText={setName}
+                                        maxLength={16}
+                                    />
+                                    <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.guestCta}>
+                                        <BingaIcon size={20} />
+                                        <Text style={styles.guestCtaText}>Crée ton compte pour gagner des binga</Text>
                                     </PressableScale>
-                                ) : (
-                                    <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.coinRow}>
-                                        <BingaIcon size={28} />
-                                        <Text style={[styles.coinLabel, { flex: 1 }]}>Crée ton compte pour gagner des binga</Text>
-                                    </PressableScale>
-                                )}
-                            </Animated.View>
+                                </Animated.View>
+                            )}
 
                             {/* Un seul bouton : JOUER */}
                             <PlayButton
@@ -696,6 +690,25 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         width: '100%',
     },
+    topBar: { flexDirection: 'row', alignItems: 'center', width: '100%', maxWidth: 560, gap: 8, padding: 8, borderRadius: 18, borderWidth: 1.5, borderColor: theme.gold, backgroundColor: 'rgba(28,15,19,0.92)' },
+    topProfile: { flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0 },
+    topAvatar: { padding: 2, borderRadius: 30, borderWidth: 2, borderColor: '#F5D77A' },
+    levelBadge: { position: 'absolute', right: -6, bottom: -4, minWidth: 22, height: 22, paddingHorizontal: 4, borderRadius: 11, backgroundColor: '#C9971E', borderWidth: 2, borderColor: '#FFE9A0', alignItems: 'center', justifyContent: 'center' },
+    levelText: { color: '#3B1D06', fontSize: 11, fontWeight: '900' },
+    topName: { color: theme.cream, fontSize: 15, fontWeight: '900' },
+    topRank: { color: theme.goldLight, fontSize: 11, fontWeight: '800', marginTop: 1 },
+    topXpRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+    topXpBar: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(0,0,0,0.5)', overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
+    topXpText: { color: theme.textDim, fontSize: 10, fontWeight: '800' },
+    topRight: { alignItems: 'flex-end', gap: 6 },
+    topCoins: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 5, paddingRight: 4, paddingVertical: 4, borderRadius: 14, backgroundColor: 'rgba(0,0,0,0.5)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.6)' },
+    topCoinsText: { color: theme.goldLight, fontSize: 15, fontWeight: '900' },
+    topPlus: { width: 20, height: 20, borderRadius: 10, backgroundColor: theme.gold, alignItems: 'center', justifyContent: 'center' },
+    topPlusText: { color: theme.bg, fontSize: 14, fontWeight: '900', marginTop: -1 },
+    topIcons: { flexDirection: 'row', gap: 4 },
+    guestBox: { width: '100%', maxWidth: 440, marginTop: 6, padding: 14, borderRadius: 18, borderWidth: 1.5, borderColor: theme.gold, backgroundColor: 'rgba(28,15,19,0.92)' },
+    guestCta: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
+    guestCtaText: { color: theme.goldLight, fontWeight: '800', fontSize: 12 },
     headerRight: {
         flexDirection: 'row',
         gap: 10,

@@ -6,7 +6,7 @@ export const RANK_THRESHOLDS = RANKS.map((r, i) => ({ maxXP: r.max, name: r.name
 
 export function getRankInfo(xp) {
     const r = rankFor(xp || 0);
-    return { name: r.name, emoji: r.emoji, maxXP: r.max, nextXP: r.next ? r.next.min : null, currentXP: xp || 0, levelProgress: r.levelProgress, next: r.next };
+    return { name: r.name, emoji: r.emoji, index: r.index, maxXP: r.max, nextXP: r.next ? r.next.min : null, currentXP: xp || 0, levelProgress: r.levelProgress, next: r.next };
 }
 
 // ---------------------------------------------------------------------------

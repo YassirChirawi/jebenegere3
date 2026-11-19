@@ -301,8 +301,8 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 
 ## Accueil
 
-- **Premier écran :** le logo, la carte du joueur et un seul gros bouton **JOUER**.
-  - La carte du joueur montre le portrait, le pseudo (saisi ici sans compte), le rang, la barre d'XP jusqu'au rang suivant, et le solde de binga (avec un « ＋ » qui ouvre la Boutique).
+- **En-tête, sur l'accueil et sur le choix du jeu :** le portrait avec le numéro de niveau, le pseudo, le rang, la barre d'XP jusqu'au rang suivant, et le solde de binga (le « ＋ » ouvre la Boutique). À droite : classement, musique, son. Toucher le portrait ouvre le Profil.
+- **Premier écran :** l'en-tête, le logo et un seul gros bouton **JOUER**. Sans compte, une case « Ton pseudo » apparaît sous le logo.
   - Sous le bouton : 4 raccourcis, Roue (pastille rouge quand le tour gratuit est disponible), Boutique, Défis et Connexion (jour de la série).
 - **JOUER** ouvre le choix du jeu et du mode : en ligne, contre l'ordinateur, salon privé, tournois. Le bouton « ← Accueil » ramène à la carte. Le fonctionnement de chaque mode ne change pas.
 - **Fenêtres du jour** (`src/components/DailyPopups.js`) : une fois par jour chacune, l'une après l'autre, quand l'accueil est libre (pas pendant les règles, une invitation ou une recherche).
