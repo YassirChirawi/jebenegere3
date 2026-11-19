@@ -6,6 +6,7 @@ import accountService from '../network/accountService';
 import audioService from '../network/audioService';
 import { haptic, theme } from './ui';
 import { rankFor } from '../../server/progress/defs';
+import GameRecap from './GameRecap';
 
 /**
  * Notifications de progression envoyées par le serveur en fin de partie :
@@ -13,6 +14,7 @@ import { rankFor } from '../../server/progress/defs';
  */
 export default function ProgressToaster() {
     const [item, setItem] = useState(null);
+    const [recap, setRecap] = useState(null); // bilan de fin de partie (partie entière finie)
     const queue = useRef([]);
     const busy = useRef(false);
 
@@ -58,6 +60,13 @@ export default function ProgressToaster() {
 
     useEffect(() => socketService.onProgress((p) => {
         accountService.applyProgress(p);
+        // Partie entière finie (binga de partie ou plafond) : écran de bilan, après l'écran de fin de partie
+        const done = p.binga && (p.binga.game > 0 || p.binga.capped);
+        if (done && p.profile) {
+            const data = { won: !!p.binga.won, xpGained: p.xpGained || 0, xpAfter: p.profile.xp, binga: p.binga, completed: p.completed, titles: p.titles, reward: p.reward };
+            setTimeout(() => setRecap(data), 2600);
+            return;
+        }
         const items = [];
         // Binga de la partie : toujours affichés, même en cas de défaite
         const b = p.binga;
@@ -87,8 +96,11 @@ export default function ProgressToaster() {
         setTimeout(() => { queue.current.push(...items); pump(); }, 3500);
     }), []);
 
-    if (!item) return null;
+    const recapView = recap ? <GameRecap recap={recap} onClose={() => setRecap(null)} /> : null;
+    if (!item) return recapView;
     return (
+        <>
+        {recapView}
         <View pointerEvents="none" style={styles.wrap}>
             <Animated.View key={item.title + item.text} entering={FadeInDown.springify().damping(14)} exiting={FadeOutUp.duration(200)} style={[styles.toast, { borderColor: item.color }]}>
                 <Text style={styles.icon}>{item.icon}</Text>
@@ -98,6 +110,7 @@ export default function ProgressToaster() {
                 </View>
             </Animated.View>
         </View>
+        </>
     );
 }
 
