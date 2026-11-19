@@ -3,6 +3,7 @@ import { Pressable, Text, StyleSheet, View, Platform } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import * as Haptics from 'expo-haptics';
 import audioService from '../network/audioService';
+import Gradient from './Gradient';
 
 export const theme = {
     bg: '#1C0F13',
@@ -86,12 +87,13 @@ export function PressableScale({ onPress, disabled, style, children, sound = 'cl
     );
 }
 
+// Boutons « premium » : dégradé, liseré doré, ombre basse (relief), reflet en haut
 const VARIANTS = {
-    gold:   { bg: theme.gold, border: theme.goldLight, text: theme.bg, shade: theme.goldDark },
-    green:  { bg: theme.green, border: '#3FCB8A', text: '#fff', shade: '#11603C' },
-    blue:   { bg: theme.blue, border: '#4F86C6', text: '#fff', shade: '#123665' },
-    red:    { bg: '#8E1B22', border: '#D9534F', text: '#fff', shade: '#5A0F14' },
-    outline:{ bg: 'rgba(0,0,0,0.35)', border: theme.gold, text: theme.gold, shade: 'rgba(0,0,0,0.5)' },
+    gold:   { grad: ['#FFE795', '#EDBE4E', '#A8761A'], border: '#FFE9A8', text: '#3A1A05', shade: '#6E4A0C', glow: false },
+    green:  { grad: ['#4FD38A', '#1E8C5A', '#0B5232'], border: '#F2CF72', text: '#fff', shade: '#063A22' },
+    blue:   { grad: ['#5B8DEB', '#24529E', '#0D2A5C'], border: '#F2CF72', text: '#fff', shade: '#081B3E' },
+    red:    { grad: ['#EA4A45', '#A61B25', '#5A0A13'], border: '#F2CF72', text: '#fff', shade: '#3A050B' },
+    outline:{ grad: ['rgba(30,46,88,0.92)', 'rgba(9,17,36,0.92)'], border: theme.gold, text: '#F5D77A', shade: 'rgba(0,0,0,0.55)' },
 };
 
 // Bouton principal : effet "3D" avec ombre basse colorée
@@ -104,12 +106,13 @@ export function GameButton({ title, icon, onPress, variant = 'gold', disabled, s
             style={[
                 styles.btn,
                 small && styles.btnSmall,
-                { backgroundColor: v.bg, borderColor: v.border, borderBottomColor: v.shade },
+                { borderColor: v.border, borderBottomColor: v.shade },
                 style,
             ]}
         >
+            <Gradient colors={v.grad} />
             <View style={styles.btnShine} pointerEvents="none" />
-            <Text style={[styles.btnText, small && styles.btnTextSmall, { color: v.text }, textStyle]} numberOfLines={1}>
+            <Text style={[styles.btnText, small && styles.btnTextSmall, { color: v.text }, v.text === '#fff' && styles.btnTextShadow, textStyle]} numberOfLines={1}>
                 {icon ? `${icon}  ` : ''}{title}
             </Text>
         </PressableScale>
@@ -170,11 +173,17 @@ const styles = StyleSheet.create({
     },
     btnShine: {
         position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '45%',
-        backgroundColor: 'rgba(255,255,255,0.14)',
+        top: 2,
+        left: 6,
+        right: 6,
+        height: '40%',
+        borderRadius: 10,
+        backgroundColor: 'rgba(255,255,255,0.1)',
+    },
+    btnTextShadow: {
+        textShadowColor: 'rgba(0,0,0,0.6)',
+        textShadowRadius: 3,
+        textShadowOffset: { width: 0, height: 1 },
     },
     btnText: {
         fontWeight: '900',

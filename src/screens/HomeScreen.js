@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, StyleSheet, Image, ImageBackground, ScrollView, Platform, Pressable } from 'react-native';
+import { View, Text, TextInput, StyleSheet, Image, ScrollView, Platform, Pressable, Modal, useWindowDimensions } from 'react-native';
 import Animated, {
     useSharedValue,
     useAnimatedStyle,
@@ -26,6 +26,22 @@ import { BingaIcon, Chip } from '../components/Decor';
 import DailyPopups from '../components/DailyPopups';
 import Onboarding from '../components/Onboarding';
 import { inDiscord, discordInstanceId } from '../utils/discord';
+import { LUXE, LUXE_IMG, MODE_COLORS, Gradient, Glow, LuxePanel, LevelBadge, XpBar, LaurelPortrait, QuickTile, ModeCard, RibbonTitle, GoldSquare } from '../components/Luxe';
+
+const UI = {
+    collection: require('../../assets/ui/tile_collection.webp'),
+    rewards: require('../../assets/ui/tile_recompenses.webp'),
+    rank: require('../../assets/ui/tile_classement.webp'),
+    profile: require('../../assets/ui/tile_profil.webp'),
+    online: require('../../assets/ui/mode_enligne.webp'),
+    solo: require('../../assets/ui/mode_ordi.webp'),
+    tournament: require('../../assets/ui/mode_tournoi.webp'),
+    friends: require('../../assets/ui/mode_salon.webp'),
+    sParties: require('../../assets/ui/stat_parties.webp'),
+    sWins: require('../../assets/ui/stat_victoires.webp'),
+    sStreak: require('../../assets/ui/stat_serie.webp'),
+    sRate: require('../../assets/ui/stat_taux.webp'),
+};
 
 // Discord Activities : on entre une seule fois tout seul dans le salon de la partie Discord
 let discordAutoJoined = false;
@@ -36,8 +52,6 @@ import { getRankInfo } from '../utils/stats';
 import accountService, { useAccount } from '../network/accountService';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
 
-const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
-const LOGO = require('../../assets/brand/logo.webp');
 
 // Mode test (web) : ajouter ?test=1 à l'adresse pour démarrer les parties Hezz2 contre l'IA avec des 1, 2 et 7
 // ?test=1 : 1, 2 et 7 en main ; ?test=big : la main commence avec 20 cartes (vérification de l'éventail)
@@ -75,8 +89,7 @@ export default function HomeScreen({ navigation }) {
     const [showRules, setShowRules] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(false); // premier lancement
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
-    // Accueil en deux temps : 'home' (carte du joueur + JOUER) puis 'play' (jeu et mode)
-    const [view, setView] = useState('home');
+    const view = 'home'; // accueil sur un seul écran (carte du joueur, raccourcis, modes de jeu)
     const [game, setGame] = useState('hezz2');
     const selected = gameInfo(game);
     const [isMuted, setIsMuted] = useState(audioService.muted);
@@ -85,6 +98,8 @@ export default function HomeScreen({ navigation }) {
     const [wakeSeconds, setWakeSeconds] = useState(0);
     const [hasConnected, setHasConnected] = useState(false);
     const [rankInfo, setRankInfo] = useState(null);
+    const [localStats, setLocalStats] = useState({ played: 0, wins: 0 }); // invité : statistiques de l'appareil
+    const { width: winW } = useWindowDimensions();
     const account = useAccount();
     const profile = account.profile;
     // Connecté : le pseudo est celui du compte
@@ -190,6 +205,8 @@ export default function HomeScreen({ navigation }) {
             try {
                 const xp = parseInt((await AsyncStorage.getItem('playerXP')) || '0', 10);
                 setRankInfo(getRankInfo(xp));
+                const [gp, w] = await Promise.all(['gamesPlayed', 'wins'].map((k) => AsyncStorage.getItem(k)));
+                setLocalStats({ played: parseInt(gp || '0', 10), wins: parseInt(w || '0', 10) });
             } catch (e) { /* ignore */ }
         };
         loadXp();
@@ -397,19 +414,17 @@ export default function HomeScreen({ navigation }) {
     const searchingFor = (n) => online?.searching?.[`${game}:${n}`] || 0;
     const plural = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
 
-    const SizePicker = ({ onPick, color, showSearching }) => (
-        <Animated.View entering={FadeInDown.springify().damping(15)} style={[styles.sizeMenu, { borderColor: color }]}>
-            <View style={styles.sizeHeader}>
-                <PressableScale onPress={() => setMenu(null)} style={styles.sizeBack} hitSlop={8}>
-                    <Text style={styles.sizeBackText}>← Retour</Text>
-                </PressableScale>
-                <Text style={styles.sizeTitle}>Choisis le nombre de joueurs</Text>
-            </View>
-            <View style={styles.sizeRow}>
+    // Choix du nombre de joueurs (dans la fenêtre ouverte par « En ligne » ou « Solo »)
+    const SizePicker = ({ onPick, colors, showSearching }) => (
+        <Animated.View entering={FadeInDown.springify().damping(15)}>
+            <Text style={styles.lxSizeHint}>Choisis le nombre de joueurs</Text>
+            <View style={styles.lxSizes}>
                 {selected.sizes.map((n) => (
-                    <PressableScale key={n} onPress={() => onPick(n)} style={[styles.sizeBtn, { backgroundColor: color }]}>
-                        <Text style={styles.sizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>
-                        <Text style={styles.sizeIcons}>{game === 'ronda' ? selected.sizeLabel(n) : '👤'.repeat(n)}</Text>
+                    <PressableScale key={n} onPress={() => onPick(n)} style={styles.lxSize} scaleTo={0.92} accessibilityLabel={game === 'ronda' ? (n === 2 ? '1 contre 1' : '2 contre 2') : `${n} joueurs`}>
+                        <Gradient colors={colors} />
+                        <View style={styles.lxSizeShine} />
+                        <Text style={styles.lxSizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>
+                        <Text style={styles.lxSizeSub} numberOfLines={1}>{game === 'ronda' ? selected.sizeLabel(n) : 'joueurs'}</Text>
                         {showSearching && searchingFor(n) > 0 && (
                             <Text style={styles.sizeSearching} numberOfLines={1} accessibilityLabel={`${searchingFor(n)} en recherche`}>{searchingFor(n)}</Text>
                         )}
@@ -419,12 +434,32 @@ export default function HomeScreen({ navigation }) {
             {showSearching && selected.sizes.some((n) => searchingFor(n) > 0) && (
                 <Text style={styles.sizeLegend}>🟢 = joueurs qui attendent déjà : choisis cette taille pour jouer tout de suite</Text>
             )}
+            <GameButton small title="Annuler" variant="outline" onPress={() => setMenu(null)} style={{ alignSelf: 'center', marginTop: 14 }} />
         </Animated.View>
     );
 
+    // Statistiques de la carte du joueur : compte (toutes les parties) ou appareil (invité)
+    const allStats = profile?.stats ? Object.values(profile.stats) : null;
+    const played = allStats ? allStats.reduce((n, x) => n + (x.played || 0), 0) : localStats.played;
+    const wins = allStats ? allStats.reduce((n, x) => n + (x.wins || 0), 0) : localStats.wins;
+    const best = allStats ? Math.max(0, ...allStats.map((x) => x.best || 0)) : null;
+    const rate = played ? Math.round((wins / played) * 100) : 0;
+    const level = (rankInfo?.index ?? 0) + 1;
+    const pageW = Math.min(winW, 520);
+    const modeW = Math.floor((pageW - 36 - 24 - 3 * 8) / 4); // 4 cartes par ligne dans le panneau
+    const modesInRow = modeW >= 64;
+    const cardW = modesInRow ? modeW : Math.floor((pageW - 36 - 24 - 12) / 2);
+    const wheelReady = !!profile?.wheel?.available;
+    const startMode = (m) => {
+        if (!requireName()) return;
+        if (m === 'online' && outdated) { audioService.playSound('error'); return; }
+        setMenu(m);
+    };
+
     return (
-        <ImageBackground source={BG} style={styles.container} resizeMode="cover">
-            <View style={styles.dim} pointerEvents="none" />
+        <View style={styles.container}>
+            <Gradient colors={['#12234A', LUXE.night, '#060C18']} />
+            <Glow color="#2A4D9C" style={{ height: 560 }} />
 
             {!hasConnected ? (
                 <View style={styles.center}>
@@ -432,198 +467,199 @@ export default function HomeScreen({ navigation }) {
                 </View>
             ) : (
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-                    {/* En-tête : portrait, pseudo, niveau, XP et binga du joueur, puis classement, musique, son */}
-                    <View style={styles.topBar}>
-                        <Pressable onPress={() => navigation.navigate('Profile')} style={styles.topProfile} accessibilityLabel="Mon profil">
-                            <View style={styles.topAvatar}>
-                                <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={48} />
-                                {rankInfo && <View style={styles.levelBadge}><Text style={styles.levelText}>{(rankInfo.index ?? 0) + 1}</Text></View>}
+                    <View style={styles.page}>
+                        {/* Arches marocaines et lanternes, aux deux coins */}
+                        <Image source={LUXE_IMG.arch} style={styles.archL} pointerEvents="none" />
+                        <Image source={LUXE_IMG.arch} style={styles.archR} pointerEvents="none" />
+
+                        {/* En-tête : binga, musique, son */}
+                        <View style={styles.lxTop}>
+                            <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel="Binga">
+                                <Gradient colors={['#2A1A0E', '#120904']} />
+                                <BingaIcon size={24} />
+                                <Text style={styles.lxCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
+                                <View style={styles.lxPlus}><Text style={styles.lxPlusText}>+</Text></View>
+                            </PressableScale>
+                            <View style={{ flexDirection: 'row', gap: 8 }}>
+                                <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
+                                <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
                             </View>
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                <Text style={styles.topName} numberOfLines={1}>{profile ? profile.name : (name.trim() || 'Invité')}</Text>
-                                {rankInfo && <Text style={styles.topRank} numberOfLines={1}>{rankInfo.emoji} {rankInfo.name}</Text>}
-                                {rankInfo && (
-                                    <View style={styles.topXpRow}>
-                                        <View style={styles.topXpBar}>
-                                            <View style={[styles.xpFill, { width: `${Math.round(Math.min(1, rankInfo.levelProgress || 0) * 100)}%` }]} />
+                        </View>
+
+                        {/* Logo */}
+                        <Animated.View entering={ZoomIn.springify().damping(12)} style={[{ alignItems: 'center', marginTop: -8 }, titleStyle]}>
+                            <Image source={LUXE_IMG.logo} style={{ width: Math.min(300, pageW - 110), height: Math.min(300, pageW - 110) * 0.433 }} accessibilityLabel="L'Carta" />
+                        </Animated.View>
+
+                        {outdated && isConnected && (
+                            <Animated.View entering={FadeIn} style={[styles.reconnect, styles.outdated]}>
+                                <Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles. Il faut le redéployer.</Text>
+                            </Animated.View>
+                        )}
+                        {TEST_MODE && (
+                            <View style={[styles.reconnect, { backgroundColor: 'rgba(124,58,237,0.7)' }]}>
+                                <Text style={styles.reconnectText}>{TEST_MODE === 'big' ? "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec 20 cartes" : "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7"}</Text>
+                            </View>
+                        )}
+                        {!isConnected && (
+                            <Animated.View entering={FadeIn} style={styles.reconnect}>
+                                <Text style={styles.reconnectText}>
+                                    {wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s (jusqu'à 1 min après une pause)`}
+                                </Text>
+                            </Animated.View>
+                        )}
+
+                        {/* Carte du joueur : portrait, pseudo, niveau, XP, rang, statistiques */}
+                        <Animated.View entering={FadeInUp.delay(120).springify().damping(16)}>
+                            <LuxePanel style={styles.lxCard}>
+                                <View style={styles.lxCardRow}>
+                                    <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Mon profil">
+                                        <LaurelPortrait size={pageW < 380 ? 96 : 108}>
+                                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={(pageW < 380 ? 96 : 108) * 0.74} />
+                                        </LaurelPortrait>
+                                    </Pressable>
+                                    <View style={{ flex: 1, marginLeft: 8 }}>
+                                        {profile ? (
+                                            <Pressable onPress={() => navigation.navigate('Profile')} style={styles.lxNameRow} accessibilityLabel="Modifier mon profil">
+                                                <Text style={styles.lxName} numberOfLines={1}>{profile.name}</Text>
+                                                <View style={styles.lxEdit}><Text style={{ fontSize: 12 }}>✏️</Text></View>
+                                            </Pressable>
+                                        ) : (
+                                            <TextInput
+                                                style={styles.lxInput}
+                                                placeholder="Ton pseudo…"
+                                                placeholderTextColor={LUXE.dim}
+                                                value={name}
+                                                onChangeText={setName}
+                                                maxLength={16}
+                                                accessibilityLabel="Ton pseudo"
+                                            />
+                                        )}
+                                        {rankInfo && (
+                                            <View style={styles.lxLevelRow}>
+                                                <LevelBadge level={level} size={40} />
+                                                <View style={{ flex: 1, marginLeft: 6 }}>
+                                                    <XpBar progress={rankInfo.levelProgress || 0} />
+                                                    <Text style={styles.lxXpText}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>
+                                                </View>
+                                            </View>
+                                        )}
+                                        {rankInfo && (
+                                            <Pressable onPress={() => navigation.navigate('Leaderboard')} style={styles.lxRank} accessibilityLabel="Classement">
+                                                <Image source={LUXE_IMG.trophy} style={{ width: 34, height: 21 }} />
+                                                <Text style={styles.lxRankText} numberOfLines={1}>{rankInfo.name}</Text>
+                                            </Pressable>
+                                        )}
+                                    </View>
+                                </View>
+                                {!profile && (
+                                    <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.lxGuestCta}>
+                                        <BingaIcon size={18} />
+                                        <Text style={styles.lxGuestCtaText}>Crée ton compte : binga, coffres, classement</Text>
+                                    </PressableScale>
+                                )}
+                                <View style={styles.lxStats}>
+                                    {[
+                                        [UI.sParties, played, 'Parties'],
+                                        [UI.sWins, wins, 'Victoires'],
+                                        [UI.sStreak, best ?? '—', 'Série max'],
+                                        [UI.sRate, `${rate}%`, 'Victoires %'],
+                                    ].map(([icon, value, label], i) => (
+                                        <View key={label} style={[styles.lxStat, i > 0 && styles.lxStatSep]} accessibilityLabel={`${label} : ${value}`}>
+                                            <Image source={icon} style={styles.lxStatIcon} resizeMode="contain" />
+                                            <Text style={styles.lxStatValue} numberOfLines={1}>{value}</Text>
                                         </View>
-                                        <Text style={styles.topXpText}>{rankInfo.currentXP}{rankInfo.next ? `/${rankInfo.next.min}` : ''} XP</Text>
+                                    ))}
+                                </View>
+                            </LuxePanel>
+                        </Animated.View>
+
+                        {/* Raccourcis */}
+                        <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.lxTiles}>
+                            <QuickTile compact={pageW < 380} icon={UI.collection} label="Collection" onPress={() => navigation.navigate('Shop')} />
+                            <QuickTile compact={pageW < 380} icon={UI.rewards} label="Cadeaux" badge={wheelReady} onPress={() => navigation.navigate('Wheel')} />
+                            <QuickTile compact={pageW < 380} icon={UI.rank} label="Classement" onPress={() => navigation.navigate('Leaderboard')} />
+                            <QuickTile compact={pageW < 380} icon={UI.profile} label="Profil" onPress={() => navigation.navigate('Profile')} />
+                        </Animated.View>
+
+                        {/* Modes de jeu */}
+                        <Animated.View entering={FadeInUp.delay(280).springify().damping(16)} style={{ marginTop: 26 }}>
+                            <LuxePanel style={styles.lxModes} colors={['#5C1020', '#2B0710']}>
+                                <View style={styles.lxGames}>
+                                    {GAME_ORDER.filter((k) => GAMES[k].available).map((k) => {
+                                        const on = k === game;
+                                        return (
+                                            <PressableScale
+                                                key={k}
+                                                onPress={() => { setGame(k); setMenu(null); AsyncStorage.setItem('selectedGame', k).catch(() => {}); }}
+                                                style={[styles.lxGame, on && styles.lxGameOn]}
+                                                accessibilityLabel={GAMES[k].label}
+                                                accessibilityState={{ selected: on }}
+                                            >
+                                                {pageW >= 380 && <CardFace card={GAMES[k].card} width={20} height={29} />}
+                                                <Text style={[styles.lxGameText, on && { color: LUXE.goldLight }]} numberOfLines={1}>{GAMES[k].label.split(' ')[0]}</Text>
+                                            </PressableScale>
+                                        );
+                                    })}
+                                </View>
+                                <Text style={styles.lxTagline} numberOfLines={2}>{selected.tagline}</Text>
+                                {isSearching ? (
+                                    <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
+                                        <SearchSpinner />
+                                        <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
+                                            {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
+                                        </Text>
+                                        <Text style={styles.searchSub}>{selected.label} · partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
+                                        <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
+                                        <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
+                                    </Animated.View>
+                                ) : (
+                                    <View style={[styles.lxModeGrid, !modesInRow && { flexWrap: 'wrap', rowGap: 12 }]}>
+                                        <ModeCard width={cardW} icon={UI.online} label="En ligne" sub={online ? `${online.online} en ligne` : 'vs joueurs'} colors={MODE_COLORS.red} disabled={!isConnected || outdated} onPress={() => startMode('online')} />
+                                        <ModeCard width={cardW} icon={UI.solo} label="Solo" sub="vs ordinateur" colors={MODE_COLORS.blue} disabled={!isConnected} onPress={() => startMode('bot')} />
+                                        <ModeCard width={cardW} icon={UI.tournament} label="Tournois" sub={lastChampion ? `👑 ${lastChampion.champion}` : 'élimination'} colors={MODE_COLORS.purple} disabled={!isConnected} onPress={() => navigation.navigate('Tournaments')} />
+                                        <ModeCard width={cardW} icon={UI.friends} label="Entre amis" sub={inDiscord ? 'salon Discord' : 'salon privé'} colors={MODE_COLORS.green} disabled={!isConnected || (inDiscord && !profile?.name)} onPress={() => { if (!requireName()) return; if (inDiscord) joinDiscordRoom(); else handleCreateRoom(); }} />
                                     </View>
                                 )}
-                            </View>
-                        </Pressable>
-                        <View style={styles.topRight}>
-                            <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.topCoins} accessibilityLabel="Binga">
-                                <BingaIcon size={22} />
-                                <Text style={styles.topCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
-                                <View style={styles.topPlus}><Text style={styles.topPlusText}>＋</Text></View>
+                            </LuxePanel>
+                            <RibbonTitle title="Modes de jeu" style={styles.lxRibbon} />
+                        </Animated.View>
+
+                        <View style={styles.lxLinks}>
+                            <PressableScale onPress={() => setShowRules(true)} style={styles.lxLink}>
+                                <Text style={styles.lxLinkText}>📜 Règles</Text>
                             </PressableScale>
-                            <View style={styles.topIcons}>
-                                <IconButton icon="🏆" onPress={() => navigation.navigate('Leaderboard')} label="Classement" size={32} />
-                                <IconButton icon={musicOn ? '🎵' : '🎶'} onPress={() => audioService.toggleMusic()} label="Musique" size={32} style={!musicOn && styles.iconOff} />
-                                <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={() => audioService.toggleMute()} label="Son" size={32} />
-                            </View>
-                        </View>
-                    </View>
-
-                    {/* Logo */}
-                    <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.logo}>
-                        <Animated.View style={[{ alignItems: 'center' }, titleStyle]}>
-                            <Image source={LOGO} style={[styles.logoImage, view === 'play' && styles.logoSmall]} accessibilityLabel="L'Carta" />
-                            {view === 'home' && <Text style={styles.tagline}>Le jeu de cartes marocain</Text>}
-                        </Animated.View>
-                    </Animated.View>
-
-                    {outdated && isConnected && (
-                        <Animated.View entering={FadeIn} style={[styles.reconnect, styles.outdated]}>
-                            <Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles. Il faut le redéployer.</Text>
-                        </Animated.View>
-                    )}
-                    {TEST_MODE && (
-                        <View style={[styles.reconnect, { backgroundColor: 'rgba(124,58,237,0.7)' }]}>
-                            <Text style={styles.reconnectText}>{TEST_MODE === 'big' ? "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec 20 cartes" : "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7"}</Text>
-                        </View>
-                    )}
-                    {!isConnected && (
-                        <Animated.View entering={FadeIn} style={styles.reconnect}>
-                            <Text style={styles.reconnectText}>
-                                {wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s (jusqu'à 1 min après une pause)`}
-                            </Text>
-                        </Animated.View>
-                    )}
-
-                    {view === 'home' && !isSearching ? (
-                        <>
-                            {/* Invité : son pseudo (avec un compte, c'est celui du compte, affiché en haut) */}
-                            {!profile && (
-                                <Animated.View entering={FadeInUp.delay(150).springify().damping(16)} style={styles.guestBox}>
-                                    <Text style={styles.label}>TON PSEUDO</Text>
-                                    <TextInput
-                                        style={styles.cardInput}
-                                        placeholder="Ex : Yassir…"
-                                        placeholderTextColor={theme.textDim}
-                                        value={name}
-                                        onChangeText={setName}
-                                        maxLength={16}
-                                    />
-                                    <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.guestCta}>
-                                        <BingaIcon size={20} />
-                                        <Text style={styles.guestCtaText}>Crée ton compte pour gagner des binga</Text>
-                                    </PressableScale>
-                                </Animated.View>
-                            )}
-
-                            {/* Un seul bouton : JOUER */}
-                            <PlayButton
-                                disabled={!isConnected}
-                                label={isConnected ? 'JOUER' : 'RÉVEIL DU SERVEUR…'}
-                                onPress={() => { if (!requireName()) return; setView('play'); }}
-                            />
-                            {isConnected && online && (
-                                <View style={[styles.onlineRow, { marginTop: 10 }]} accessibilityLabel="Joueurs en ligne">
-                                    <View style={styles.onlineDot} />
-                                    <Text style={styles.onlineText}>
-                                        {plural(online.online, 'joueur')} en ligne
-                                        {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
-                                    </Text>
-                                </View>
-                            )}
-
-                            {/* Raccourcis : roue, boutique, défis, connexion du jour */}
-                            <View style={styles.tiles}>
-                                <HomeTile icon="🎡" label="Roue" sub={profile?.wheel ? (profile.wheel.available ? '1 tour gratuit' : 'Demain') : 'Gratuite'} badge={profile?.wheel?.available} onPress={() => navigation.navigate('Wheel')} />
-                                <HomeTile chip="couronne" label="Boutique" sub="Coffres" onPress={() => navigation.navigate('Shop')} />
-                                <HomeTile icon="🎯" label="Défis" sub={profile ? `${profile.daily.list.filter((c) => c.done).length}/3 · missions ${profile.binga ? `${profile.binga.missions.filter((m) => m.done).length}/3` : ''}` : 'Avec un compte'} onPress={() => navigation.navigate('Profile')} />
-                                <HomeTile icon="📅" label="Connexion" sub={profile?.binga ? `Jour ${profile.binga.login.streak}/7` : '7 jours'} onPress={() => navigation.navigate('Profile')} />
-                            </View>
-                        </>
-                    ) : (
-                        <>
-                            <View style={styles.playHeader}>
-                                <PressableScale onPress={() => { if (isSearching) handleCancelSearch(); setMenu(null); setView('home'); }} style={styles.homeBack} hitSlop={8} accessibilityLabel="Retour à l'accueil">
-                                    <Text style={styles.homeBackText}>← Accueil</Text>
+                            {isConnected && (
+                                <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}>
+                                    <Text style={styles.lxLinkText}>🔗 J'ai un lien d'invitation</Text>
                                 </PressableScale>
-                                <Text style={styles.playTitle}>Choisis ton jeu</Text>
-                                <View style={{ width: 90 }} />
-                            </View>
-                        <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.panel}>
-                            {/* Choix du jeu */}
-                            <GamePicker
-                                value={game}
-                                onChange={(g) => {
-                                    setGame(g);
-                                    setMenu(null);
-                                    AsyncStorage.setItem('selectedGame', g).catch(() => {});
-                                }}
-                            />
-
-                            {isSearching ? (
-                                <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
-                                    <SearchSpinner />
-                                    <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
-                                        {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
-                                    </Text>
-                                    <Text style={styles.searchSub}>Partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
-                                    <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
-                                    <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
-                                </Animated.View>
-                            ) : (
-                                <>
-                                    {isConnected && online && (
-                                        <View style={styles.onlineRow} accessibilityLabel="Joueurs en ligne">
-                                            <View style={styles.onlineDot} />
-                                            <Text style={styles.onlineText}>
-                                                {plural(online.online, 'joueur')} en ligne
-                                                {online.games > 0 ? ` · ${plural(online.games, 'partie')} en cours` : ''}
-                                            </Text>
-                                        </View>
-                                    )}
-                                    <GameButton title={!isConnected ? '⏳ SERVEUR EN RÉVEIL…' : outdated ? 'EN LIGNE INDISPONIBLE' : `JOUER EN LIGNE · ${selected.label.toUpperCase()} ${menu === 'online' ? '▴' : '▾'}`} icon={isConnected ? '🌍' : undefined} variant="gold" onPress={() => toggleMenu('online')} disabled={!isConnected || outdated} style={{ marginTop: 16 }} />
-                                    {menu === 'online' && <SizePicker onPick={handleSearchMatch} color="#B8860B" showSearching />}
-
-                                    <GameButton title={isConnected ? `CONTRE L'ORDINATEUR ${menu === 'bot' ? '▴' : '▾'}` : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🤖' : undefined} variant="green" onPress={() => toggleMenu('bot')} disabled={!isConnected} style={{ marginTop: 12 }} />
-                                    {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} color={theme.green} />}
-
-                                    {inDiscord ? (
-                                        <GameButton title={isConnected ? 'SALON DE LA PARTIE DISCORD' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🎧' : undefined} variant="blue" onPress={joinDiscordRoom} disabled={!isConnected || !profile?.name} style={{ marginTop: 12 }} />
-                                    ) : (
-                                        <GameButton title={isConnected ? 'CRÉER UN SALON PRIVÉ' : '⏳ SERVEUR EN RÉVEIL…'} icon={isConnected ? '🔒' : undefined} variant="blue" onPress={handleCreateRoom} disabled={!isConnected} style={{ marginTop: 12 }} />
-                                    )}
-
-                                    <GameButton title="TOURNOIS" icon="🏆" variant="red" onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 12 }} />
-                                    {lastChampion && (
-                                        <PressableScale onPress={() => navigation.navigate('Tournaments')} style={styles.championChip}>
-                                            <Text style={styles.championChipText} numberOfLines={1}>
-                                                👑 Dernier champion : {lastChampion.champion}
-                                                <Text style={{ color: theme.textDim, fontWeight: '700' }}>{'  '}{lastChampion.name} · {GAME_LABEL[lastChampion.gameType]}</Text>
-                                            </Text>
-                                        </PressableScale>
-                                    )}
-
-
-                                </>
                             )}
-                        </Animated.View>
+                        </View>
+                        <InstallAppButton />
 
-                        </>
-                    )}
-
-                    <PressableScale onPress={() => setShowRules(true)} style={styles.rulesLink}>
-                        <Text style={styles.rulesLinkText}>📜 Lire les règles</Text>
-                    </PressableScale>
-                    {isConnected && (
-                        <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.inviteLink}>
-                            <Text style={styles.inviteLinkText}>🔗 J'ai un lien d'invitation</Text>
-                        </PressableScale>
-                    )}
-                    <InstallAppButton />
-                    <View style={styles.legalRow}>
-                        <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>Confidentialité</Text>
-                        <Text style={styles.legalDot}>·</Text>
-                        <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>Conditions d'utilisation</Text>
+                        {/* Marrakech au coucher du soleil, pièces, cartes et thé */}
+                        <Image source={LUXE_IMG.scene} style={{ width: pageW, height: pageW * 0.328, marginTop: 8, alignSelf: 'center' }} pointerEvents="none" />
+                        <View style={styles.legalRow}>
+                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>Confidentialité</Text>
+                            <Text style={styles.legalDot}>·</Text>
+                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>Conditions d'utilisation</Text>
+                        </View>
                     </View>
                 </ScrollView>
             )}
+
+            {/* Choix du nombre de joueurs (en ligne ou contre l'ordinateur) */}
+            <Modal visible={!!menu} transparent animationType="fade" onRequestClose={() => setMenu(null)}>
+                <Pressable style={styles.lxSheetBg} onPress={() => setMenu(null)}>
+                    <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 420 }}>
+                        <LuxePanel style={{ padding: 16 }}>
+                            <Text style={styles.lxSheetTitle}>{selected.label} · {menu === 'online' ? 'En ligne' : "Contre l'ordinateur"}</Text>
+                            {menu === 'online' && <SizePicker onPick={handleSearchMatch} colors={MODE_COLORS.red} showSearching />}
+                            {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} colors={MODE_COLORS.blue} />}
+                        </LuxePanel>
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
             <RulesModal visible={showRules && !inviteCode} onClose={closeRules} gameType={game} />
             <Onboarding
@@ -649,70 +685,6 @@ export default function HomeScreen({ navigation }) {
                 onJoin={(code, n) => joinByCode(code, n)}
                 onClose={() => { setShowInvite(false); setInviteCode(null); }}
             />
-        </ImageBackground>
-    );
-}
-
-// Gros bouton JOUER, qui respire doucement
-function PlayButton({ label, onPress, disabled }) {
-    const t = useSharedValue(0);
-    useEffect(() => {
-        t.value = withRepeat(withTiming(1, { duration: 1300, easing: Easing.inOut(Easing.sin) }), -1, true);
-    }, []);
-    const style = useAnimatedStyle(() => ({ transform: [{ scale: disabled ? 1 : 1 + t.value * 0.035 }] }));
-    return (
-        <Animated.View entering={FadeInUp.delay(260).springify().damping(14)} style={[styles.playWrap, style]}>
-            <PressableScale onPress={onPress} disabled={disabled} scaleTo={0.94} style={[styles.playBtn, disabled && { opacity: 0.6 }]} accessibilityLabel="Jouer">
-                <Text style={styles.playIcon}>▶</Text>
-                <Text style={styles.playText}>{label}</Text>
-            </PressableScale>
-        </Animated.View>
-    );
-}
-
-// Raccourci de l'accueil (roue, boutique, défis, connexion)
-function HomeTile({ icon, chip, label, sub, badge, onPress }) {
-    return (
-        <PressableScale onPress={onPress} style={[styles.tile, badge && styles.tileOn]} accessibilityLabel={label}>
-            {chip ? <Chip name={chip} size={34} /> : <Text style={styles.tileIcon}>{icon}</Text>}
-            <Text style={styles.tileLabel}>{label}</Text>
-            <Text style={styles.tileSub} numberOfLines={1}>{sub}</Text>
-            {badge && <View style={styles.tileBadge}><Text style={styles.tileBadgeText}>1</Text></View>}
-        </PressableScale>
-    );
-}
-
-// Sélecteur de jeu : 4 cartes (les jeux pas encore prêts sont marqués "Bientôt")
-function GamePicker({ value, onChange }) {
-    return (
-        <View style={styles.pickerGrid}>
-            {GAME_ORDER.map((key, i) => {
-                const g = GAMES[key];
-                const on = key === value;
-                return (
-                    <Animated.View key={key} entering={FadeInDown.delay(60 * i).springify().damping(15)} style={styles.pickerCell}>
-                        <PressableScale
-                            onPress={() => {
-                                if (!g.available) {
-                                    audioService.playSound('error');
-                                    dialog.alert(g.label, `${g.tagline}\n\nBientôt disponible !`);
-                                    return;
-                                }
-                                onChange(key);
-                            }}
-                            style={[styles.pickerCard, on && { borderColor: g.color, backgroundColor: 'rgba(212,175,55,0.14)' }, !g.available && styles.pickerOff]}
-                        >
-                            <CardFace card={g.card} width={30} height={44} />
-                            <View style={{ flex: 1, marginLeft: 8 }}>
-                                <Text style={[styles.pickerName, on && { color: theme.goldLight }]} numberOfLines={1}>{g.label}</Text>
-                                <Text style={styles.pickerPlayers} numberOfLines={1}>{g.available ? g.players : 'Bientôt'}</Text>
-                            </View>
-                            {on && <Text style={[styles.pickerCheck, { color: g.color }]}>✓</Text>}
-                        </PressableScale>
-                    </Animated.View>
-                );
-            })}
-            <Text style={styles.pickerTagline}>{gameInfo(value).tagline}</Text>
         </View>
     );
 }
@@ -737,7 +709,54 @@ const styles = StyleSheet.create({
     championChipText: { color: theme.goldLight, fontWeight: '800', fontSize: 12 },
     container: {
         flex: 1,
+        backgroundColor: LUXE.night,
     },
+    page: { width: '100%', maxWidth: 520, alignSelf: 'center' },
+    archL: { position: 'absolute', top: -18, left: -18, width: 132, height: 120 },
+    archR: { position: 'absolute', top: -18, right: -18, width: 132, height: 120, transform: [{ scaleX: -1 }] },
+    lxTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 26, zIndex: 2 },
+    lxCoins: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingLeft: 6, paddingRight: 4, height: 36, borderRadius: 18, borderWidth: 1.5, borderColor: LUXE.gold, overflow: 'hidden' },
+    lxCoinsText: { color: LUXE.cream, fontWeight: '900', fontSize: 16, minWidth: 28 },
+    lxPlus: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#E2A92E', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: LUXE.goldLight },
+    lxPlusText: { color: '#3A1A05', fontWeight: '900', fontSize: 17, lineHeight: 19 },
+    lxSqIcon: { fontSize: 18 },
+    lxCard: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 10, marginTop: 6 },
+    lxCardRow: { flexDirection: 'row', alignItems: 'center' },
+    lxNameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+    lxName: { color: LUXE.cream, fontSize: 22, fontWeight: '900', flexShrink: 1, textShadowColor: '#000', textShadowRadius: 4, textShadowOffset: { width: 0, height: 1 } },
+    lxEdit: { width: 26, height: 26, borderRadius: 8, borderWidth: 1.5, borderColor: LUXE.gold, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.35)' },
+    lxInput: { backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1.5, borderColor: LUXE.gold, borderRadius: 10, color: LUXE.cream, paddingHorizontal: 10, paddingVertical: 7, fontWeight: '800', fontSize: 16 },
+    lxLevelRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6 },
+    lxXpText: { color: LUXE.dim, fontWeight: '800', fontSize: 11, marginTop: 3, textAlign: 'right' },
+    lxRank: { flexDirection: 'row', alignItems: 'center', alignSelf: 'flex-start', gap: 4, marginTop: 4, paddingRight: 10, paddingLeft: 2, paddingVertical: 2, borderRadius: 10, backgroundColor: 'rgba(142,18,27,0.75)', borderWidth: 1, borderColor: LUXE.gold },
+    lxRankText: { color: LUXE.goldLight, fontWeight: '900', fontSize: 12 },
+    lxGuestCta: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, marginTop: 8, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(232,184,74,0.15)', borderWidth: 1, borderColor: 'rgba(232,184,74,0.6)' },
+    lxGuestCtaText: { color: LUXE.goldLight, fontWeight: '800', fontSize: 12 },
+    lxStats: { flexDirection: 'row', marginTop: 10, paddingVertical: 8, borderRadius: 14, borderWidth: 1, borderColor: 'rgba(232,184,74,0.45)', backgroundColor: 'rgba(0,0,0,0.3)' },
+    lxStat: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+    lxStatSep: { borderLeftWidth: 1, borderLeftColor: 'rgba(232,184,74,0.3)' },
+    lxStatIcon: { width: 22, height: 22 },
+    lxStatValue: { color: LUXE.cream, fontWeight: '900', fontSize: 15 },
+    lxTiles: { flexDirection: 'row', gap: 8, marginTop: 14 },
+    lxModes: { paddingHorizontal: 12, paddingTop: 30, paddingBottom: 16 },
+    lxRibbon: { position: 'absolute', top: -18, left: 0, right: 0 },
+    lxGames: { flexDirection: 'row', gap: 6, justifyContent: 'center' },
+    lxGame: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 5, paddingHorizontal: 4, borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(232,184,74,0.3)', backgroundColor: 'rgba(0,0,0,0.3)' },
+    lxGameOn: { borderColor: LUXE.goldLight, backgroundColor: 'rgba(232,184,74,0.22)' },
+    lxGameText: { color: LUXE.cream, fontWeight: '900', fontSize: 12.5, flexShrink: 1 },
+    lxTagline: { color: LUXE.dim, fontWeight: '700', fontSize: 11, textAlign: 'center', marginTop: 6, marginBottom: 10 },
+    lxModeGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+    lxLinks: { flexDirection: 'row', justifyContent: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' },
+    lxLink: { paddingVertical: 8, paddingHorizontal: 14, borderRadius: 16, borderWidth: 1, borderColor: 'rgba(232,184,74,0.45)', backgroundColor: 'rgba(10,21,39,0.75)' },
+    lxLinkText: { color: LUXE.goldLight, fontWeight: '800', fontSize: 12 },
+    lxSheetBg: { flex: 1, backgroundColor: 'rgba(4,8,18,0.82)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+    lxSizeHint: { color: LUXE.dim, fontWeight: '800', fontSize: 13, textAlign: 'center', marginTop: 4 },
+    lxSizes: { flexDirection: 'row', gap: 10, justifyContent: 'center', marginTop: 12 },
+    lxSize: { flex: 1, maxWidth: 110, aspectRatio: 0.9, borderRadius: 18, borderWidth: 2, borderColor: LUXE.goldLight, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+    lxSizeShine: { position: 'absolute', top: 3, left: 8, right: 8, height: '36%', borderRadius: 12, backgroundColor: 'rgba(255,255,255,0.09)' },
+    lxSizeNum: { color: '#fff', fontWeight: '900', fontSize: 34, textShadowColor: 'rgba(0,0,0,0.6)', textShadowRadius: 4, textShadowOffset: { width: 0, height: 2 } },
+    lxSizeSub: { color: LUXE.goldLight, fontWeight: '800', fontSize: 12 },
+    lxSheetTitle: { color: LUXE.goldLight, fontWeight: '900', fontSize: 17, textAlign: 'center', marginBottom: 4 },
     dim: {
         ...StyleSheet.absoluteFillObject,
         backgroundColor: 'rgba(18, 6, 9, 0.45)',

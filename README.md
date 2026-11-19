@@ -318,10 +318,17 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 
 ## Accueil
 
-- **En-tête, sur l'accueil et sur le choix du jeu :** le portrait avec le numéro de niveau, le pseudo, le rang, la barre d'XP jusqu'au rang suivant, et le solde de binga (le « ＋ » ouvre la Boutique). À droite : classement, musique, son. Toucher le portrait ouvre le Profil.
-- **Premier écran :** l'en-tête, le logo et un seul gros bouton **JOUER**. Sans compte, une case « Ton pseudo » apparaît sous le logo.
-  - Sous le bouton : 4 raccourcis, Roue (pastille rouge quand le tour gratuit est disponible), Boutique, Défis et Connexion (jour de la série).
-- **JOUER** ouvre le choix du jeu et du mode : en ligne, contre l'ordinateur, salon privé, tournois. Le bouton « ← Accueil » ramène à la carte. Le fonctionnement de chaque mode ne change pas.
+Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours, arches marocaines avec lanternes.
+- **En-tête :** solde de binga (le « + » ouvre la Boutique), musique, son ; le logo L'Carta au centre.
+- **Carte du joueur :** portrait dans un cadre de lauriers, pseudo (✏️ : Profil), badge de niveau hexagonal, barre d'XP dorée, rang (ouvre le Classement). En dessous : parties jouées, victoires, meilleure série, taux de victoire (toutes les parties du compte ; sans compte, celles de l'appareil). Sans compte, la case « Ton pseudo » remplace le nom, avec « Crée ton compte ».
+- **Raccourcis :** Collection (Boutique), Cadeaux (roue et coffres ; pastille rouge si le tour gratuit attend), Classement, Profil.
+- **Modes de jeu**, sur un panneau de velours :
+  - choix du jeu en onglets (Hezz2, Ronda, Kdoub, Sota) et sa phrase de présentation ;
+  - 4 cartes en bouclier : **En ligne** (nombre de joueurs connectés), **Solo** (contre l'ordinateur), **Tournois** (dernier champion), **Entre amis** (salon privé ; dans Discord, le salon de la partie Discord) ;
+  - « En ligne » et « Solo » ouvrent une fenêtre pour choisir le nombre de joueurs. Pendant la recherche d'adversaires, le panneau affiche l'attente et « Annuler ». Le fonctionnement de chaque mode ne change pas.
+- **Bas de page :** règles, lien d'invitation, installation de l'appli, scène de Marrakech au coucher du soleil.
+- **Habillage** ([src/components/Luxe.js](src/components/Luxe.js), [src/components/Gradient.js](src/components/Gradient.js)) : panneaux à double filet doré, badge de niveau, barre d'XP, raccourcis, cartes de modes, ruban de titre. Tout est dessiné en SVG, donc net à toutes les tailles. Les boutons de toute l'appli (`GameButton`) passent aussi au dégradé avec liseré doré.
+- **Images** (`assets/ui/`, environ 250 Ko en tout) : découpées dans la maquette de Yassir par [scripts/build-home-ui.py](scripts/build-home-ui.py). Le fond bleu nuit est rendu transparent.
 - **Fenêtres du jour** (`src/components/DailyPopups.js`) : une fois par jour chacune, l'une après l'autre, quand l'accueil est libre (pas pendant les règles, une invitation ou une recherche).
   1. **Connexion du jour :** les binga reçus et le calendrier des 7 jours (jours passés cochés, jour 7 à 150).
   2. **Roue du jour :** « 1 tour gratuit t'attend », si le tour n'a pas encore été fait.
