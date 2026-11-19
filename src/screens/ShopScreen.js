@@ -8,16 +8,18 @@ import Animated, { FadeIn } from 'react-native-reanimated';
 import { CardBack } from '../components/Card';
 import { WinEffect } from '../components/WinEffects';
 import ReactionGlyph from '../components/ReactionGlyph';
+import ChestOpening, { ChestArt } from '../components/ChestOpening';
 import { GameButton, PressableScale, theme, haptic } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { BACKS, EFFECTS, FELTS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt } from '../utils/cosmetics';
-import { COSMETICS, RARITIES, priceOf } from '../../server/progress/defs';
+import { COSMETICS, RARITIES, CHESTS, priceOf } from '../../server/progress/defs';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
 const TABS = [
+    ['chest', 'Coffres'],
     ['back', 'Dos'],
     ['effect', 'Effets'],
     ['emote', 'Réactions'],
@@ -60,7 +62,8 @@ export default function ShopScreen({ navigation }) {
     const account = useAccount();
     const cos = useCosmetics();
     const profile = account.profile;
-    const [tab, setTab] = useState('back');
+    const [tab, setTab] = useState('chest');
+    const [opening, setOpening] = useState(null);
     const [busy, setBusy] = useState(null);
     const [fx, setFx] = useState(null);
     const balance = profile?.binga?.balance ?? 0;
@@ -144,7 +147,25 @@ export default function ShopScreen({ navigation }) {
         return <GameButton small title={busy === item.id ? '…' : `💰 ${price}`} onPress={() => buy(item)} disabled={!!busy} variant={profile && balance >= price ? 'gold' : 'outline'} />;
     };
 
-    const list = tab === 'avatar' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab)];
+    const openChest = (id) => {
+        const chest = CHESTS[id];
+        if (!profile) { buy({ price: 0 }); return; }
+        if (balance < chest.price) {
+            audioService.playSound('error');
+            dialog.alert('Pas assez de binga', `Il te manque ${chest.price - balance} binga. Joue des parties (même perdues), fais les missions du jour et reviens !`);
+            return;
+        }
+        setOpening(id);
+    };
+    const pityText = (id) => {
+        const left = profile?.chests?.pityLeft?.[id];
+        const p = CHESTS[id].pity;
+        if (!p || !left) return null;
+        const what = RARITIES[p.rarity].label;
+        return left === 1 ? `Le prochain donne un ${what} garanti` : `Plus que ${left} coffres avant un ${what} garanti`;
+    };
+
+    const list = tab === 'avatar' || tab === 'chest' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab)];
 
     return (
         <ImageBackground source={BG} style={styles.container} resizeMode="cover">
@@ -185,6 +206,32 @@ export default function ShopScreen({ navigation }) {
                 {tab === 'avatar' && <Text style={styles.soon}>6 nouveaux portraits arrivent bientôt, dans le même style que les 12 actuels (toujours offerts).</Text>}
                 {tab === 'emote' && <Text style={styles.soon}>Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.</Text>}
 
+                {tab === 'chest' && (
+                    <>
+                        <Text style={styles.soon}>Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.</Text>
+                        {Object.entries(CHESTS).map(([id, c]) => (
+                            <View key={id} style={[styles.chestCard, { borderColor: c.color }]}>
+                                <View style={styles.chestLeft}>
+                                    <ChestArt chest={id} size={92} />
+                                    <Text style={[styles.chestName, { color: c.color }]}>{c.label}</Text>
+                                </View>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.oddsTitle}>Chances</Text>
+                                    {Object.entries(c.odds).map(([r, pct]) => (
+                                        <View key={r} style={styles.oddsRow}>
+                                            <Text style={[styles.oddsLabel, { color: RARITIES[r].color }]}>{RARITIES[r].label}</Text>
+                                            <View style={styles.oddsTrack}><View style={[styles.oddsFill, { width: `${pct}%`, backgroundColor: RARITIES[r].color }]} /></View>
+                                            <Text style={styles.oddsPct}>{pct} %</Text>
+                                        </View>
+                                    ))}
+                                    {pityText(id) && <Text style={styles.pity}>⭐ {pityText(id)}</Text>}
+                                    <GameButton small title={`Ouvrir · 💰 ${c.price}`} onPress={() => openChest(id)} variant={profile && balance >= c.price ? 'gold' : 'outline'} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
+                                </View>
+                            </View>
+                        ))}
+                    </>
+                )}
+
                 <View style={styles.grid}>
                     {list.map((item) => {
                         const r = RARITIES[item.rarity];
@@ -200,6 +247,14 @@ export default function ShopScreen({ navigation }) {
                 </View>
             </ScrollView>
             {fx && <WinEffect key={fx.id} effect={fx.k} />}
+            {opening && (
+                <ChestOpening
+                    chest={opening}
+                    request={() => accountService.openChest(opening)}
+                    onClose={() => setOpening(null)}
+                    onUse={(item) => use(item)}
+                />
+            )}
         </ImageBackground>
     );
 }
@@ -234,6 +289,16 @@ const styles = StyleSheet.create({
     effectIcon: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     seeText: { color: theme.goldLight, fontSize: 10, fontWeight: '900' },
     emoteBox: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+    chestCard: { flexDirection: 'row', gap: 12, padding: 12, marginBottom: 12, borderRadius: 16, borderWidth: 1.5, backgroundColor: 'rgba(28,15,19,0.94)' },
+    chestLeft: { alignItems: 'center', width: 104 },
+    chestName: { fontWeight: '900', fontSize: 13, marginTop: 4, textAlign: 'center' },
+    oddsTitle: { color: theme.cream, fontWeight: '900', fontSize: 12, marginBottom: 4 },
+    oddsRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3 },
+    oddsLabel: { width: 70, fontSize: 11, fontWeight: '900' },
+    oddsTrack: { flex: 1, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.1)', overflow: 'hidden' },
+    oddsFill: { height: '100%' },
+    oddsPct: { width: 34, textAlign: 'right', color: theme.cream, fontSize: 11, fontWeight: '800' },
+    pity: { color: theme.goldLight, fontSize: 11, fontWeight: '800', marginTop: 4 },
     swatch: { width: 64, height: 64, borderRadius: 32, borderWidth: 2, borderColor: '#C9A23A', overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
     swatchPattern: { width: 30, height: 30, borderWidth: 1.5, borderColor: 'rgba(245,215,122,0.55)', transform: [{ rotate: '45deg' }] },
 });

@@ -224,6 +224,18 @@ const accountService = {
         return r;
     },
 
+    /** Ouverture d'un coffre : le serveur retire le prix, tire le lot et renvoie { result, profile }. */
+    async openChest(chest) {
+        if (!state.token) return { error: 'Crée ton compte pour ouvrir des coffres avec tes binga.' };
+        if (socketService.serverInfo && !socketService.supports('chests')) return { error: "Le serveur n'est pas encore à jour : les coffres ne sont pas disponibles pour l'instant." };
+        const r = await request('/api/chests/open', { method: 'POST', body: { chest } });
+        if (r.profile) {
+            set({ profile: r.profile });
+            AsyncStorage.setItem('authProfile', JSON.stringify(r.profile)).catch(() => {});
+        }
+        return r;
+    },
+
     leaderboard(game = 'all') {
         return request(`/api/leaderboard?game=${encodeURIComponent(game)}`);
     },

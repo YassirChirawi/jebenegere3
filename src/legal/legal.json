@@ -4,14 +4,15 @@
   "privacy": {
     "path": "/privacy",
     "title": "Politique de confidentialité",
-    "updated": "17 novembre 2026",
+    "updated": "19 novembre 2026",
     "intro": "L'Carta est un jeu de cartes marocain (Hezz2, Ronda, Kdoub, Sota Ghamla). On collecte le moins de données possible : juste ce qu'il faut pour jouer en ligne et garder ta progression.",
     "sections": [
       {
         "h": "Ce qu'on collecte",
         "items": [
           "Si tu crées un compte : ton pseudo et ton mot de passe. Le mot de passe n'est jamais stocké en clair : seule une empreinte (hachage scrypt) est gardée, impossible à retransformer en mot de passe.",
-          "Ta progression liée au compte : XP, rang, titres, statistiques par jeu (parties jouées, victoires, défaites, séries), historique de tes 30 dernières parties (jeu, résultat, adversaires, date), défis du jour, saisons, dos de cartes et tapis débloqués, avatar et titre choisis.",
+          "Ta progression liée au compte : XP, rang, titres, statistiques par jeu (parties jouées, victoires, défaites, séries), historique de tes 30 dernières parties (jeu, résultat, adversaires, date), défis du jour, saisons, avatar et titre choisis.",
+          "Tes binga et ce que tu en fais : solde, gains et achats récents, missions et série de connexion du jour, cosmétiques possédés (dos, tapis, effets, réactions) et choisis, historique des coffres ouverts (date, coffre, objet obtenu).",
           "Ta liste de joueurs bloqués (voir « Chat »).",
           "Les jetons de connexion de tes appareils (sous forme d'empreinte), pour rester connecté."
         ]
@@ -51,7 +52,7 @@
         "h": "Combien de temps",
         "items": [
           "Ton compte et ta progression sont gardés tant que ton compte existe.",
-          "Quand tu supprimes ton compte, tout est effacé immédiatement et définitivement : pseudo, XP, rang, stats, historique, défis, titres, dos et tapis débloqués, liste des joueurs bloqués. On n'en garde aucune copie."
+          "Quand tu supprimes ton compte, tout est effacé immédiatement et définitivement : pseudo, XP, rang, stats, historique, défis, titres, binga, cosmétiques possédés, historique des coffres, liste des joueurs bloqués. On n'en garde aucune copie."
         ]
       },
       {
@@ -73,7 +74,7 @@
   "terms": {
     "path": "/terms",
     "title": "Conditions d'utilisation",
-    "updated": "16 novembre 2026",
+    "updated": "19 novembre 2026",
     "intro": "En jouant à L'Carta, tu acceptes ces règles simples. Elles sont là pour que tout le monde passe un bon moment.",
     "sections": [
       {
@@ -114,8 +115,18 @@
       {
         "h": "Le jeu",
         "items": [
-          "L'Carta est gratuit, sans achat ni argent réel. L'XP, les rangs et les récompenses n'ont aucune valeur monétaire.",
+          "L'Carta est gratuit. Les parties classiques restent gratuites, et l'XP, les rangs et les récompenses n'ont aucune valeur monétaire.",
           "Le jeu peut évoluer (règles, récompenses, saisons) et peut être interrompu pour maintenance."
+        ]
+      },
+      {
+        "h": "Binga, boutique et coffres",
+        "items": [
+          "Le binga est la monnaie du jeu. Il se gagne seulement en jouant : parties finies (même perdues), connexion du jour, missions du jour et nouveaux rangs. Il ne s'achète pas avec de l'argent, ne se vend pas, ne s'échange pas entre joueurs et ne se convertit jamais en argent.",
+          "Le binga sert à acheter des cosmétiques dans la boutique et à ouvrir des coffres. Les cosmétiques sont des visuels seulement : ils ne donnent aucun avantage en partie.",
+          "Les coffres s'ouvrent uniquement avec du binga gratuit gagné en jouant. Aucun argent réel n'est en jeu, et ce qu'on y trouve n'a aucune valeur monétaire.",
+          "Chaque coffre contient 1 cosmétique tiré au sort par le serveur. Les probabilités de chaque rareté sont affichées sur le coffre avant l'ouverture, et ne changent jamais sans être annoncées. Si tu possèdes déjà l'objet, tu reçois 20 % de sa valeur en binga.",
+          "Un cosmétique obtenu est gardé avec ton compte tant que ton compte existe. S'il est supprimé, ton binga et tes cosmétiques le sont aussi."
         ]
       }
     ]

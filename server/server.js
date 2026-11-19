@@ -72,6 +72,18 @@ app.post('/api/shop/buy', api(async (req, res) => {
     }
     res.status(r.error ? 400 : 200).json(r);
 }));
+// Coffres : ouverts en binga, tirage fait ici (jamais par l'appli)
+app.post('/api/chests/open', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.openChest(user, req.body?.chest);
+    if (r.success) {
+        for (const s of io.sockets.sockets.values()) {
+            if (s.data.user?.userId === user.id) s.data.emotes = emotesOf(r.profile.unlocks);
+        }
+    }
+    res.status(r.error ? 400 : 200).json(r);
+}));
 const emotesOf = (unlocks) => new Set((unlocks || []).filter((k) => k.startsWith('emote:')));
 app.post('/api/me', api(async (req, res) => {
     const user = await requireUser(req, res);
@@ -130,7 +142,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests'] };
 }
 
 // === MODÉRATION DU CHAT ===

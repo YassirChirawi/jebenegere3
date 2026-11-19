@@ -6,7 +6,9 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
-const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic } = defs;
+const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS } = defs;
+const { rollChest, pityLeft } = require('./chests');
+const CHEST_HISTORY_MAX = 50;
 const BINGA_LOG_MAX = 30;
 const GAME_NAMES = { hezz2: 'Hezz2', ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota' };
 
@@ -259,6 +261,42 @@ function createProgress(store) {
         });
     }
 
+    // ------------------------------------------------------------------ coffres
+    /**
+     * Ouverture d'un coffre : le serveur vérifie le solde, retire le prix, tire le lot (crypto) et l'ajoute au compte.
+     * Doublon : 20 % de sa valeur en binga. Garantie (pity) tenue à jour par type de coffre.
+     */
+    async function openChest(user, chestId, now = Date.now(), rng) {
+        const chest = CHESTS[String(chestId || '')];
+        if (!chest) return { error: "Ce coffre n'existe pas." };
+        return withUser(user.id, (u) => {
+            const b = bingaDay(u, now);
+            if (b.balance < chest.price) return { error: `Il te manque ${chest.price - b.balance} binga.` };
+            u.chests = { pity: {}, history: [], ...(u.chests || {}) };
+            u.unlocks = u.unlocks || [];
+            const roll = rollChest(chestId, u.chests.pity[chestId] || 0, u.unlocks, rng);
+            b.balance -= chest.price;
+            const log = [{ at: now, amount: -chest.price, reason: `${chest.label}` }];
+            if (roll.duplicate) {
+                b.balance += roll.refund;
+                log.unshift({ at: now, amount: roll.refund, reason: `Doublon : ${roll.item.label} (20 %)` });
+            } else {
+                u.unlocks.push(roll.item.id);
+            }
+            b.log = [...log, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
+            if (chest.pity) u.chests.pity[chestId] = roll.nextPity;
+            const result = {
+                chest: chestId,
+                item: { id: roll.item.id, label: roll.item.label, kind: roll.item.kind, rarity: roll.rarity },
+                duplicate: roll.duplicate,
+                refund: roll.refund,
+                pity: roll.pity,
+            };
+            u.chests.history = [{ at: now, ...result }, ...u.chests.history].slice(0, CHEST_HISTORY_MAX);
+            return { success: true, result, profile: profileOf(u, now) };
+        });
+    }
+
     // ------------------------------------------------------------------ boutique
     /**
      * Achat d'un cosmétique en binga : le serveur vérifie le prix, le solde et qu'il n'est pas déjà possédé.
@@ -489,6 +527,10 @@ function createProgress(store) {
             },
             unlocks: u.unlocks,
             equipped: u.equipped || {},
+            chests: {
+                pityLeft: Object.fromEntries(Object.keys(CHESTS).filter((k) => CHESTS[k].pity).map((k) => [k, pityLeft(k, u.chests?.pity?.[k] || 0)])),
+                history: u.chests?.history || [],
+            },
             titles: TITLES.map((t) => ({ id: t.id, label: t.label, desc: t.desc, target: t.target, progress: Math.min(t.target, u.counters[t.counter] || 0), unlocked: u.titles.includes(t.id) })),
             badges: u.badges || [],
             season: { id: season.id, end: season.end, xp: u.seasons?.[season.id]?.all || 0 },
@@ -518,7 +560,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

@@ -154,12 +154,25 @@ const BINGA = {
 // d'obtention (coffres) et le prix. Les légendaires ne s'achètent pas : coffre Or seulement.
 // L'identifiant est aussi la clé gardée dans la liste « unlocks » du compte.
 // ----------------------------------------------------------------------------
+// value : valeur de référence (doublon d'un coffre = 20 % de cette valeur, en binga)
 const RARITIES = {
-    commun: { label: 'Commun', price: 100, color: '#CBD5E1' },
-    rare: { label: 'Rare', price: 250, color: '#60A5FA' },
-    epique: { label: 'Épique', price: 500, color: '#C084FC' },
-    legendaire: { label: 'Légendaire', price: null, color: '#F5D77A' }, // coffre Or seulement
+    commun: { label: 'Commun', price: 100, value: 100, color: '#CBD5E1', rank: 0 },
+    rare: { label: 'Rare', price: 250, value: 250, color: '#60A5FA', rank: 1 },
+    epique: { label: 'Épique', price: 500, value: 500, color: '#C084FC', rank: 2 },
+    legendaire: { label: 'Légendaire', price: null, value: 1000, color: '#F5D77A', rank: 3 }, // coffre Or seulement
 };
+
+// ----------------------------------------------------------------------------
+// Coffres : ouverts seulement avec des binga gagnés en jouant. 1 cosmétique par coffre.
+// Probabilités en % (affichées avant l'ouverture : ne jamais les changer sans le dire).
+// pity : après « after » coffres de ce type sans la rareté « rarity » (ou mieux), le suivant la garantit.
+// ----------------------------------------------------------------------------
+const CHESTS = {
+    bronze: { label: 'Coffre Bronze', price: 100, odds: { commun: 70, rare: 25, epique: 5, legendaire: 0 }, color: '#CD7F32' },
+    argent: { label: 'Coffre Argent', price: 250, odds: { commun: 40, rare: 40, epique: 18, legendaire: 2 }, pity: { after: 10, rarity: 'epique' }, color: '#C0C0C0' },
+    or: { label: 'Coffre Or', price: 500, odds: { commun: 10, rare: 35, epique: 40, legendaire: 15 }, pity: { after: 20, rarity: 'legendaire' }, color: '#F5C542' },
+};
+const DUPLICATE_REFUND = 0.2; // doublon : 20 % de la valeur en binga, jamais zéro
 
 const COSMETICS = [
     // Dos de cartes (Classique, offert à tous, est le dos par défaut)
@@ -213,7 +226,7 @@ function priceOf(item) {
 const cosmetic = (id) => COSMETICS.find((c) => c.id === id) || null;
 
 module.exports = {
-    RARITIES, COSMETICS, priceOf, cosmetic,
+    RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND,
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
     TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
 };

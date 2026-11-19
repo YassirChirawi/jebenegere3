@@ -327,7 +327,7 @@ Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage 
 | Commun | 100 binga |
 | Rare | 250 binga |
 | Épique | 500 binga |
-| Légendaire | ne s'achète pas : coffre Or seulement |
+| Légendaire | ne s’achète pas : coffre Or seulement |
 
 | Type | Objets (rareté) |
 |---|---|
@@ -347,6 +347,24 @@ Les cosmétiques sont des **visuels seulement** : ils ne donnent aucun avantage 
 - **Gardé pour toujours avec le compte :** les objets possédés et les choix (dos, effet, tapis) sont enregistrés dans le compte. Après une réinstallation, il suffit de se reconnecter pour tout retrouver.
 - **Les anciens déblocages restent valables :** Zellige au rang fchkel, les dos et tapis des défis du jour, le dos de Saison pour le top 10, Champion pour le gagnant d'un tournoi.
 - Le catalogue (`COSMETICS`, `RARITIES`) est dans `server/progress/defs.js`, utilisé par le serveur et par l'appli.
+
+## Coffres
+
+Les coffres s'ouvrent dans la Boutique, onglet Coffres, **seulement avec des binga gagnés en jouant**, jamais avec de l'argent réel. Chaque coffre contient **1 cosmétique**, jamais du binga seul.
+
+| Coffre | Prix | Commun | Rare | Épique | Légendaire | Garantie |
+|---|---|---|---|---|---|---|
+| Bronze | 100 | 70 % | 25 % | 5 % | 0 % | aucune |
+| Argent | 250 | 40 % | 40 % | 18 % | 2 % | après 10 coffres Argent sans Épique, le 11ᵉ donne un Épique (ou mieux) |
+| Or | 500 | 10 % | 35 % | 40 % | 15 % | après 20 coffres Or sans Légendaire, le 21ᵉ donne un Légendaire |
+
+- **Les probabilités sont affichées** sur chaque coffre avant l'ouverture, avec le compteur de garantie (« Plus que 3 coffres avant un Épique garanti »). Ne jamais les changer sans le dire.
+- **Le tirage se fait sur le serveur** (`POST /api/chests/open`, `server/progress/chests.js`), avec le générateur aléatoire du serveur (`crypto.randomInt`). L'appli demande seulement quel coffre ouvrir, et ne choisit jamais son lot.
+- **Contenu :** tous les cosmétiques sauf Champion, qui reste réservé au tournoi. Dans la rareté tirée, on reçoit d'abord un objet qu'on n'a pas encore.
+- **Doublon :** seulement quand toute la rareté est déjà possédée. On reçoit alors 20 % de la valeur en binga : 20 (Commun), 50 (Rare), 100 (Épique), 200 (Légendaire, pour une valeur de 1 000).
+- **Animation :** le coffre tremble pendant le tirage, s'ouvre, puis le cosmétique apparaît avec son nom et sa rareté. Cela prend environ 1,7 s, et 3 s au plus.
+- **Historique :** le Profil affiche les 50 derniers coffres ouverts, avec la date, le coffre, l'objet, sa rareté et le doublon éventuel. Le journal des binga montre les dépenses et les remboursements.
+- Les pages `/privacy` et `/terms` le disent : coffres ouverts avec du binga gratuit gagné en jouant, probabilités affichées, aucun argent réel en jeu.
 
 ## Premium, phase 2 : progression et récompenses
 

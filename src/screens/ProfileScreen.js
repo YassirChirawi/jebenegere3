@@ -12,7 +12,7 @@ import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { dialog } from '../components/Dialog';
 import { useChatModeration, unblockPlayer } from '../utils/chatModeration';
-import { BINGA } from '../../server/progress/defs';
+import { BINGA, CHESTS, RARITIES } from '../../server/progress/defs';
 
 const BG = require('../../assets/Yellow and White Illustrative Ramadan Greeting Instagram Post.png');
 
@@ -309,6 +309,24 @@ export default function ProfileScreen({ navigation }) {
                         <Text style={styles.dim}>Crée ton compte pour gagner des binga à chaque partie, même en perdant, et les garder d'un appareil à l'autre.</Text>
                     </Section>
                 ) : null}
+
+                {/* Coffres ouverts */}
+                {profile?.chests?.history?.length > 0 && (
+                    <Section title="🎁 Coffres ouverts" right={<Text style={styles.dim}>{profile.chests.history.length} au total</Text>} delay={100}>
+                        {profile.chests.history.slice(0, 15).map((h, i) => (
+                            <View key={`${h.at}-${i}`} style={styles.histRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.text} numberOfLines={1}>
+                                        <Text style={{ color: RARITIES[h.item.rarity]?.color, fontWeight: '900' }}>{h.item.label}</Text>
+                                        <Text style={styles.dim}>  {RARITIES[h.item.rarity]?.label}{h.pity ? ' · garanti' : ''}</Text>
+                                    </Text>
+                                    <Text style={styles.dim}>{CHESTS[h.chest]?.label} · {new Date(h.at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} {new Date(h.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
+                                </View>
+                                <Text style={styles.histXp}>{h.duplicate ? `Doublon +${h.refund}` : 'Nouveau'}</Text>
+                            </View>
+                        ))}
+                    </Section>
+                )}
 
                 {/* Défis du jour */}
                 <Section title="🎯 Défis du jour" right={profile ? <Text style={styles.dim}>Nouveaux dans {untilTomorrow()}</Text> : null} delay={120}>
