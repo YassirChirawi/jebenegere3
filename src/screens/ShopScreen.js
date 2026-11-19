@@ -5,6 +5,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ImageBackground, ScrollView, Pressable, Image } from 'react-native';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { BingaIcon, DECOR } from '../components/Decor';
 import Animated, { FadeIn } from 'react-native-reanimated';
 import { CardBack } from '../components/Card';
 import { WinEffect } from '../components/WinEffects';
@@ -191,7 +192,8 @@ export default function ShopScreen({ navigation }) {
                 </PressableScale>
                 <Text style={styles.title}>🛍️ Boutique</Text>
                 <View style={styles.balance}>
-                    <Text style={styles.balanceText}>💰 {profile ? balance.toLocaleString('fr-FR') : '—'}</Text>
+                    <BingaIcon size={16} />
+                    <Text style={styles.balanceText}>{profile ? balance.toLocaleString('fr-FR') : '—'}</Text>
                 </View>
             </View>
 
@@ -224,6 +226,12 @@ export default function ShopScreen({ navigation }) {
 
                 {tab === 'chest' && (
                     <>
+                        <ImageBackground source={DECOR.coffres} style={styles.chestBanner} imageStyle={{ borderRadius: 16 }} resizeMode="cover">
+                            <View style={styles.chestBannerShade}>
+                                <Text style={styles.chestBannerTitle}>Coffres et roue du jour</Text>
+                                <GameButton small title="🎡 Roue du jour (gratuite)" onPress={() => navigation.navigate('Wheel')} />
+                            </View>
+                        </ImageBackground>
                         <Text style={styles.soon}>Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.</Text>
                         {Object.entries(CHESTS).map(([id, c]) => (
                             <View key={id} style={[styles.chestCard, { borderColor: c.color }]}>
@@ -281,7 +289,7 @@ const styles = StyleSheet.create({
     headBtn: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(212,175,55,0.15)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     title: { color: theme.goldLight, fontSize: 20, fontWeight: '900' },
-    balance: { paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: theme.gold },
+    balance: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingHorizontal: 10, paddingVertical: 7, borderRadius: 12, backgroundColor: 'rgba(0,0,0,0.45)', borderWidth: 1, borderColor: theme.gold },
     balanceText: { color: theme.goldLight, fontWeight: '900', fontSize: 13 },
     scroll: { padding: 14, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
     info: { color: theme.cream, fontSize: 12, fontWeight: '700', textAlign: 'center', backgroundColor: 'rgba(28,15,19,0.85)', borderRadius: 14, padding: 10 },
@@ -305,6 +313,9 @@ const styles = StyleSheet.create({
     effectIcon: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1, borderColor: 'rgba(212,175,55,0.4)' },
     seeText: { color: theme.goldLight, fontSize: 10, fontWeight: '900' },
     emoteBox: { width: 70, height: 70, borderRadius: 35, alignItems: 'center', justifyContent: 'center', backgroundColor: 'rgba(0,0,0,0.4)' },
+    chestBanner: { height: 130, marginBottom: 12, borderRadius: 16, overflow: 'hidden', borderWidth: 1.5, borderColor: theme.gold },
+    chestBannerShade: { flex: 1, justifyContent: 'flex-end', alignItems: 'flex-start', padding: 10, gap: 6, backgroundColor: 'rgba(0,0,0,0.25)' },
+    chestBannerTitle: { color: '#FFF7D6', fontWeight: '900', fontSize: 16, textShadowColor: '#000', textShadowRadius: 6 },
     chestCard: { flexDirection: 'row', gap: 12, padding: 12, marginBottom: 12, borderRadius: 16, borderWidth: 1.5, backgroundColor: 'rgba(28,15,19,0.94)' },
     chestLeft: { alignItems: 'center', width: 104 },
     chestName: { fontWeight: '900', fontSize: 13, marginTop: 4, textAlign: 'center' },

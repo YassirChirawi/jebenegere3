@@ -178,6 +178,23 @@ const CHESTS = {
 };
 const DUPLICATE_REFUND = 0.2; // doublon : 20 % de la valeur en binga, jamais zéro
 
+// ----------------------------------------------------------------------------
+// Roue du jour : 1 tour gratuit par jour (comptes), jamais payant. Toujours un lot. Chances en % (affichées).
+// chip : décor de la case (jetons de assets/decor)
+// ----------------------------------------------------------------------------
+const WHEEL = {
+    segments: [
+        { id: 'b20', label: '20 binga', binga: 20, odds: 22, chip: 'pique' },
+        { id: 'bronze', label: 'Coffre Bronze', chest: 'bronze', odds: 15, chip: 'coffre' },
+        { id: 'b50', label: '50 binga', binga: 50, odds: 20, chip: 'coeur' },
+        { id: 'commun', label: 'Cosmétique Commun', cosmetic: 'commun', odds: 12, chip: 'cadeau' },
+        { id: 'b100', label: '100 binga', binga: 100, odds: 12, chip: 'trefle' },
+        { id: 'argent', label: 'Coffre Argent', chest: 'argent', odds: 8, chip: 'coffre' },
+        { id: 'b200', label: '200 binga', binga: 200, odds: 8, chip: 'carreau' },
+        { id: 'or', label: 'Coffre Or', chest: 'or', odds: 3, chip: 'couronne' },
+    ],
+};
+
 const COSMETICS = [
     // Dos de cartes (Classique, offert à tous, est le dos par défaut)
     { id: 'back:cuivre', kind: 'back', label: 'Cuivre martelé', rarity: 'commun' },
@@ -263,7 +280,7 @@ const FREE_AVATARS = 12;
 const MAX_AVATAR = 28;
 
 module.exports = {
-    RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND, FREE_AVATARS, MAX_AVATAR,
+    RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND, WHEEL, FREE_AVATARS, MAX_AVATAR,
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
     TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
 };

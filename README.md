@@ -377,6 +377,32 @@ Les **parties classiques restent gratuites**. La mise est une option des salons 
   - le gagnant qui a payé reçoit, en plus de Champion, le dos exclusif **Sultan** (vert et or, ni en boutique ni en coffre), le titre **« Sultan dyal l'binga »** (nom proposé, à valider) et le double d'XP. Jamais d'argent.
 - Les montants (`stakes`, `tournamentEntry`) sont regroupés dans `BINGA`, dans `server/progress/defs.js`.
 
+## Roue du jour et décor du binga
+
+- **Roue du jour** (accueil, ou Boutique → Coffres) :
+  - un tour gratuit par jour pour les comptes, jamais payant, ni en binga ni en argent ;
+  - toujours un lot, tiré par le serveur (`POST /api/wheel/spin`, `crypto.randomInt`) ;
+  - la roue tourne jusqu'à la case gagnante en 2,6 s.
+
+  | Lot | Chances |
+  |---|---|
+  | 20 binga | 22 % |
+  | 50 binga | 20 % |
+  | Coffre Bronze (ouvert gratuitement) | 15 % |
+  | Cosmétique Commun (un qu'on n'a pas ; tout possédé = 20 binga) | 12 % |
+  | 100 binga | 12 % |
+  | Coffre Argent (ouvert gratuitement) | 8 % |
+  | 200 binga | 8 % |
+  | Coffre Or (ouvert gratuitement) | 3 % |
+
+  Les chances sont affichées sous la roue. Un coffre gagné suit ses propres chances et compte pour sa garantie. Pas de tour payant : un tour rapporte en moyenne plus qu'un petit prix en binga, ce qui permettrait de fabriquer des binga.
+- **Décor** (illustrations de Yassir, `python scripts/build-decor.py <dossier>`, `assets/decor/`, environ 230 Ko en tout) :
+  - la pièce au pique est l'icône du binga (accueil, Boutique, Profil, roue) ;
+  - les jetons pique, cœur et trèfle illustrent les mises de 10, 50 et 100 dans les salons ;
+  - le jeton couronne marque les tournois à entrée en binga ;
+  - la scène au pique sert de fond à la roue, et le coffre rempli de pièces de bandeau aux coffres.
+- Les illustrations avec des montants ou des « gemmes » (monnaies qui n'existent pas dans le jeu) ne sont pas utilisées telles quelles.
+
 ## Coffres
 
 Les coffres s'ouvrent dans la Boutique, onglet Coffres, **seulement avec des binga gagnés en jouant**, jamais avec de l'argent réel. Chaque coffre contient **1 cosmétique**, jamais du binga seul.

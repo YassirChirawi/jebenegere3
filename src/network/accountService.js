@@ -236,6 +236,12 @@ const accountService = {
         return r;
     },
 
+    /** Roue du jour : le serveur tire la case et renvoie { result, profile } (un tour gratuit par jour). */
+    async spinWheel() {
+        if (!state.token) return { error: 'Crée ton compte pour tourner la roue du jour.' };
+        return request('/api/wheel/spin', { method: 'POST' });
+    },
+
     leaderboard(game = 'all') {
         return request(`/api/leaderboard?game=${encodeURIComponent(game)}`);
     },

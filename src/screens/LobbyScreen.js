@@ -4,6 +4,7 @@ import Animated, { FadeInDown, FadeOut, LinearTransition, ZoomIn, useSharedValue
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { Chip, STAKE_CHIP } from '../components/Decor';
 import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { gameInfo, GAMES, GAME_ORDER } from '../games';
@@ -216,13 +217,17 @@ ${inviteUrl(roomId)}`);
                         {amHost ? (
                             <View style={styles.gameChips}>
                                 {[0, ...BINGA.stakes].map((v) => (
-                                    <Pressable key={v} onPress={() => setStake(v)} disabled={busy || room?.inGame} style={[styles.gameChip, v === stake && { backgroundColor: theme.goldDark, borderColor: theme.goldLight }]}>
-                                        <Text style={[styles.gameChipText, v === stake && { color: '#fff' }]}>{v ? `💰 ${v}` : 'Gratuit'}</Text>
+                                    <Pressable key={v} onPress={() => setStake(v)} disabled={busy || room?.inGame} style={[styles.gameChip, styles.stakeChip, v === stake && { backgroundColor: theme.goldDark, borderColor: theme.goldLight }]}>
+                                        {v ? <Chip name={STAKE_CHIP[v]} size={26} /> : null}
+                                        <Text style={[styles.gameChipText, v === stake && { color: '#fff' }]}>{v ? `${v}` : 'Gratuit'}</Text>
                                     </Pressable>
                                 ))}
                             </View>
                         ) : (
-                            <Text style={styles.stakeBig}>💰 {stake} binga par joueur</Text>
+                            <View style={styles.stakeChip}>
+                                <Chip name={STAKE_CHIP[stake]} size={34} />
+                                <Text style={styles.stakeBig}>{stake} binga par joueur</Text>
+                            </View>
                         )}
                         <Text style={styles.stakeHint}>
                             {stake === 0
@@ -402,6 +407,7 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         paddingHorizontal: 16,
     },
+    stakeChip: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     stakeBig: { color: theme.goldLight, fontWeight: '900', fontSize: 18, marginVertical: 4 },
     stakeHint: { color: theme.textDim, fontSize: 12, marginTop: 6 },
     stakeRow: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 },

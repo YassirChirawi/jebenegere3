@@ -12,7 +12,7 @@
         "items": [
           "Si tu crées un compte : ton pseudo et ton mot de passe. Le mot de passe n'est jamais stocké en clair : seule une empreinte (hachage scrypt) est gardée, impossible à retransformer en mot de passe.",
           "Ta progression liée au compte : XP, rang, titres, statistiques par jeu (parties jouées, victoires, défaites, séries), historique de tes 30 dernières parties (jeu, résultat, adversaires, date), défis du jour, saisons, avatar et titre choisis.",
-          "Tes binga et ce que tu en fais : solde, gains et achats récents, missions et série de connexion du jour, cosmétiques possédés (dos, tapis, effets, réactions) et choisis, historique des coffres ouverts (date, coffre, objet obtenu).",
+          "Tes binga et ce que tu en fais : solde, gains et achats récents, missions et série de connexion du jour, cosmétiques possédés (dos, tapis, effets, réactions) et choisis, historique des coffres ouverts (date, coffre, objet obtenu) et des derniers tours de la roue du jour.",
           "Ta liste de joueurs bloqués (voir « Chat »).",
           "Les jetons de connexion de tes appareils (sous forme d'empreinte), pour rester connecté."
         ]
@@ -120,12 +120,13 @@
         ]
       },
       {
-        "h": "Binga, boutique et coffres",
+        "h": "Binga, boutique, coffres et roue du jour",
         "items": [
           "Le binga est la monnaie du jeu. Il se gagne seulement en jouant : parties finies (même perdues), connexion du jour, missions du jour et nouveaux rangs. Il ne s'achète pas avec de l'argent, ne se vend pas, ne s'échange pas entre joueurs et ne se convertit jamais en argent.",
           "Le binga sert à acheter des cosmétiques dans la boutique et à ouvrir des coffres. Les cosmétiques sont des visuels seulement : ils ne donnent aucun avantage en partie.",
           "Les coffres s'ouvrent uniquement avec du binga gratuit gagné en jouant. Aucun argent réel n'est en jeu, et ce qu'on y trouve n'a aucune valeur monétaire.",
           "Chaque coffre contient 1 cosmétique tiré au sort par le serveur. Les probabilités de chaque rareté sont affichées sur le coffre avant l'ouverture, et ne changent jamais sans être annoncées. Si tu possèdes déjà l'objet, tu reçois 20 % de sa valeur en binga.",
+          "La roue du jour offre un tour gratuit par jour aux joueurs qui ont un compte. Elle ne se paie jamais, ni en binga ni en argent, et donne toujours un lot (binga, coffre ouvert gratuitement ou cosmétique). Les chances de chaque lot sont affichées sous la roue.",
           "Un cosmétique obtenu est gardé avec ton compte tant que ton compte existe. S'il est supprimé, ton binga et tes cosmétiques le sont aussi."
         ]
       }

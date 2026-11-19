@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from '@react-navigation/native';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { BingaIcon } from '../components/Decor';
 import { getRankInfo, getGameStats } from '../utils/stats';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
 import CustomizeSheet from '../components/CustomizeSheet';
@@ -255,7 +256,10 @@ export default function ProfileScreen({ navigation }) {
                 {/* Binga : solde, connexion du jour, missions, derniers gains */}
                 {profile?.binga ? (
                     <Section title="💰 Binga" right={<Text style={styles.dim}>Missions nouvelles dans {untilTomorrow()}</Text>} delay={90}>
-                        <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                        <View style={styles.bingaRow}>
+                            <BingaIcon size={34} />
+                            <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                        </View>
                         <View style={{ alignItems: 'center', marginBottom: 8 }}>
                             <GameButton small title="Boutique : dos, effets, réactions" icon="🛍️" onPress={() => navigation.navigate('Shop')} />
                         </View>
@@ -505,6 +509,7 @@ const styles = StyleSheet.create({
     special: { color: theme.textDim, fontSize: 11, fontWeight: '700' },
     histRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 7, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.06)', gap: 8 },
     histXp: { color: theme.goldLight, fontWeight: '900', fontSize: 12 },
+    bingaRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
     bingaBalance: { color: theme.goldLight, fontSize: 28, fontWeight: '900', textAlign: 'center', marginBottom: 4 },
     bingaSub: { color: theme.cream, fontWeight: '900', fontSize: 13, marginTop: 14, marginBottom: 4 },
     loginRow: { flexDirection: 'row', gap: 4, marginBottom: 6 },

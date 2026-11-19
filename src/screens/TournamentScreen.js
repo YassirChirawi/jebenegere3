@@ -4,6 +4,7 @@ import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PressableScale, GameButton, theme } from '../components/ui';
+import { Chip } from '../components/Decor';
 import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
@@ -170,6 +171,7 @@ export default function TournamentScreen({ route, navigation }) {
                     </Text>
                     {t.status === 'open' && <Text style={styles.countdown}>dans {formatCountdown(t.startsAt - serverNow)}</Text>}
                     {t.status === 'cancelled' && <Text style={styles.warn}>{t.reason}</Text>}
+                    {t.entry > 0 && <Chip name="couronne" size={44} style={{ alignSelf: 'center', marginTop: 8 }} />}
                     {t.entry > 0 && (
                         <Text style={styles.infoGame}>
                             💰 Entrée : {t.entry} binga, retirée au début du tournoi (sans compte ou sans assez de binga, tu joues gratuitement). Le gagnant qui a payé reçoit le dos exclusif « Sultan », un titre et le double d'XP.

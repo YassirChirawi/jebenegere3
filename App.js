@@ -13,6 +13,7 @@ import KdoubScreen from './src/screens/KdoubScreen';
 import SotaScreen from './src/screens/SotaScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
+import WheelScreen from './src/screens/WheelScreen';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import LegalScreen from './src/screens/LegalScreen';
 import TournamentsScreen from './src/screens/TournamentsScreen';
@@ -114,6 +115,7 @@ export default function App() {
               <Stack.Screen name="Game" component={GameRouter} options={{ title: 'Partie en cours', headerShown: false, gestureEnabled: false }} />
               <Stack.Screen name="Profile" component={ProfileScreen} options={{ title: 'Mon Profil', headerShown: false }} />
               <Stack.Screen name="Shop" component={ShopScreen} options={{ title: 'Boutique', headerShown: false }} />
+              <Stack.Screen name="Wheel" component={WheelScreen} options={{ title: 'Roue du jour', headerShown: false }} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Classement', headerShown: false }} />
               <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Confidentialité', headerShown: false }} />
               <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournois', headerShown: false }} />

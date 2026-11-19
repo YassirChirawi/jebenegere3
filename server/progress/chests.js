@@ -3,7 +3,7 @@
  * L'appli ne choisit jamais son lot : elle demande seulement d'ouvrir un coffre.
  */
 const crypto = require('crypto');
-const { CHESTS, COSMETICS, RARITIES, DUPLICATE_REFUND } = require('./defs');
+const { CHESTS, COSMETICS, RARITIES, DUPLICATE_REFUND, WHEEL } = require('./defs');
 
 const ORDER = ['commun', 'rare', 'epique', 'legendaire'];
 // Champion (tournoi) n'est jamais dans un coffre
@@ -55,4 +55,15 @@ const pityLeft = (chestId, pityCount = 0) => {
     return chest?.pity ? Math.max(1, chest.pity.after + 1 - pityCount) : null;
 };
 
-module.exports = { rollChest, rollRarity, pityLeft, POOL, ORDER };
+// Roue du jour : case tirée selon les chances affichées (pourcentages entiers)
+function rollWheel(rng = serverRng) {
+    const r = rng(100);
+    let acc = 0;
+    for (let i = 0; i < WHEEL.segments.length; i++) {
+        acc += WHEEL.segments[i].odds;
+        if (r < acc) return i;
+    }
+    return 0;
+}
+
+module.exports = { rollChest, rollRarity, rollWheel, pityLeft, POOL, ORDER, serverRng };

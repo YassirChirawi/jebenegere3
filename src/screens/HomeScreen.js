@@ -22,6 +22,7 @@ import { initialInvite, clearInviteFromUrl, onInviteLink, initialTournament, onT
 import { remember as rememberTournament, claimPendingRewards, GAME_LABEL } from '../utils/tournaments';
 import { enterFullscreen } from '../utils/fullscreen';
 import PlayerAvatar from '../components/PlayerAvatar';
+import { BingaIcon } from '../components/Decor';
 import { CardFace, CardBack } from '../components/Card';
 import { GameButton, IconButton, PressableScale, OrnamentDivider, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
@@ -446,11 +447,18 @@ export default function HomeScreen({ navigation }) {
                         )}
                         {profile?.binga && (
                             <PressableScale onPress={() => navigation.navigate('Shop')} style={[styles.rankChip, { marginTop: 8 }]}>
-                                <Text style={styles.rankText}>💰 {profile.binga.balance.toLocaleString('fr-FR')} binga · 🛍️ Boutique</Text>
+                                <BingaIcon size={20} />
+                                <Text style={styles.rankText}>{profile.binga.balance.toLocaleString('fr-FR')} binga · 🛍️ Boutique</Text>
                                 <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]} numberOfLines={1}>
                                     Missions {profile.binga.missions.filter((m) => m.done).length}/{profile.binga.missions.length}
                                     {profile.binga.login.claimed ? '' : ` · bonus du jour +${profile.binga.login.amount}`}
                                 </Text>
+                            </PressableScale>
+                        )}
+                        {profile?.wheel && (
+                            <PressableScale onPress={() => navigation.navigate('Wheel')} style={[styles.rankChip, { marginTop: 8 }, profile.wheel.available && styles.wheelChipOn]}>
+                                <Text style={styles.rankText}>🎡 Roue du jour</Text>
+                                <Text style={[styles.rankXp, { flex: 1, textAlign: 'right' }]}>{profile.wheel.available ? '1 tour gratuit !' : 'Reviens demain'}</Text>
                             </PressableScale>
                         )}
                         <PressableScale onPress={() => navigation.navigate('Profile')} style={[styles.rankChip, { marginTop: 8 }]}>
@@ -724,6 +732,7 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(212,175,55,0.35)',
         gap: 10,
     },
+    wheelChipOn: { borderColor: '#F5D77A', backgroundColor: 'rgba(212,175,55,0.25)' },
     rankText: {
         color: theme.goldLight,
         fontWeight: '900',

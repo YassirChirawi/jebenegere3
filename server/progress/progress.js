@@ -6,8 +6,8 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
-const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS, FREE_AVATARS, MAX_AVATAR } = defs;
-const { rollChest, pityLeft } = require('./chests');
+const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS, FREE_AVATARS, MAX_AVATAR, WHEEL, COSMETICS, DUPLICATE_REFUND } = defs;
+const { rollChest, pityLeft, serverRng, rollWheel } = require('./chests');
 const CHEST_HISTORY_MAX = 50;
 const BINGA_LOG_MAX = 30;
 const GAME_NAMES = { hezz2: 'Hezz2', ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota' };
@@ -324,27 +324,67 @@ function createProgress(store) {
         return withUser(user.id, (u) => {
             const b = bingaDay(u, now);
             if (b.balance < chest.price) return { error: `Il te manque ${chest.price - b.balance} binga.` };
-            u.chests = { pity: {}, history: [], ...(u.chests || {}) };
-            u.unlocks = u.unlocks || [];
-            const roll = rollChest(chestId, u.chests.pity[chestId] || 0, u.unlocks, rng);
             b.balance -= chest.price;
-            const log = [{ at: now, amount: -chest.price, reason: `${chest.label}` }];
-            if (roll.duplicate) {
-                b.balance += roll.refund;
-                log.unshift({ at: now, amount: roll.refund, reason: `Doublon : ${roll.item.label} (20 %)` });
-            } else {
-                u.unlocks.push(roll.item.id);
+            b.log = [{ at: now, amount: -chest.price, reason: `${chest.label}` }, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
+            const result = giveChest(u, chestId, now, rng);
+            return { success: true, result, profile: profileOf(u, now) };
+        });
+    }
+
+    // Contenu d'un coffre (payé, ou offert par la roue du jour) : tirage, ajout au compte, doublon, garantie, historique
+    function giveChest(u, chestId, now, rng, gift = false) {
+        const chest = CHESTS[chestId];
+        u.chests = { pity: {}, history: [], ...(u.chests || {}) };
+        u.unlocks = u.unlocks || [];
+        const roll = rollChest(chestId, u.chests.pity[chestId] || 0, u.unlocks, rng);
+        if (roll.duplicate) credit(u, roll.refund, `Doublon : ${roll.item.label} (20 %)`, now);
+        else u.unlocks.push(roll.item.id);
+        if (chest.pity) u.chests.pity[chestId] = roll.nextPity;
+        const result = {
+            chest: chestId,
+            item: { id: roll.item.id, label: roll.item.label, kind: roll.item.kind, rarity: roll.rarity },
+            duplicate: roll.duplicate,
+            refund: roll.refund,
+            pity: roll.pity,
+            ...(gift ? { gift: true } : {}),
+        };
+        u.chests.history = [{ at: now, ...result }, ...u.chests.history].slice(0, CHEST_HISTORY_MAX);
+        return result;
+    }
+
+    // ------------------------------------------------------------------ roue du jour
+    /**
+     * Un tour gratuit par jour (jamais payant). Toujours un lot : binga, coffre offert ou cosmétique commun.
+     * Tirage fait ici avec le générateur du serveur ; les chances sont affichées dans l'appli.
+     */
+    async function spinWheel(user, now = Date.now(), rng = serverRng) {
+        return withUser(user.id, (u) => {
+            const today = dayKey(now);
+            u.wheel = { day: null, history: [], ...(u.wheel || {}) };
+            if (u.wheel.day === today) return { error: "Tu as déjà fait ton tour aujourd'hui : reviens demain !" };
+            bingaDay(u, now);
+            const segment = rollWheel(rng);
+            const seg = WHEEL.segments[segment];
+            const result = { segment, id: seg.id, label: seg.label };
+            if (seg.binga) {
+                result.binga = credit(u, seg.binga, `Roue du jour : ${seg.label}`, now);
+            } else if (seg.chest) {
+                result.chest = giveChest(u, seg.chest, now, rng, true);
+            } else if (seg.cosmetic) {
+                const pool = COSMETICS.filter((c) => !c.source && c.rarity === seg.cosmetic);
+                const missing = pool.filter((c) => !(u.unlocks || []).includes(c.id));
+                if (missing.length) {
+                    const item = missing[rng(missing.length)];
+                    u.unlocks = [...(u.unlocks || []), item.id];
+                    result.item = { id: item.id, label: item.label, kind: item.kind, rarity: item.rarity };
+                } else {
+                    const refund = Math.round(RARITIES[seg.cosmetic].value * DUPLICATE_REFUND);
+                    result.binga = credit(u, refund, `Roue du jour : ${seg.label} (déjà tout possédé)`, now);
+                    result.duplicate = true;
+                }
             }
-            b.log = [...log, ...(b.log || [])].slice(0, BINGA_LOG_MAX);
-            if (chest.pity) u.chests.pity[chestId] = roll.nextPity;
-            const result = {
-                chest: chestId,
-                item: { id: roll.item.id, label: roll.item.label, kind: roll.item.kind, rarity: roll.rarity },
-                duplicate: roll.duplicate,
-                refund: roll.refund,
-                pity: roll.pity,
-            };
-            u.chests.history = [{ at: now, ...result }, ...u.chests.history].slice(0, CHEST_HISTORY_MAX);
+            u.wheel.day = today;
+            u.wheel.history = [{ at: now, ...result }, ...u.wheel.history].slice(0, 20);
             return { success: true, result, profile: profileOf(u, now) };
         });
     }
@@ -591,6 +631,7 @@ function createProgress(store) {
             badges: u.badges || [],
             season: { id: season.id, end: season.end, xp: u.seasons?.[season.id]?.all || 0 },
             binga: bingaView(u, now),
+            wheel: { available: !u.wheel || u.wheel.day !== dayKey(now), history: (u.wheel?.history || []).slice(0, 5) },
         };
     }
 
@@ -616,7 +657,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };
