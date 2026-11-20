@@ -11,6 +11,7 @@ import { PressableScale } from './ui';
 import Gradient from './Gradient';
 import { useAccount } from '../network/accountService';
 import { useFriends } from '../network/friendsService';
+import { t } from '../i18n';
 
 const GOLD = '#E8B84A';
 
@@ -46,20 +47,20 @@ export default function AppNav({ navigation, current, side = false, style }) {
         if (tab.route === 'Home') navigation.popToTop();
         else navigation.navigate(tab.route);
     };
-    const tabs = NAV_TABS.filter((t) => side || !t.sideOnly);
+    const tabs = NAV_TABS.filter((tab) => side || !tab.sideOnly);
 
     if (side) {
         return (
             <View style={[styles.side, style]}>
                 <Gradient colors={['#17264A', '#0A1430']} />
-                {tabs.map((t) => {
-                    const on = t.key === current;
+                {tabs.map((tab) => {
+                    const on = tab.key === current;
                     return (
-                        <PressableScale key={t.key} onPress={() => go(t)} style={[styles.sideItem, on && styles.sideOn]} accessibilityLabel={t.label} accessibilityState={{ selected: on }} scaleTo={0.95}>
+                        <PressableScale key={tab.key} onPress={() => go(tab)} style={[styles.sideItem, on && styles.sideOn]} accessibilityLabel={t(tab.label)} accessibilityState={{ selected: on }} scaleTo={0.95}>
                             {on && <Gradient colors={['#B3202E', '#5A0A13']} />}
-                            <Image source={t.icon} style={styles.sideIcon} resizeMode="contain" />
-                            <Text style={[styles.sideLabel, on && { color: '#FFF3D6' }]} numberOfLines={1}>{t.label}</Text>
-                            {dots[t.key] ? <View style={styles.dotSide} /> : null}
+                            <Image source={tab.icon} style={styles.sideIcon} resizeMode="contain" />
+                            <Text style={[styles.sideLabel, on && { color: '#FFF3D6' }]} numberOfLines={1}>{t(tab.label)}</Text>
+                            {dots[tab.key] ? <View style={styles.dotSide} /> : null}
                         </PressableScale>
                     );
                 })}
@@ -70,14 +71,14 @@ export default function AppNav({ navigation, current, side = false, style }) {
     return (
         <View style={[styles.bar, { paddingBottom: Math.max(6, insets.bottom) }, style]}>
             <Gradient colors={['#16244A', '#08112A']} />
-            {tabs.map((t) => {
-                const on = t.key === current;
+            {tabs.map((tab) => {
+                const on = tab.key === current;
                 return (
-                    <PressableScale key={t.key} onPress={() => go(t)} style={[styles.tab, on && styles.tabOn]} accessibilityLabel={t.label} accessibilityState={{ selected: on }} scaleTo={0.9}>
+                    <PressableScale key={tab.key} onPress={() => go(tab)} style={[styles.tab, on && styles.tabOn]} accessibilityLabel={t(tab.label)} accessibilityState={{ selected: on }} scaleTo={0.9}>
                         {on && <Gradient colors={['#C42634', '#5E0B15']} />}
-                        <Image source={t.icon} style={[styles.icon, on && styles.iconOn]} resizeMode="contain" />
-                        <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1}>{t.label}</Text>
-                        {dots[t.key] ? <View style={styles.dot} /> : null}
+                        <Image source={tab.icon} style={[styles.icon, on && styles.iconOn]} resizeMode="contain" />
+                        <Text style={[styles.label, on && styles.labelOn]} numberOfLines={1}>{t(tab.label)}</Text>
+                        {dots[tab.key] ? <View style={styles.dot} /> : null}
                     </PressableScale>
                 );
             })}

@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Linking, Pressable } from 'react-na
 import { PressableScale, theme } from '../components/ui';
 import legal from '../legal/legal.json';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import { t } from '../i18n';
 
 /**
  * Politique de confidentialité et conditions d'utilisation, lisibles dans l'appli
@@ -18,7 +19,7 @@ export default function LegalScreen({ route, navigation }) {
             <LuxeBackdrop />
             <ScreenHeader title={doc.title} onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))} />
             <ScrollView contentContainerStyle={styles.scroll}>
-                <Text style={styles.updated}>Mise à jour : {doc.updated}</Text>
+                <Text style={styles.updated}>{t("Mise à jour :")} {doc.updated}</Text>
                 <Text style={styles.p}>{doc.intro}</Text>
                 {doc.sections.map((s) => (
                     <View key={s.h}>
@@ -43,7 +44,7 @@ export default function LegalScreen({ route, navigation }) {
                 <Pressable onPress={() => navigation.replace('Legal', { doc: otherKey })} style={styles.other}>
                     <Text style={styles.link}>{legal[otherKey].title} ›</Text>
                 </Pressable>
-                <Text style={styles.web}>Aussi en ligne : jebengere3.fun{doc.path}</Text>
+                <Text style={styles.web}>{t("Aussi en ligne : jebengere3.fun")}{doc.path}</Text>
             </ScrollView>
         </View>
     );

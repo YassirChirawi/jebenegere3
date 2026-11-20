@@ -71,7 +71,7 @@ async function setup() {
         discordUrl: `http://${DISCORD_HOST}:8099`,
         /** Contexte de navigateur ; opts.account : jeton à mettre dans le stockage ; opts.fresh : premier lancement. */
         async context({ width = 390, height = 844, token = null, fresh = false } = {}) {
-            const ctx = await browser.newContext({ viewport: { width, height } });
+            const ctx = await browser.newContext({ viewport: { width, height }, locale: 'fr-FR' });
             if (!fresh) {
                 await ctx.addInitScript((t) => {
                     const d = new Date(); const day = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;

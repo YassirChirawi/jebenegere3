@@ -14,6 +14,7 @@ import { BingaIcon } from '../components/Decor';
 import AppNav from '../components/AppNav';
 import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
 import { BINGA } from '../../server/progress/defs';
+import { t } from '../i18n';
 
 const IMG = {
     gift: require('../../assets/ui/nav_recompenses.webp'),
@@ -64,7 +65,7 @@ function Row({ icon, label, progress, target, done, reward }) {
             {done ? (
                 <View style={[styles.chip, styles.chipDone]}>
                     <Gradient colors={['#3FCF6B', '#16803A']} />
-                    <Text style={styles.chipDoneText}>✓ Reçu</Text>
+                    <Text style={styles.chipDoneText}>{t("✓ Reçu")}</Text>
                 </View>
             ) : (
                 <View style={styles.chip}>{reward}</View>
@@ -89,7 +90,7 @@ export default function MissionsScreen({ navigation }) {
         <View style={styles.container}>
             <LuxeBackdrop />
             <ScreenHeader
-                title="Missions"
+                title={t("Missions")}
                 onBack={() => navigation.goBack()}
                 right={<BingaPill icon={<BingaIcon size={20} />} amount={profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'} />}
             />
@@ -97,9 +98,9 @@ export default function MissionsScreen({ navigation }) {
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 {!profile ? (
                     <LuxePanel style={styles.panel}>
-                        <Text style={styles.guestTitle}>Missions, bonus de connexion et badges</Text>
-                        <Text style={styles.dim}>Avec un compte gratuit : des binga chaque jour de connexion, 3 missions et 3 défis par jour, et des badges à débloquer. Pas besoin d'email.</Text>
-                        <GameButton small title="Créer mon compte" icon="🔐" onPress={() => navigation.navigate('Profile')} style={{ marginTop: 12, alignSelf: 'center' }} />
+                        <Text style={styles.guestTitle}>{t("Missions, bonus de connexion et badges")}</Text>
+                        <Text style={styles.dim}>{t("Avec un compte gratuit : des binga chaque jour de connexion, 3 missions et 3 défis par jour, et des badges à débloquer. Pas besoin d'email.")}</Text>
+                        <GameButton small title={t("Créer mon compte")} icon="🔐" onPress={() => navigation.navigate('Profile')} style={{ marginTop: 12, alignSelf: 'center' }} />
                     </LuxePanel>
                 ) : (
                     <>
@@ -107,7 +108,7 @@ export default function MissionsScreen({ navigation }) {
                         {login && (
                             <Animated.View entering={FadeInDown.springify().damping(16)}>
                                 <LuxePanel style={styles.panel} inner={false}>
-                                    <SectionHead icon={IMG.gift} title="Récompense quotidienne" right={`Jour ${login.streak}/${login.days}`} />
+                                    <SectionHead icon={IMG.gift} title={t("Récompense quotidienne")} right={t("Jour {p0}/{p1}", { p0: login.streak, p1: login.days })} />
                                     <View style={styles.days}>
                                         {BINGA.login.map((amount, i) => {
                                             const day = i + 1;
@@ -115,7 +116,7 @@ export default function MissionsScreen({ navigation }) {
                                             const today = day === login.streak;
                                             const last = day === BINGA.login.length;
                                             return (
-                                                <View key={day} style={[styles.day, got && styles.dayGot, today && styles.dayToday, last && !got && styles.dayLast]} accessibilityLabel={`Jour ${day} : ${amount} binga${got ? ', reçu' : ''}`}>
+                                                <View key={day} style={[styles.day, got && styles.dayGot, today && styles.dayToday, last && !got && styles.dayLast]} accessibilityLabel={t("Jour {p0} : {p1} binga{p2}", { p0: day, p1: amount, p2: got ? t(', reçu') : '' })}>
                                                     <Text style={styles.dayN}>J{day}</Text>
                                                     <Image source={IMG.coins} style={[styles.dayIcon, last && { width: 34, height: 30 }]} resizeMode="contain" />
                                                     <Text style={styles.dayAmount}>{amount}</Text>
@@ -126,8 +127,8 @@ export default function MissionsScreen({ navigation }) {
                                     </View>
                                     <Text style={styles.note}>
                                         {login.claimed
-                                            ? `Reçu aujourd'hui : +${login.amount} binga. Reviens demain pour continuer la série.`
-                                            : `Bonus du jour : +${login.amount} binga.`}
+                                            ? t("Reçu aujourd'hui : +{p0} binga. Reviens demain pour continuer la série.", { p0: login.amount })
+                                            : t("Bonus du jour : +{p0} binga.", { p0: login.amount })}
                                     </Text>
                                 </LuxePanel>
                             </Animated.View>
@@ -137,12 +138,12 @@ export default function MissionsScreen({ navigation }) {
                         {profile.binga && (
                             <Animated.View entering={FadeInDown.delay(80).springify().damping(16)}>
                                 <LuxePanel style={styles.panel} inner={false}>
-                                    <SectionHead icon={IMG.target} title="Missions" right={`Nouvelles dans ${untilTomorrow()}`} />
+                                    <SectionHead icon={IMG.target} title={t("Missions")} right={t("Nouvelles dans {p0}", { p0: untilTomorrow() })} />
                                     {profile.binga.missions.map((m, i) => (
                                         <Row
                                             key={m.id}
                                             icon={i % 2 ? IMG.cards : IMG.card}
-                                            label={m.label}
+                                            label={t(m.label)}
                                             progress={m.progress}
                                             target={m.target}
                                             done={m.done}
@@ -150,7 +151,7 @@ export default function MissionsScreen({ navigation }) {
                                         />
                                     ))}
                                     <View style={{ paddingHorizontal: 12, paddingBottom: 12 }}>
-                                        <Text style={styles.small}>Binga gagnés en jouant aujourd'hui : {profile.binga.playToday} / {profile.binga.playCap}</Text>
+                                        <Text style={styles.small}>{t("Binga gagnés en jouant aujourd'hui :")} {profile.binga.playToday} / {profile.binga.playCap}</Text>
                                         <XpBar progress={profile.binga.playToday / profile.binga.playCap} height={10} style={{ marginTop: 4 }} />
                                     </View>
                                 </LuxePanel>
@@ -160,16 +161,16 @@ export default function MissionsScreen({ navigation }) {
                         {/* Défis du jour : XP + dos de cartes ou tapis */}
                         <Animated.View entering={FadeInDown.delay(140).springify().damping(16)}>
                             <LuxePanel style={styles.panel} inner={false}>
-                                <SectionHead icon={IMG.cards} title="Défis du jour" right={`${profile.daily.list.filter((c) => c.done).length}/${profile.daily.list.length}`} />
+                                <SectionHead icon={IMG.cards} title={t("Défis du jour")} right={`${profile.daily.list.filter((c) => c.done).length}/${profile.daily.list.length}`} />
                                 {profile.daily.list.map((c, i) => (
                                     <Row
                                         key={c.id}
                                         icon={i % 2 ? IMG.card : IMG.cards}
-                                        label={c.label}
+                                        label={t(c.label)}
                                         progress={c.progress}
                                         target={c.target}
                                         done={c.done}
-                                        reward={<Text style={styles.chipText}>+{c.xp} XP</Text>}
+                                        reward={<Text style={styles.chipText}>+{c.xp} {t("XP")}</Text>}
                                     />
                                 ))}
                                 <View style={{ height: 8 }} />
@@ -179,16 +180,16 @@ export default function MissionsScreen({ navigation }) {
                         {/* Succès et badges : les titres */}
                         <Animated.View entering={FadeInDown.delay(200).springify().damping(16)}>
                             <LuxePanel style={styles.panel} inner={false}>
-                                <SectionHead icon={IMG.crown} title="Succès et badges" right={`${profile.titles.filter((t) => t.unlocked).length}/${profile.titles.length}`} />
-                                <Text style={[styles.note, { marginTop: 8 }]}>Touche un badge gagné pour l'afficher à côté de ton nom.</Text>
+                                <SectionHead icon={IMG.crown} title={t("Succès et badges")} right={`${profile.titles.filter((t) => t.unlocked).length}/${profile.titles.length}`} />
+                                <Text style={[styles.note, { marginTop: 8 }]}>{t("Touche un badge gagné pour l'afficher à côté de ton nom.")}</Text>
                                 <View style={styles.badges}>
-                                    {profile.titles.map((t) => {
-                                        const on = profile.title === t.id;
+                                    {profile.titles.map((ti) => {
+                                        const on = profile.title === ti.id;
                                         return (
-                                            <Pressable key={t.id} onPress={() => chooseTitle(t)} style={[styles.badge, on && styles.badgeOn]} accessibilityLabel={`${t.label} : ${t.desc}`}>
-                                                <Image source={BADGES[TITLE_BADGE[t.id]] || BADGES.collection} style={[styles.badgeImg, !t.unlocked && styles.badgeLocked]} resizeMode="contain" />
-                                                <Text style={[styles.badgeLabel, !t.unlocked && { color: LUXE.dim }]} numberOfLines={1}>{t.label}</Text>
-                                                <Text style={styles.badgeDesc} numberOfLines={2}>{t.unlocked ? (on ? '✓ affiché' : t.desc) : `${t.progress}/${t.target} · ${t.desc}`}</Text>
+                                            <Pressable key={ti.id} onPress={() => chooseTitle(ti)} style={[styles.badge, on && styles.badgeOn]} accessibilityLabel={`${t(ti.label)} : ${t(ti.desc)}`}>
+                                                <Image source={BADGES[TITLE_BADGE[ti.id]] || BADGES.collection} style={[styles.badgeImg, !ti.unlocked && styles.badgeLocked]} resizeMode="contain" />
+                                                <Text style={[styles.badgeLabel, !ti.unlocked && { color: LUXE.dim }]} numberOfLines={1}>{t(ti.label)}</Text>
+                                                <Text style={styles.badgeDesc} numberOfLines={2}>{ti.unlocked ? (on ? t('✓ affiché') : t(ti.desc)) : `${ti.progress}/${ti.target} · ${t(ti.desc)}`}</Text>
                                             </Pressable>
                                         );
                                     })}

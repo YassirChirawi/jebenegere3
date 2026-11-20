@@ -35,6 +35,7 @@ import StartCountdown from './src/components/StartCountdown';
 import PlayerLeftBanner from './src/components/PlayerLeftBanner';
 import socketService from './src/network/socketService';
 import { useWideFrame } from './src/utils/frame';
+import { useLang, loadLang } from './src/i18n';
 
 const Stack = createNativeStackNavigator();
 export const navigationRef = createNavigationContainerRef();
@@ -79,10 +80,12 @@ export default function App() {
   // Web sur téléphone tenu en paysage : on utilise tout l'écran au lieu du cadre portrait
   const webLandscapePhone = Platform.OS === 'web' && width > height && height < 600;
   const wideFrame = useWideFrame(); // accueil en paysage : toute la largeur de l'écran
+  const lang = useLang(); // changer de langue redessine toute l'appli (key)
 
   useEffect(() => {
     // Musique d'ambiance (gérée par audioService : mute, volume menu/jeu, autoplay web)
     audioService.ready.then(() => audioService.startMusic('menu'));
+    loadLang();
     loadCosmetics().then(() => accountService.init());
     initChatModeration();
 
@@ -101,7 +104,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <View style={[styles.mobileContainer, (webLandscapePhone || wideFrame) && styles.fullScreen]}>
+      <View key={lang} style={[styles.mobileContainer, (webLandscapePhone || wideFrame) && styles.fullScreen]}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <NavigationContainer theme={navTheme} ref={navigationRef}>
             <StatusBar style="light" />

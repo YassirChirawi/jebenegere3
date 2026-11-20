@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text } from 'react-native';
 import { PressableScale, theme } from './ui';
 import { dialog } from './Dialog';
+import { t } from '../i18n';
 
 // « Installer l'appli » (version web uniquement, caché si déjà installée)
 // - Android / Chrome / Edge : vraie fenêtre d'installation du navigateur.
@@ -48,15 +49,15 @@ export default function InstallAppButton({ style }) {
             return;
         }
         dialog.alert(
-            "Installer L'Carta",
-            "Sur iPhone, dans Safari :\n\n1. Touche le bouton Partager (le carré avec la flèche ⬆️)\n2. Choisis « Sur l'écran d'accueil »\n3. Touche « Ajouter »\n\nL'appli s'ouvrira en plein écran, comme une vraie appli.",
-            [{ text: 'OK' }],
+            t("Installer L'Carta"),
+            t("Sur iPhone, dans Safari :\n\n1. Touche le bouton Partager (le carré avec la flèche ⬆️)\n2. Choisis « Sur l'écran d'accueil »\n3. Touche « Ajouter »\n\nL'appli s'ouvrira en plein écran, comme une vraie appli."),
+            [{ text: t('OK') }],
         );
     };
 
     return (
         <PressableScale onPress={onPress} style={[styles.btn, style]}>
-            <Text style={styles.text}>📲 Installer l'appli</Text>
+            <Text style={styles.text}>{t("📲 Installer l'appli")}</Text>
         </PressableScale>
     );
 }

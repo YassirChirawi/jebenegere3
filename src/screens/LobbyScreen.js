@@ -15,6 +15,7 @@ import friendsService, { useFriends } from '../network/friendsService';
 import { useAccount } from '../network/accountService';
 import { BINGA } from '../../server/progress/defs';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import { t } from '../i18n';
 
 
 function WaitingDots() {
@@ -44,7 +45,7 @@ export default function LobbyScreen({ route, navigation }) {
     const inviteFriend = async (f) => {
         const r = await friendsService.invite(roomId, f.id);
         audioService.playSound(r.success ? 'pop' : 'error');
-        setInvited((m) => ({ ...m, [f.id]: r.success ? (r.delivered ? 'ok' : 'off') : (r.message || 'Erreur') }));
+        setInvited((m) => ({ ...m, [f.id]: r.success ? (r.delivered ? 'ok' : 'off') : (r.message || t('Erreur')) }));
     };
     const [picked, setPicked] = useState(null); // place choisie par l'hôte pour un échange
     const [busy, setBusy] = useState(false);
@@ -72,7 +73,7 @@ export default function LobbyScreen({ route, navigation }) {
             }),
             socketService.onGameError((error) => {
                 audioService.playSound('error');
-                dialog.alert('Oups', error.message);
+                dialog.alert(t('Oups'), error.message);
             }),
         ];
         return () => unsubs.forEach((u) => u && u());
@@ -82,14 +83,14 @@ export default function LobbyScreen({ route, navigation }) {
 
     const handleStartGame = () => {
         enterFullscreen((room?.gameType || initialRoom?.gameType) === 'ronda' ? 'landscape' : 'any');
-        if (!amHost) { dialog.alert('Action non permise', "Seul l'hôte du salon peut démarrer la partie."); return; }
+        if (!amHost) { dialog.alert(t('Action non permise'), t("Seul l'hôte du salon peut démarrer la partie.")); return; }
         if (fillBots === 0) { socketService.startGame(roomId); return; }
         // Pas assez de joueurs (ex. Ronda à 3) : on complète avec des bots, puis on lance
         setBusy(true);
         const addNext = (left) => {
             if (left === 0) { setBusy(false); socketService.startGame(roomId); return; }
             socketService.addBot(roomId, (r) => {
-                if (r && r.success === false) { setBusy(false); if (r.message) dialog.alert('Oups', r.message); return; }
+                if (r && r.success === false) { setBusy(false); if (r.message) dialog.alert(t('Oups'), r.message); return; }
                 addNext(left - 1);
             });
         };
@@ -100,21 +101,21 @@ export default function LobbyScreen({ route, navigation }) {
     const copyLink = async () => {
         const ok = await copyInvite(roomId);
         if (ok) { setCopied(true); audioService.playSound('pop'); setTimeout(() => setCopied(false), 2500); }
-        else dialog.alert('Copie impossible', `Copie ce lien à la main :
+        else dialog.alert(t('Copie impossible'), `Copie ce lien à la main :
 ${inviteUrl(roomId)}`);
     };
     const shareLink = async () => {
         const r = await shareInvite(roomId, gameInfo(room?.gameType || initialRoom?.gameType).label);
         if (r === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
-        else if (r === 'failed') dialog.alert('Partage impossible', `Envoie ce lien à tes amis :
+        else if (r === 'failed') dialog.alert(t('Partage impossible'), `Envoie ce lien à tes amis :
 ${inviteUrl(roomId)}`);
     };
 
     const handleLeave = () => {
-        dialog.alert('Quitter le salon ?', '', [
-            { text: 'Rester', style: 'cancel' },
+        dialog.alert(t('Quitter le salon ?'), '', [
+            { text: t('Rester'), style: 'cancel' },
             {
-                text: 'Quitter',
+                text: t('Quitter'),
                 style: 'destructive',
                 onPress: () => {
                     socketService.leaveRoom(roomId);
@@ -146,7 +147,7 @@ ${inviteUrl(roomId)}`);
         ? players.map((p, i) => ({ p, i })).sort((x, y) => (x.i % 2) - (y.i % 2) || x.i - y.i)
         : players.map((p, i) => ({ p, i }));
 
-    const ack = (msg) => (r) => { setBusy(false); if (r && r.success === false && r.message) dialog.alert('Oups', r.message); else if (msg) audioService.playSound(msg); };
+    const ack = (msg) => (r) => { setBusy(false); if (r && r.success === false && r.message) dialog.alert(t('Oups'), r.message); else if (msg) audioService.playSound(msg); };
     const addBot = () => { setBusy(true); socketService.addBot(roomId, ack('pop')); };
 
     // Partie à mise (option) : l'hôte choisit la mise, chacun choisit de miser ou non
@@ -165,7 +166,7 @@ ${inviteUrl(roomId)}`);
         setPicked(null);
         socketService.changeGame(roomId, key, (r) => {
             setBusy(false);
-            if (r && r.success === false) { if (r.message) dialog.alert('Oups', r.message); return; }
+            if (r && r.success === false) { if (r.message) dialog.alert(t('Oups'), r.message); return; }
             if (r?.roomData) setRoom(r.roomData);
             audioService.playSound('card_flip');
         });
@@ -182,13 +183,13 @@ ${inviteUrl(roomId)}`);
     return (
         <View style={styles.container}>
             <LuxeBackdrop />
-            <ScreenHeader title={`Salon privé · ${game.label}`} onBack={handleLeave} />
+            <ScreenHeader title={t("Salon privé · {p0}", { p0: game.label })} onBack={handleLeave} />
             <Modal visible={inviteSheet} transparent animationType="fade" onRequestClose={() => setInviteSheet(false)}>
                 <Pressable style={styles.sheetBg} onPress={() => setInviteSheet(false)}>
                     <Pressable onPress={() => {}} style={styles.sheet}>
-                        <Text style={styles.sheetTitle}>Inviter un ami</Text>
+                        <Text style={styles.sheetTitle}>{t("Inviter un ami")}</Text>
                         {fr.friends.length === 0 ? (
-                            <Text style={styles.sheetDim}>Pas encore d'amis. Ajoute-les dans « Amis » avec leur pseudo.</Text>
+                            <Text style={styles.sheetDim}>{t("Pas encore d'amis. Ajoute-les dans « Amis » avec leur pseudo.")}</Text>
                         ) : fr.friends.map((f) => {
                             const st = invited[f.id];
                             return (
@@ -196,47 +197,47 @@ ${inviteUrl(roomId)}`);
                                     <PlayerAvatar name={f.name} variant={f.avatar || 0} size={38} />
                                     <View style={{ flex: 1, marginLeft: 10 }}>
                                         <Text style={styles.sheetName} numberOfLines={1}>{f.name}</Text>
-                                        <Text style={[styles.sheetDim, { textAlign: 'left' }]}>{st === 'ok' ? '✓ Invitation envoyée' : st === 'off' ? 'Pas connecté en ce moment' : st || (f.online ? '🟢 en ligne' : 'hors ligne')}</Text>
+                                        <Text style={[styles.sheetDim, { textAlign: 'left' }]}>{st === 'ok' ? t('✓ Invitation envoyée') : st === 'off' ? t('Pas connecté en ce moment') : st || (f.online ? t('🟢 en ligne') : t('hors ligne'))}</Text>
                                     </View>
-                                    <GameButton small title={st === 'ok' ? 'Renvoyer' : 'Inviter'} variant={f.online ? 'gold' : 'outline'} disabled={!f.online} onPress={() => inviteFriend(f)} />
+                                    <GameButton small title={st === 'ok' ? t('Renvoyer') : t('Inviter')} variant={f.online ? 'gold' : 'outline'} disabled={!f.online} onPress={() => inviteFriend(f)} />
                                 </View>
                             );
                         })}
-                        <GameButton small title="Fermer" variant="outline" onPress={() => setInviteSheet(false)} style={{ alignSelf: 'center', marginTop: 12 }} />
+                        <GameButton small title={t("Fermer")} variant="outline" onPress={() => setInviteSheet(false)} style={{ alignSelf: 'center', marginTop: 12 }} />
                     </Pressable>
                 </Pressable>
             </Modal>
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
-                    <Text style={styles.codeLabel}>INVITE TES AMIS</Text>
+                    <Text style={styles.codeLabel}>{t("INVITE TES AMIS")}</Text>
                     {profile && (
                         <View style={styles.inviteBtns}>
-                            <GameButton small title={`Inviter un ami${fr.friends.some((f) => f.online) ? ` · ${fr.friends.filter((f) => f.online).length} en ligne` : ''}`} icon="🤝" variant="green" onPress={() => { friendsService.refresh(); setInviteSheet(true); }} style={{ flex: 1 }} />
+                            <GameButton small title={fr.friends.some((f) => f.online) ? t('Inviter un ami · {n} en ligne', { n: fr.friends.filter((f) => f.online).length }) : t('Inviter un ami')} icon="🤝" variant="green" onPress={() => { friendsService.refresh(); setInviteSheet(true); }} style={{ flex: 1 }} />
                         </View>
                     )}
                     {inDiscord ? (
                         <>
                             <View style={styles.inviteBtns}>
-                                <GameButton small title="Inviter sur Discord" icon="🎧" variant="gold" onPress={discordInvite} style={{ flex: 1 }} />
+                                <GameButton small title={t("Inviter sur Discord")} icon="🎧" variant="gold" onPress={discordInvite} style={{ flex: 1 }} />
                             </View>
-                            <Text style={styles.codeHint}>Tes amis qui lancent L'Carta dans ce salon vocal arrivent directement ici. Les joueurs en plus regardent en spectateurs.</Text>
+                            <Text style={styles.codeHint}>{t("Tes amis qui lancent L'Carta dans ce salon vocal arrivent directement ici. Les joueurs en plus regardent en spectateurs.")}</Text>
                         </>
                     ) : (
                         <>
                             <Text style={styles.link} selectable numberOfLines={1}>{inviteUrl(roomId).replace(/^https?:\/\//, '')}</Text>
                             <View style={styles.inviteBtns}>
-                                <GameButton small title={copied ? 'Lien copié ✓' : 'Copier le lien'} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
-                                <GameButton small title="Partager" icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
+                                <GameButton small title={copied ? t('Lien copié ✓') : t('Copier le lien')} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
+                                <GameButton small title={t("Partager")} icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
                             </View>
-                            <Text style={styles.codeHint}>Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.</Text>
+                            <Text style={styles.codeHint}>{t("Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.")}</Text>
                         </>
                     )}
                 </Animated.View>
 
                 {lobbyGames && (
                     <View style={[styles.panel, { marginBottom: 14 }]}>
-                        <Text style={styles.sectionTitle}>JEU DU SALON</Text>
+                        <Text style={styles.sectionTitle}>{t("JEU DU SALON")}</Text>
                         <View style={styles.gameChips}>
                             {GAME_ORDER.filter((k) => socketService.supportsGame(k)).map((k) => {
                                 const g = GAMES[k];
@@ -249,7 +250,7 @@ ${inviteUrl(roomId)}`);
                                         style={[styles.gameChip, on && { backgroundColor: g.color, borderColor: theme.goldLight }]}
                                     >
                                         <Text style={[styles.gameChipText, on && { color: '#fff' }]}>{g.label}</Text>
-                                        <Text style={[styles.gameChipSub, on && { color: 'rgba(255,255,255,0.85)' }]}>{g.players}</Text>
+                                        <Text style={[styles.gameChipSub, on && { color: 'rgba(255,255,255,0.85)' }]}>{t(g.players)}</Text>
                                     </Pressable>
                                 );
                             })}
@@ -259,41 +260,41 @@ ${inviteUrl(roomId)}`);
 
                 {showStakes && (amHost || stake > 0) && (
                     <View style={[styles.panel, { marginBottom: 14 }]}>
-                        <Text style={styles.sectionTitle}>MISE EN BINGA (OPTION)</Text>
+                        <Text style={styles.sectionTitle}>{t("MISE EN BINGA (OPTION)")}</Text>
                         {amHost ? (
                             <View style={styles.gameChips}>
                                 {[0, ...BINGA.stakes].map((v) => (
                                     <Pressable key={v} onPress={() => setStake(v)} disabled={busy || room?.inGame} style={[styles.gameChip, styles.stakeChip, v === stake && { backgroundColor: theme.goldDark, borderColor: theme.goldLight }]}>
                                         {v ? <Chip name={STAKE_CHIP[v]} size={26} /> : null}
-                                        <Text style={[styles.gameChipText, v === stake && { color: '#fff' }]}>{v ? `${v}` : 'Gratuit'}</Text>
+                                        <Text style={[styles.gameChipText, v === stake && { color: '#fff' }]}>{v ? `${v}` : t('Gratuit')}</Text>
                                     </Pressable>
                                 ))}
                             </View>
                         ) : (
                             <View style={styles.stakeChip}>
                                 <Chip name={STAKE_CHIP[stake]} size={34} />
-                                <Text style={styles.stakeBig}>{stake} binga par joueur</Text>
+                                <Text style={styles.stakeBig}>{stake} {t("binga par joueur")}</Text>
                             </View>
                         )}
                         <Text style={styles.stakeHint}>
                             {stake === 0
-                                ? "Partie gratuite. Choisis une mise si vous voulez jouer pour des binga : chacun décide s'il mise."
-                                : `Chaque joueur qui mise paie ${stake} binga au début de la partie. Le gagnant prend le pot. Personne n'est obligé : sans miser, on joue gratuitement.`}
+                                ? t("Partie gratuite. Choisis une mise si vous voulez jouer pour des binga : chacun décide s'il mise.")
+                                : t("Chaque joueur qui mise paie {p0} binga au début de la partie. Le gagnant prend le pot. Personne n'est obligé : sans miser, on joue gratuitement.", { p0: stake })}
                         </Text>
                         {stake > 0 && (
                             !account.profile ? (
-                                <Text style={styles.stakeHint}>🔐 Sans compte, tu joues gratuitement.</Text>
+                                <Text style={styles.stakeHint}>{t("🔐 Sans compte, tu joues gratuitement.")}</Text>
                             ) : (
                                 <View style={styles.stakeRow}>
                                     <GameButton
                                         small
-                                        title={stakeIn.has(myId) ? `✓ Je mise ${stake} binga` : `Miser ${stake} binga`}
+                                        title={stakeIn.has(myId) ? t("✓ Je mise {p0} binga", { p0: stake }) : t("Miser {p0} binga", { p0: stake })}
                                         variant={stakeIn.has(myId) ? 'gold' : 'outline'}
                                         onPress={toggleStake}
                                         disabled={busy || room?.inGame}
                                     />
                                     <Text style={[styles.stakeHint, { flex: 1 }]}>
-                                        {balance < stake ? `Ton solde (${balance}) ne suffit pas : tu joueras gratuitement.` : `Ton solde : ${balance} binga.${stakeIn.has(myId) ? ' Touche pour jouer sans miser.' : ''}`}
+                                        {balance < stake ? t("Ton solde ({p0}) ne suffit pas : tu joueras gratuitement.", { p0: balance }) : t("Ton solde : {p0} binga.{p1}", { p0: balance, p1: stakeIn.has(myId) ? t(' Touche pour jouer sans miser.') : '' })}
                                     </Text>
                                 </View>
                             )
@@ -302,10 +303,10 @@ ${inviteUrl(roomId)}`);
                 )}
 
                 <View style={styles.panel}>
-                    <Text style={styles.sectionTitle}>JOUEURS · {players.length}/{MAX_PLAYERS}</Text>
+                    <Text style={styles.sectionTitle}>{t("JOUEURS ·")} {players.length}/{MAX_PLAYERS}</Text>
                     {lobbyBots && players.length >= 2 && (
                         <Text style={styles.swapHint}>
-                            {teams ? 'Équipes : touche deux joueurs pour échanger leurs places' : 'Touche deux joueurs pour échanger leurs places'}
+                            {teams ? t('Équipes : touche deux joueurs pour échanger leurs places') : t('Touche deux joueurs pour échanger leurs places')}
                         </Text>
                     )}
                     {ordered.map(({ p: item, i: seat }, i) => (
@@ -332,12 +333,12 @@ ${inviteUrl(roomId)}`);
                                 </Text>
                                 {item.title ? <Text style={{ color: theme.mint, fontSize: 11, fontStyle: 'italic', marginLeft: 10 }} numberOfLines={1}>« {item.title} »</Text> : null}
                             </View>
-                            {teams && <Text style={[styles.teamChip, { color: TEAM_COLORS[seat % 2], borderColor: TEAM_COLORS[seat % 2] }]}>ÉQ. {seat % 2 + 1}</Text>}
+                            {teams && <Text style={[styles.teamChip, { color: TEAM_COLORS[seat % 2], borderColor: TEAM_COLORS[seat % 2] }]}>{t("ÉQ.")} {seat % 2 + 1}</Text>}
                             {stake > 0 && stakeIn.has(item.id) && <Text style={styles.badge}>💰 {stake}</Text>}
                             {item.isBot ? (
-                                <Text style={styles.badge}>🤖 BOT</Text>
+                                <Text style={styles.badge}>{t("🤖 BOT")}</Text>
                             ) : item.id === room?.hostId ? (
-                                <Text style={styles.badge}>👑 HÔTE</Text>
+                                <Text style={styles.badge}>{t("👑 HÔTE")}</Text>
                             ) : null}
                             {item.isBot && lobbyBots && (
                                 <Pressable onPress={() => removeBot(item.id)} hitSlop={8} style={styles.removeBot}>
@@ -349,20 +350,20 @@ ${inviteUrl(roomId)}`);
                     ))}
                     {lobbyBots && emptySeats > 0 && (
                         <Pressable onPress={addBot} disabled={busy} style={[styles.addBot, busy && { opacity: 0.5 }]}>
-                            <Text style={styles.addBotText}>🤖 ＋ Ajouter un bot</Text>
+                            <Text style={styles.addBotText}>{t("🤖 ＋ Ajouter un bot")}</Text>
                         </Pressable>
                     )}
                     {Array.from({ length: emptySeats }).map((_, i) => (
                         <View key={`empty-${i}`} style={styles.emptySeat}>
                             <View style={styles.emptyAvatar}><Text style={{ color: theme.textDim }}>?</Text></View>
-                            <Text style={styles.emptyText}>En attente</Text>
+                            <Text style={styles.emptyText}>{t("En attente")}</Text>
                             <WaitingDots />
                         </View>
                     ))}
 
                     {spectators.length > 0 && (
                         <>
-                            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>SPECTATEURS · {spectators.length}</Text>
+                            <Text style={[styles.sectionTitle, { marginTop: 16 }]}>{t("SPECTATEURS ·")} {spectators.length}</Text>
                             {spectators.map((item) => (
                                 <Animated.View key={item.id} entering={FadeInDown.springify()} style={styles.spectatorRow}>
                                     <PlayerAvatar name={item.name} variant={item.avatar || 0} size={28} />
@@ -379,8 +380,8 @@ ${inviteUrl(roomId)}`);
                 {amHost ? (
                     <GameButton
                         title={!canStart ? game.startHint.toUpperCase()
-                            : fillBots > 0 ? `DÉMARRER · +${fillBots} BOT${fillBots > 1 ? 'S' : ''} 🤖`
-                            : `DÉMARRER · ${game.label.toUpperCase()}`}
+                            : fillBots > 0 ? t("DÉMARRER · +{p0} BOT{p1} 🤖", { p0: fillBots, p1: fillBots > 1 ? 'S' : '' })
+                            : t("DÉMARRER · {p0}", { p0: game.label.toUpperCase() })}
                         icon="🃏"
                         variant="gold"
                         onPress={handleStartGame}
@@ -390,8 +391,8 @@ ${inviteUrl(roomId)}`);
                     <View style={styles.waitingBox}>
                         <Text style={styles.waitingText}>
                             {room?.inGame
-                                ? 'Partie en cours, tu joueras à la prochaine manche'
-                                : "En attente du lancement par l'hôte"}
+                                ? t('Partie en cours, tu joueras à la prochaine manche')
+                                : t("En attente du lancement par l'hôte")}
                         </Text>
                         <WaitingDots />
                     </View>

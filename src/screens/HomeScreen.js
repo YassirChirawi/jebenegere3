@@ -56,6 +56,7 @@ import { dialog } from '../components/Dialog';
 import { getRankInfo } from '../utils/stats';
 import accountService, { useAccount } from '../network/accountService';
 import { GAMES, GAME_ORDER, gameInfo } from '../games';
+import { t } from '../i18n';
 
 
 // Mode test (web) : ajouter ?test=1 à l'adresse pour démarrer les parties Hezz2 contre l'IA avec des 1, 2 et 7
@@ -77,8 +78,8 @@ function ServerLoader() {
             <Animated.View style={style}>
                 <CardBack width={70} height={100} />
             </Animated.View>
-            <Text style={styles.loaderTitle}>Réveil du serveur…</Text>
-            <Text style={styles.loaderSubtitle}>La première connexion peut prendre jusqu'à 30 secondes</Text>
+            <Text style={styles.loaderTitle}>{t("Réveil du serveur…")}</Text>
+            <Text style={styles.loaderSubtitle}>{t("La première connexion peut prendre jusqu'à 30 secondes")}</Text>
         </Animated.View>
     );
 }
@@ -206,9 +207,9 @@ export default function HomeScreen({ navigation, route }) {
             if (m) {
                 window.history.replaceState(null, '', '/');
                 if (m[1] === 'annule') {
-                    dialog.alert('Paiement annulé', "Aucun montant n'a été débité.");
+                    dialog.alert(t('Paiement annulé'), t("Aucun montant n'a été débité."));
                 } else {
-                    dialog.alert('Merci ! 💎', 'Paiement confirmé. Tes diamants arrivent dans quelques secondes (Collection → Diamants).');
+                    dialog.alert(t('Merci ! 💎'), t('Paiement confirmé. Tes diamants arrivent dans quelques secondes (Collection → Diamants).'));
                     let n = 0;
                     poll = setInterval(() => { accountService.refresh(); n += 1; if (n >= 6) clearInterval(poll); }, 3000);
                 }
@@ -260,7 +261,7 @@ export default function HomeScreen({ navigation, route }) {
     const requireName = () => {
         if (!name.trim()) {
             audioService.playSound('error');
-            dialog.alert('Pseudo manquant', 'Entre un pseudo avant de jouer.');
+            dialog.alert(t('Pseudo manquant'), t('Entre un pseudo avant de jouer.'));
             return false;
         }
         AsyncStorage.setItem('playerName', name.trim()).catch(() => {});
@@ -272,8 +273,8 @@ export default function HomeScreen({ navigation, route }) {
         if (socketService.supportsGame(game)) return true;
         audioService.playSound('error');
         dialog.alert(
-            'Serveur pas à jour',
-            `Le serveur en ligne ne connaît pas encore ${selected.label} : il lancerait une partie de Hezz2 à la place. Il faut redéployer le serveur (Render).`
+            t('Serveur pas à jour'),
+            t("Le serveur en ligne ne connaît pas encore {p0} : il lancerait une partie de Hezz2 à la place. Il faut redéployer le serveur (Render).", { p0: selected.label })
         );
         return false;
     };
@@ -285,7 +286,7 @@ export default function HomeScreen({ navigation, route }) {
             if (response?.success) {
                 navigation.navigate('Lobby', { roomId: response.roomId, playerName: name.trim(), isHost: true, initialRoom: response.roomData });
             } else {
-                dialog.alert('Erreur', response?.message || 'Impossible de créer le salon.');
+                dialog.alert(t('Erreur'), response?.message || t('Impossible de créer le salon.'));
             }
         });
     };
@@ -314,9 +315,9 @@ export default function HomeScreen({ navigation, route }) {
                 audioService.playSound('error');
                 setInviteCode(null);
                 setShowInvite(false);
-                dialog.alert('Impossible de rejoindre', response?.message === 'Salon introuvable'
-                    ? "Ce salon n'existe plus (la partie est peut-être terminée). Demande un nouveau lien à ton ami."
-                    : response?.message || 'Salon introuvable.');
+                dialog.alert(t('Impossible de rejoindre'), response?.message === 'Salon introuvable'
+                    ? t("Ce salon n'existe plus (la partie est peut-être terminée). Demande un nouveau lien à ton ami.")
+                    : response?.message || t('Salon introuvable.'));
             }
         });
     };
@@ -338,7 +339,7 @@ export default function HomeScreen({ navigation, route }) {
                 }
             } else {
                 audioService.playSound('error');
-                dialog.alert('Salon Discord', response?.message || 'Impossible de rejoindre le salon de la partie.');
+                dialog.alert(t('Salon Discord'), response?.message || t('Impossible de rejoindre le salon de la partie.'));
             }
         });
     };
@@ -367,7 +368,7 @@ export default function HomeScreen({ navigation, route }) {
                 setMenu(null);
                 navigation.navigate('Game', { roomId: response.roomId, playerName: name.trim(), initialGameState: response.gameState, isHost: true });
             } else {
-                dialog.alert('Erreur', response?.message || "Impossible de créer la partie contre l'ordinateur.");
+                dialog.alert(t('Erreur'), response?.message || t("Impossible de créer la partie contre l'ordinateur."));
             }
         }, TEST_MODE && game === 'hezz2' ? { debugHand: TEST_MODE } : {});
     };
@@ -411,7 +412,7 @@ export default function HomeScreen({ navigation, route }) {
                 stopSearchUi();
                 setIsSearching(false);
                 if (res.timeout) setOutdated(true);
-                dialog.alert('Matchmaking indisponible', res.message);
+                dialog.alert(t('Matchmaking indisponible'), res.message);
             }
         });
     };
@@ -442,7 +443,7 @@ export default function HomeScreen({ navigation, route }) {
             if (response?.success) {
                 navigation.navigate('Game', { roomId: response.roomId, playerName: n, initialGameState: response.gameState, isHost: true });
             } else {
-                dialog.alert('Erreur', response?.message || "Impossible de créer la partie contre l'ordinateur.");
+                dialog.alert(t('Erreur'), response?.message || t("Impossible de créer la partie contre l'ordinateur."));
             }
         });
     };
@@ -461,16 +462,16 @@ export default function HomeScreen({ navigation, route }) {
     // Choix du nombre de joueurs (dans la fenêtre ouverte par « En ligne » ou « Solo »)
     const SizePicker = ({ onPick, colors, showSearching }) => (
         <Animated.View entering={FadeInDown.springify().damping(15)}>
-            <Text style={styles.lxSizeHint}>Choisis le nombre de joueurs</Text>
+            <Text style={styles.lxSizeHint}>{t("Choisis le nombre de joueurs")}</Text>
             <View style={styles.lxSizes}>
                 {selected.sizes.map((n) => (
-                    <PressableScale key={n} onPress={() => onPick(n)} style={styles.lxSize} scaleTo={0.92} accessibilityLabel={game === 'ronda' ? (n === 2 ? '1 contre 1' : '2 contre 2') : `${n} joueurs`}>
+                    <PressableScale key={n} onPress={() => onPick(n)} style={styles.lxSize} scaleTo={0.92} accessibilityLabel={game === 'ronda' ? (n === 2 ? t('1 contre 1') : t('2 contre 2')) : `${n} joueurs`}>
                         <Gradient colors={colors} />
                         <View style={styles.lxSizeShine} />
                         <Text style={styles.lxSizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>
-                        <Text style={styles.lxSizeSub} numberOfLines={1}>{game === 'ronda' ? selected.sizeLabel(n) : 'joueurs'}</Text>
+                        <Text style={styles.lxSizeSub} numberOfLines={1}>{game === 'ronda' ? t(selected.sizeLabel(n)) : t('joueurs')}</Text>
                         {showSearching && searchingFor(n) > 0 && (
-                            <Text style={styles.sizeSearching} numberOfLines={1} accessibilityLabel={`${searchingFor(n)} en recherche`}>{searchingFor(n)}</Text>
+                            <Text style={styles.sizeSearching} numberOfLines={1} accessibilityLabel={t("{p0} en recherche", { p0: searchingFor(n) })}>{searchingFor(n)}</Text>
                         )}
                     </PressableScale>
                 ))}
@@ -478,7 +479,7 @@ export default function HomeScreen({ navigation, route }) {
             {showSearching && selected.sizes.some((n) => searchingFor(n) > 0) && (
                 <Text style={styles.sizeLegend}>🟢 = joueurs qui attendent déjà : choisis cette taille pour jouer tout de suite</Text>
             )}
-            <GameButton small title="Annuler" variant="outline" onPress={() => setMenu(null)} style={{ alignSelf: 'center', marginTop: 14 }} />
+            <GameButton small title={t("Annuler")} variant="outline" onPress={() => setMenu(null)} style={{ alignSelf: 'center', marginTop: 14 }} />
         </Animated.View>
     );
 
@@ -514,23 +515,23 @@ export default function HomeScreen({ navigation, route }) {
                                         );
                                     })}
                                 </View>
-                                <Text style={styles.lxTagline} numberOfLines={2}>{selected.tagline}</Text>
+                                <Text style={styles.lxTagline} numberOfLines={2}>{t(selected.tagline)}</Text>
                                 {isSearching ? (
                                     <Animated.View entering={ZoomIn.springify()} style={styles.searchBox}>
                                         <SearchSpinner />
                                         <Text style={[styles.searchTitle, searchStatus && { color: theme.mint }]}>
-                                            {searchStatus === 'found' ? 'Adversaires trouvés !' : "Recherche d'adversaires…"}
+                                            {searchStatus === 'found' ? t('Adversaires trouvés !') : t("Recherche d'adversaires…")}
                                         </Text>
                                         <Text style={styles.searchSub}>{selected.label} · partie à {searchingSize} joueurs · {Math.floor(searchSeconds / 60)}:{String(searchSeconds % 60).padStart(2, '0')}</Text>
-                                        <Text style={styles.searchHint}>La partie démarre dans quelques secondes</Text>
-                                        <GameButton small title="Annuler" icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
+                                        <Text style={styles.searchHint}>{t("La partie démarre dans quelques secondes")}</Text>
+                                        <GameButton small title={t("Annuler")} icon="✖" variant="outline" onPress={handleCancelSearch} style={{ marginTop: 12, alignSelf: 'stretch' }} />
                                     </Animated.View>
                                 ) : (
                                     <View style={[styles.lxModeGrid, !inRow && { flexWrap: 'wrap', rowGap: 12 }]}>
-                                        <ModeCard width={cw} icon={UI.online} label="En ligne" sub={online ? `${online.online} en ligne` : 'vs joueurs'} colors={MODE_COLORS.red} disabled={!isConnected || outdated} onPress={() => startMode('online')} />
-                                        <ModeCard width={cw} icon={UI.solo} label="Solo" sub="vs ordinateur" colors={MODE_COLORS.blue} disabled={!isConnected} onPress={() => startMode('bot')} />
-                                        <ModeCard width={cw} icon={UI.tournament} label="Tournois" sub={lastChampion ? `👑 ${lastChampion.champion}` : 'élimination'} colors={MODE_COLORS.purple} disabled={!isConnected} onPress={() => navigation.navigate('Tournaments')} />
-                                        <ModeCard width={cw} icon={UI.friends} label="Entre amis" sub={inDiscord ? 'salon Discord' : 'salon privé'} colors={MODE_COLORS.green} disabled={!isConnected || (inDiscord && !profile?.name)} onPress={() => { if (!requireName()) return; if (inDiscord) joinDiscordRoom(); else handleCreateRoom(); }} />
+                                        <ModeCard width={cw} icon={UI.online} label={t("En ligne")} sub={online ? t("{p0} en ligne", { p0: online.online }) : t('vs joueurs')} colors={MODE_COLORS.red} disabled={!isConnected || outdated} onPress={() => startMode('online')} />
+                                        <ModeCard width={cw} icon={UI.solo} label={t("Solo")} sub={t("vs ordinateur")} colors={MODE_COLORS.blue} disabled={!isConnected} onPress={() => startMode('bot')} />
+                                        <ModeCard width={cw} icon={UI.tournament} label={t("Tournois")} sub={lastChampion ? `👑 ${lastChampion.champion}` : t('élimination')} colors={MODE_COLORS.purple} disabled={!isConnected} onPress={() => navigation.navigate('Tournaments')} />
+                                        <ModeCard width={cw} icon={UI.friends} label={t("Entre amis")} sub={inDiscord ? t('salon Discord') : t('salon privé')} colors={MODE_COLORS.green} disabled={!isConnected || (inDiscord && !profile?.name)} onPress={() => { if (!requireName()) return; if (inDiscord) joinDiscordRoom(); else handleCreateRoom(); }} />
                                     </View>
                                 )}
         </>
@@ -570,34 +571,34 @@ export default function HomeScreen({ navigation, route }) {
 
                 {/* Haut : joueur, logo, binga et son */}
                 <View style={styles.lsTop}>
-                    <Pressable onPress={() => navigation.navigate('Profile')} style={[styles.lsPlayer, { width: sideW + 90 }]} accessibilityLabel="Mon profil">
+                    <Pressable onPress={() => navigation.navigate('Profile')} style={[styles.lsPlayer, { width: sideW + 90 }]} accessibilityLabel={t("Mon profil")}>
                         <LaurelPortrait size={portrait}>
-                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={portrait * 0.74} />
+                            <PlayerAvatar name={name || t('Joueur')} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={portrait * 0.74} />
                         </LaurelPortrait>
                         <View style={{ flex: 1, marginLeft: 6 }}>
                             {profile ? (
                                 <Text style={styles.lsName} numberOfLines={1}>{profile.name}</Text>
                             ) : (
-                                <TextInput style={[styles.lxInput, { paddingVertical: 4, fontSize: 14 }]} placeholder="Ton pseudo…" placeholderTextColor={LUXE.dim} value={name} onChangeText={setName} maxLength={16} accessibilityLabel="Ton pseudo" />
+                                <TextInput style={[styles.lxInput, { paddingVertical: 4, fontSize: 14 }]} placeholder={t("Ton pseudo…")} placeholderTextColor={LUXE.dim} value={name} onChangeText={setName} maxLength={16} accessibilityLabel={t("Ton pseudo")} />
                             )}
-                            <Text style={styles.lsLevel}>Niveau <Text style={{ color: LUXE.goldLight }}>{level}</Text>{rankInfo ? `  ·  ${rankInfo.name}` : ''}</Text>
+                            <Text style={styles.lsLevel}>{t("Niveau")} <Text style={{ color: LUXE.goldLight }}>{level}</Text>{rankInfo ? `  ·  ${t(rankInfo.name)}` : ''}</Text>
                             {rankInfo && <XpBar progress={rankInfo.levelProgress || 0} height={12} style={{ marginTop: 3 }} />}
-                            {rankInfo && <Text style={styles.lsXp}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>}
+                            {rankInfo && <Text style={styles.lsXp}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} {t("XP")}</Text>}
                         </View>
                     </Pressable>
                     <Animated.View style={[{ flex: 1, alignItems: 'center' }, titleStyle]}>
-                        <Image source={LUXE_IMG.logo} style={{ width: logoW, height: logoW * 0.433 }} accessibilityLabel="L'Carta" />
+                        <Image source={LUXE_IMG.logo} style={{ width: logoW, height: logoW * 0.433 }} accessibilityLabel={t("L'Carta")} />
                     </Animated.View>
                     <View style={[styles.lsRight, { width: Math.max(rightW, 190) }]}>
-                        <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel="Binga">
+                        <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel={t("Binga")}>
                             <Gradient colors={['#2A1A0E', '#120904']} />
                             <BingaIcon size={24} />
                             <Text style={styles.lxCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
                             <View style={styles.lxPlus}><Text style={styles.lxPlusText}>+</Text></View>
                         </PressableScale>
                         <InboxBell navigation={navigation} onJoinRoom={(code) => setInviteCode(code)} />
-                        <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
-                        <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
+                        <GoldSquare onPress={() => audioService.toggleMusic()} label={t("Musique")} style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
+                        <GoldSquare onPress={() => audioService.toggleMute()} label={t("Son")}><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
                     </View>
                 </View>
 
@@ -606,9 +607,9 @@ export default function HomeScreen({ navigation, route }) {
                     <ScrollView style={{ width: sideW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
                         <AppNav navigation={navigation} current="home" side />
                         <View style={[styles.lxLinks, { flexDirection: 'column', alignItems: 'stretch', gap: 6 }]}>
-                            <PressableScale onPress={() => setShowRules(true)} style={styles.lxLink}><Text style={styles.lxLinkText}>📜 Règles</Text></PressableScale>
+                            <PressableScale onPress={() => setShowRules(true)} style={styles.lxLink}><Text style={styles.lxLinkText}>{t("📜 Règles")}</Text></PressableScale>
                             {isConnected && (
-                                <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}><Text style={styles.lxLinkText}>🔗 Lien d'invitation</Text></PressableScale>
+                                <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}><Text style={styles.lxLinkText}>{t("🔗 Lien d'invitation")}</Text></PressableScale>
                             )}
                         </View>
                     </ScrollView>
@@ -616,27 +617,27 @@ export default function HomeScreen({ navigation, route }) {
                     {/* Centre : modes de jeu, tournois */}
                     <ScrollView style={{ flex: 1, marginHorizontal: 12 }} contentContainerStyle={{ paddingTop: 20, paddingBottom: 24 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
                         {outdated && isConnected && (
-                            <View style={[styles.reconnect, styles.outdated]}><Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles.</Text></View>
+                            <View style={[styles.reconnect, styles.outdated]}><Text style={styles.reconnectText}>{t("⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles.")}</Text></View>
                         )}
                         {!isConnected && (
                             <View style={styles.reconnect}>
-                                <Text style={styles.reconnectText}>{wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s`}</Text>
+                                <Text style={styles.reconnectText}>{wakeSeconds < 4 ? t('⏳ Connexion au serveur…') : t("⏳ Le serveur se réveille… {p0} s", { p0: wakeSeconds })}</Text>
                             </View>
                         )}
                         <View>
                             <LuxePanel style={styles.lxModes} colors={['#5C1020', '#2B0710']}>
                                 {renderModes(lsCard, true)}
                             </LuxePanel>
-                            <RibbonTitle title="Modes de jeu" style={styles.lxRibbon} />
+                            <RibbonTitle title={t("Modes de jeu")} style={styles.lxRibbon} />
                         </View>
-                        <PressableScale onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 14 }} accessibilityLabel="Voir les tournois" scaleTo={0.98}>
+                        <PressableScale onPress={() => navigation.navigate('Tournaments')} disabled={!isConnected} style={{ marginTop: 14 }} accessibilityLabel={t("Voir les tournois")} scaleTo={0.98}>
                             <LuxePanel style={styles.lsTour} colors={['#4A1460', '#5C1020']}>
                                 <Image source={UI.tournament} style={{ width: 92, height: 64 }} resizeMode="contain" />
                                 <View style={{ flex: 1, marginHorizontal: 10 }}>
-                                    <Text style={styles.lsTourTitle}>Tournois</Text>
-                                    <Text style={styles.lsTourSub} numberOfLines={2}>{lastChampion ? `Dernier champion : ${lastChampion.champion} (${GAME_LABEL[lastChampion.gameType]})` : 'Élimination directe : inscris-toi et décroche le titre de champion.'}</Text>
+                                    <Text style={styles.lsTourTitle}>{t("Tournois")}</Text>
+                                    <Text style={styles.lsTourSub} numberOfLines={2}>{lastChampion ? t("Dernier champion : {p0} ({p1})", { p0: lastChampion.champion, p1: GAME_LABEL[lastChampion.gameType] }) : t('Élimination directe : inscris-toi et décroche le titre de champion.')}</Text>
                                 </View>
-                                <View style={styles.lsTourBtn}><Gradient colors={['#EA4A45', '#8E121B']} /><Text style={styles.lsTourBtnText}>Voir ›</Text></View>
+                                <View style={styles.lsTourBtn}><Gradient colors={['#EA4A45', '#8E121B']} /><Text style={styles.lsTourBtnText}>{t("Voir ›")}</Text></View>
                             </LuxePanel>
                         </PressableScale>
                     </ScrollView>
@@ -646,8 +647,8 @@ export default function HomeScreen({ navigation, route }) {
                         <ScrollView style={{ width: rightW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
                             {sidePanel(
                                 <Image source={UI.sStreak} style={{ width: 40, height: 28 }} resizeMode="contain" />,
-                                season ? `Saison ${season.id}` : 'Saison',
-                                season ? `${season.xp} XP · fin le ${new Date(season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` : 'Crée ton compte pour le classement de la saison.',
+                                season ? `Saison ${season.id}` : t('Saison'),
+                                season ? `${season.xp} XP · fin le ${new Date(season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}` : t('Crée ton compte pour le classement de la saison.'),
                                 null,
                                 () => navigation.navigate('Leaderboard'),
                                 season ? <XpBar progress={seasonPct} height={10} style={{ marginTop: 8 }} /> : null,
@@ -655,8 +656,8 @@ export default function HomeScreen({ navigation, route }) {
                             {sidePanel(
                                 <Image source={UI.rewards} style={{ width: 44, height: 38 }} resizeMode="contain" />,
                                 'Roue du jour',
-                                wheelReady ? '1 tour gratuit t\'attend' : profile ? 'Prochain tour demain' : 'Gratuite chaque jour',
-                                wheelReady || !profile ? 'Tourner' : null,
+                                wheelReady ? t('1 tour gratuit t\'attend') : profile ? t('Prochain tour demain') : t('Gratuite chaque jour'),
+                                wheelReady || !profile ? t('Tourner') : null,
                                 () => navigation.navigate('Wheel'),
                             )}
                             {sidePanel(
@@ -669,7 +670,7 @@ export default function HomeScreen({ navigation, route }) {
                             {sidePanel(
                                 <Image source={UI.collection} style={{ width: 44, height: 30 }} resizeMode="contain" />,
                                 'Missions',
-                                profile?.binga ? `${missionsDone}/${profile.binga.missions.length} faites aujourd'hui` : 'Avec un compte',
+                                profile?.binga ? t("{p0}/{p1} faites aujourd'hui", { p0: missionsDone, p1: profile.binga.missions.length }) : t('Avec un compte'),
                                 null,
                                 () => navigation.navigate('Missions'),
                             )}
@@ -706,7 +707,7 @@ export default function HomeScreen({ navigation, route }) {
 
                         {/* En-tête : binga, musique, son */}
                         <View style={styles.lxTop}>
-                            <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel="Binga">
+                            <PressableScale onPress={() => navigation.navigate(profile?.binga ? 'Shop' : 'Profile')} style={styles.lxCoins} accessibilityLabel={t("Binga")}>
                                 <Gradient colors={['#2A1A0E', '#120904']} />
                                 <BingaIcon size={24} />
                                 <Text style={styles.lxCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
@@ -714,30 +715,30 @@ export default function HomeScreen({ navigation, route }) {
                             </PressableScale>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
                                 <InboxBell navigation={navigation} onJoinRoom={(code) => setInviteCode(code)} />
-                        <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
-                                <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
+                        <GoldSquare onPress={() => audioService.toggleMusic()} label={t("Musique")} style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
+                                <GoldSquare onPress={() => audioService.toggleMute()} label={t("Son")}><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
                             </View>
                         </View>
 
                         {/* Logo */}
                         <Animated.View entering={ZoomIn.springify().damping(12)} style={[{ alignItems: 'center', marginTop: -8 }, titleStyle]}>
-                            <Image source={LUXE_IMG.logo} style={{ width: Math.min(300, pageW - 110), height: Math.min(300, pageW - 110) * 0.433 }} accessibilityLabel="L'Carta" />
+                            <Image source={LUXE_IMG.logo} style={{ width: Math.min(300, pageW - 110), height: Math.min(300, pageW - 110) * 0.433 }} accessibilityLabel={t("L'Carta")} />
                         </Animated.View>
 
                         {outdated && isConnected && (
                             <Animated.View entering={FadeIn} style={[styles.reconnect, styles.outdated]}>
-                                <Text style={styles.reconnectText}>⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles. Il faut le redéployer.</Text>
+                                <Text style={styles.reconnectText}>{t("⚠️ Le serveur en ligne n'est pas à jour : matchmaking, Rejouer et nouveaux jeux indisponibles. Il faut le redéployer.")}</Text>
                             </Animated.View>
                         )}
                         {TEST_MODE && (
                             <View style={[styles.reconnect, { backgroundColor: 'rgba(124,58,237,0.7)' }]}>
-                                <Text style={styles.reconnectText}>{TEST_MODE === 'big' ? "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec 20 cartes" : "🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7"}</Text>
+                                <Text style={styles.reconnectText}>{TEST_MODE === 'big' ? t("🧪 Mode test : contre l'IA (Hezz2), ta main commence avec 20 cartes") : t("🧪 Mode test : contre l'IA (Hezz2), ta main commence avec des 1, 2 et 7")}</Text>
                             </View>
                         )}
                         {!isConnected && (
                             <Animated.View entering={FadeIn} style={styles.reconnect}>
                                 <Text style={styles.reconnectText}>
-                                    {wakeSeconds < 4 ? '⏳ Connexion au serveur…' : `⏳ Le serveur se réveille… ${wakeSeconds} s (jusqu'à 1 min après une pause)`}
+                                    {wakeSeconds < 4 ? t('⏳ Connexion au serveur…') : t("⏳ Le serveur se réveille… {p0} s (jusqu'à 1 min après une pause)", { p0: wakeSeconds })}
                                 </Text>
                             </Animated.View>
                         )}
@@ -746,26 +747,26 @@ export default function HomeScreen({ navigation, route }) {
                         <Animated.View entering={FadeInUp.delay(120).springify().damping(16)}>
                             <LuxePanel style={styles.lxCard}>
                                 <View style={styles.lxCardRow}>
-                                    <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel="Mon profil">
+                                    <Pressable onPress={() => navigation.navigate('Profile')} accessibilityLabel={t("Mon profil")}>
                                         <LaurelPortrait size={pageW < 380 ? 96 : 108}>
-                                            <PlayerAvatar name={name || 'Joueur'} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={(pageW < 380 ? 96 : 108) * 0.74} />
+                                            <PlayerAvatar name={name || t('Joueur')} variant={profile ? (profile.avatar || 0) : (account.guestAvatar || 0)} size={(pageW < 380 ? 96 : 108) * 0.74} />
                                         </LaurelPortrait>
                                     </Pressable>
                                     <View style={{ flex: 1, marginLeft: 8 }}>
                                         {profile ? (
-                                            <Pressable onPress={() => navigation.navigate('Profile')} style={styles.lxNameRow} accessibilityLabel="Modifier mon profil">
+                                            <Pressable onPress={() => navigation.navigate('Profile')} style={styles.lxNameRow} accessibilityLabel={t("Modifier mon profil")}>
                                                 <Text style={styles.lxName} numberOfLines={1}>{profile.name}</Text>
                                                 <View style={styles.lxEdit}><Text style={{ fontSize: 12 }}>✏️</Text></View>
                                             </Pressable>
                                         ) : (
                                             <TextInput
                                                 style={styles.lxInput}
-                                                placeholder="Ton pseudo…"
+                                                placeholder={t("Ton pseudo…")}
                                                 placeholderTextColor={LUXE.dim}
                                                 value={name}
                                                 onChangeText={setName}
                                                 maxLength={16}
-                                                accessibilityLabel="Ton pseudo"
+                                                accessibilityLabel={t("Ton pseudo")}
                                             />
                                         )}
                                         {rankInfo && (
@@ -773,14 +774,14 @@ export default function HomeScreen({ navigation, route }) {
                                                 <LevelBadge level={level} size={40} />
                                                 <View style={{ flex: 1, marginLeft: 6 }}>
                                                     <XpBar progress={rankInfo.levelProgress || 0} />
-                                                    <Text style={styles.lxXpText}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} XP</Text>
+                                                    <Text style={styles.lxXpText}>{rankInfo.currentXP}{rankInfo.next ? ` / ${rankInfo.next.min}` : ''} {t("XP")}</Text>
                                                 </View>
                                             </View>
                                         )}
                                         {rankInfo && (
-                                            <Pressable onPress={() => navigation.navigate('Leaderboard')} style={styles.lxRank} accessibilityLabel="Classement">
+                                            <Pressable onPress={() => navigation.navigate('Leaderboard')} style={styles.lxRank} accessibilityLabel={t("Classement")}>
                                                 <Image source={LUXE_IMG.trophy} style={{ width: 34, height: 21 }} />
-                                                <Text style={styles.lxRankText} numberOfLines={1}>{rankInfo.name}</Text>
+                                                <Text style={styles.lxRankText} numberOfLines={1}>{t(rankInfo.name)}</Text>
                                             </Pressable>
                                         )}
                                     </View>
@@ -788,7 +789,7 @@ export default function HomeScreen({ navigation, route }) {
                                 {!profile && (
                                     <PressableScale onPress={() => navigation.navigate('Profile')} style={styles.lxGuestCta}>
                                         <BingaIcon size={18} />
-                                        <Text style={styles.lxGuestCtaText}>Crée ton compte : binga, coffres, classement</Text>
+                                        <Text style={styles.lxGuestCtaText}>{t("Crée ton compte : binga, coffres, classement")}</Text>
                                     </PressableScale>
                                 )}
                                 <View style={styles.lxStats}>
@@ -809,10 +810,10 @@ export default function HomeScreen({ navigation, route }) {
 
                         {/* Raccourcis */}
                         <Animated.View entering={FadeInUp.delay(200).springify().damping(16)} style={styles.lxTiles}>
-                            <QuickTile compact={pageW < 380} icon={UI.collection} label="Collection" onPress={() => navigation.navigate('Shop')} />
-                            <QuickTile compact={pageW < 380} icon={UI.rewards} label="Cadeaux" badge={wheelReady} onPress={() => navigation.navigate('Wheel')} />
-                            <QuickTile compact={pageW < 380} icon={UI.rank} label="Classement" onPress={() => navigation.navigate('Leaderboard')} />
-                            <QuickTile compact={pageW < 380} icon={UI.friends} label="Amis" badge={friends.incoming.length > 0} onPress={() => navigation.navigate('Friends')} />
+                            <QuickTile compact={pageW < 380} icon={UI.collection} label={t("Collection")} onPress={() => navigation.navigate('Shop')} />
+                            <QuickTile compact={pageW < 380} icon={UI.rewards} label={t("Cadeaux")} badge={wheelReady} onPress={() => navigation.navigate('Wheel')} />
+                            <QuickTile compact={pageW < 380} icon={UI.rank} label={t("Classement")} onPress={() => navigation.navigate('Leaderboard')} />
+                            <QuickTile compact={pageW < 380} icon={UI.friends} label={t("Amis")} badge={friends.incoming.length > 0} onPress={() => navigation.navigate('Friends')} />
                         </Animated.View>
 
                         {/* Modes de jeu */}
@@ -820,16 +821,16 @@ export default function HomeScreen({ navigation, route }) {
                             <LuxePanel style={styles.lxModes} colors={['#5C1020', '#2B0710']}>
                                 {renderModes(cardW, modesInRow)}
                             </LuxePanel>
-                            <RibbonTitle title="Modes de jeu" style={styles.lxRibbon} />
+                            <RibbonTitle title={t("Modes de jeu")} style={styles.lxRibbon} />
                         </Animated.View>
 
                         <View style={styles.lxLinks}>
                             <PressableScale onPress={() => setShowRules(true)} style={styles.lxLink}>
-                                <Text style={styles.lxLinkText}>📜 Règles</Text>
+                                <Text style={styles.lxLinkText}>{t("📜 Règles")}</Text>
                             </PressableScale>
                             {isConnected && (
                                 <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}>
-                                    <Text style={styles.lxLinkText}>🔗 J'ai un lien d'invitation</Text>
+                                    <Text style={styles.lxLinkText}>{t("🔗 J'ai un lien d'invitation")}</Text>
                                 </PressableScale>
                             )}
                         </View>
@@ -838,9 +839,9 @@ export default function HomeScreen({ navigation, route }) {
                         {/* Marrakech au coucher du soleil, pièces, cartes et thé */}
                         <Image source={LUXE_IMG.scene} style={{ width: pageW, height: pageW * 0.328, marginTop: 8, alignSelf: 'center' }} pointerEvents="none" />
                         <View style={styles.legalRow}>
-                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>Confidentialité</Text>
+                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'privacy' })}>{t("Confidentialité")}</Text>
                             <Text style={styles.legalDot}>·</Text>
-                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>Conditions d'utilisation</Text>
+                            <Text style={styles.legalLink} onPress={() => navigation.navigate('Legal', { doc: 'terms' })}>{t("Conditions d'utilisation")}</Text>
                         </View>
                     </View>
                 </ScrollView>
@@ -852,7 +853,7 @@ export default function HomeScreen({ navigation, route }) {
                 <Pressable style={styles.lxSheetBg} onPress={() => setMenu(null)}>
                     <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 420 }}>
                         <LuxePanel style={{ padding: 16 }}>
-                            <Text style={styles.lxSheetTitle}>{selected.label} · {menu === 'online' ? 'En ligne' : "Contre l'ordinateur"}</Text>
+                            <Text style={styles.lxSheetTitle}>{selected.label} · {menu === 'online' ? t('En ligne') : t("Contre l'ordinateur")}</Text>
                             {menu === 'online' && <SizePicker onPick={handleSearchMatch} colors={MODE_COLORS.red} showSearching />}
                             {menu === 'bot' && <SizePicker onPick={handleCreateBotRoom} colors={MODE_COLORS.blue} />}
                         </LuxePanel>

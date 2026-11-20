@@ -16,6 +16,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { WHEEL, RARITIES, CHESTS } from '../../server/progress/defs';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import { t } from '../i18n';
 
 const N = WHEEL.segments.length;
 const STEP = 360 / N;
@@ -94,10 +95,10 @@ function Prize({ result }) {
         return (
             <>
                 <ChestArt chest={result.chest.chest} size={90} open />
-                <Text style={styles.prizeTitle}>{CHESTS[result.chest.chest].label} offert !</Text>
+                <Text style={styles.prizeTitle}>{CHESTS[result.chest.chest].label} {t("offert !")}</Text>
                 <Text style={[styles.prizeRarity, { color: rar.color }]}>{rar.label}</Text>
                 <Text style={styles.prizeItem}>{it.label}</Text>
-                <Text style={styles.prizeSub}>{result.chest.duplicate ? `Tu l'avais déjà : +${result.chest.refund} binga` : 'Ajouté à ton Profil, pour toujours'}</Text>
+                <Text style={styles.prizeSub}>{result.chest.duplicate ? t("Tu l'avais déjà : +{p0} binga", { p0: result.chest.refund }) : t('Ajouté à ton Profil, pour toujours')}</Text>
             </>
         );
     }
@@ -106,18 +107,18 @@ function Prize({ result }) {
         return (
             <>
                 <Text style={{ fontSize: 56 }}>🎁</Text>
-                <Text style={styles.prizeTitle}>Cosmétique offert !</Text>
+                <Text style={styles.prizeTitle}>{t("Cosmétique offert !")}</Text>
                 <Text style={[styles.prizeRarity, { color: rar.color }]}>{rar.label}</Text>
                 <Text style={styles.prizeItem}>{result.item.label}</Text>
-                <Text style={styles.prizeSub}>Ajouté à ton Profil, pour toujours</Text>
+                <Text style={styles.prizeSub}>{t("Ajouté à ton Profil, pour toujours")}</Text>
             </>
         );
     }
     return (
         <>
             <BingaIcon size={72} />
-            <Text style={styles.prizeTitle}>+{result.binga} binga</Text>
-            <Text style={styles.prizeSub}>{result.duplicate ? 'Tu avais déjà tous les cosmétiques communs : voici des binga.' : 'Ajoutés à ton solde'}</Text>
+            <Text style={styles.prizeTitle}>+{result.binga} {t("binga")}</Text>
+            <Text style={styles.prizeSub}>{result.duplicate ? t('Tu avais déjà tous les cosmétiques communs : voici des binga.') : t('Ajoutés à ton solde')}</Text>
         </>
     );
 }
@@ -162,14 +163,14 @@ export default function WheelScreen({ navigation }) {
 
     const spin = async () => {
         if (!profile) {
-            dialog.alert('Crée ton compte', 'La roue du jour est réservée aux comptes : tes lots sont gardés avec ton compte.', [
-                { text: 'Plus tard', style: 'cancel' },
-                { text: 'Aller au Profil', onPress: () => navigation.navigate('Profile') },
+            dialog.alert(t('Crée ton compte'), t('La roue du jour est réservée aux comptes : tes lots sont gardés avec ton compte.'), [
+                { text: t('Plus tard'), style: 'cancel' },
+                { text: t('Aller au Profil'), onPress: () => navigation.navigate('Profile') },
             ]);
             return;
         }
         if (socketService.serverInfo && !socketService.supports('wheel')) {
-            dialog.alert('Bientôt', "Le serveur n'est pas encore à jour : la roue n'est pas disponible pour l'instant.");
+            dialog.alert(t('Bientôt'), t("Le serveur n'est pas encore à jour : la roue n'est pas disponible pour l'instant."));
             return;
         }
         if (spinning) return;
@@ -180,7 +181,7 @@ export default function WheelScreen({ navigation }) {
         if (!r || r.error || !r.result) {
             setSpinning(false);
             audioService.playSound('error');
-            dialog.alert('Roue du jour', r?.error || 'Réessaie dans un instant.');
+            dialog.alert(t('Roue du jour'), r?.error || t('Réessaie dans un instant.'));
             return;
         }
         // La case gagnante s'arrête sous l'aiguille (en haut), après 5 tours
@@ -199,34 +200,34 @@ export default function WheelScreen({ navigation }) {
             </View>
             <View style={styles.dim} />
             <ScreenHeader
-                title="Roue du jour"
+                title={t("Roue du jour")}
                 onBack={() => navigation.goBack()}
                 right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? (profile.binga?.balance ?? 0).toLocaleString('fr-FR') : '—'} />}
             />
             <ScrollView contentContainerStyle={styles.scroll}>
-                <Text style={styles.intro}>Un tour gratuit par jour, toujours un lot. La roue ne se paie jamais, ni en binga ni en argent.</Text>
+                <Text style={styles.intro}>{t("Un tour gratuit par jour, toujours un lot. La roue ne se paie jamais, ni en binga ni en argent.")}</Text>
                 <View style={{ alignItems: 'center', marginVertical: 12 }}>
                     <Wheel size={size} rotation={rotation} />
                 </View>
                 {result ? (
                     <Animated.View entering={ZoomIn.springify().damping(12)} style={styles.prize}>
                         <Prize result={result} />
-                        <GameButton small title="Super !" onPress={() => setResult(null)} style={{ marginTop: 10 }} />
+                        <GameButton small title={t("Super !")} onPress={() => setResult(null)} style={{ marginTop: 10 }} />
                     </Animated.View>
                 ) : (
                     <View style={{ alignItems: 'center' }}>
                         <GameButton
-                            title={spinning ? 'ÇA TOURNE…' : available || !profile ? 'TOURNER LA ROUE' : `PROCHAIN TOUR DANS ${untilTomorrow()}`}
+                            title={spinning ? t('ÇA TOURNE…') : available || !profile ? t('TOURNER LA ROUE') : t("PROCHAIN TOUR DANS {p0}", { p0: untilTomorrow() })}
                             icon="🎡"
                             onPress={spin}
                             disabled={spinning || (!!profile && !available)}
                         />
-                        {!profile && <Text style={styles.note}>🔐 Crée ton compte pour tourner la roue chaque jour.</Text>}
+                        {!profile && <Text style={styles.note}>{t("🔐 Crée ton compte pour tourner la roue chaque jour.")}</Text>}
                     </View>
                 )}
 
                 <View style={styles.odds}>
-                    <Text style={styles.oddsTitle}>Chances de chaque lot</Text>
+                    <Text style={styles.oddsTitle}>{t("Chances de chaque lot")}</Text>
                     {WHEEL.segments.map((s) => (
                         <View key={s.id} style={styles.oddsRow}>
                             <View style={{ width: 30, alignItems: 'center' }}><SegmentIcon seg={s} size={22} /></View>
@@ -235,7 +236,7 @@ export default function WheelScreen({ navigation }) {
                             <Text style={styles.oddsPct}>{s.odds} %</Text>
                         </View>
                     ))}
-                    <Text style={styles.note}>Un coffre gagné s'ouvre tout de suite, gratuitement, avec ses propres chances (affichées dans la Boutique). Cosmétique déjà tous possédés : 20 binga.</Text>
+                    <Text style={styles.note}>{t("Un coffre gagné s'ouvre tout de suite, gratuitement, avec ses propres chances (affichées dans la Boutique). Cosmétique déjà tous possédés : 20 binga.")}</Text>
                 </View>
             </ScrollView>
             <AppNav navigation={navigation} current="rewards" />

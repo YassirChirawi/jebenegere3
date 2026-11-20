@@ -6,12 +6,13 @@ import { PressableScale, theme } from '../components/ui';
 import { GAMES, GAME_ORDER } from '../games';
 import accountService, { useAccount } from '../network/accountService';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import { t } from '../i18n';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 function daysLeft(end) {
     const d = Math.max(0, Math.ceil((end - Date.now()) / 86400000));
-    return d <= 1 ? 'dernier jour' : `${d} jours restants`;
+    return d <= 1 ? t('dernier jour') : t("{p0} jours restants", { p0: d });
 }
 
 /** Classement de la saison (4 semaines) : général et par jeu, pseudo seulement. */
@@ -41,7 +42,7 @@ export default function LeaderboardScreen({ navigation }) {
                 <Text style={[styles.name, me && { color: theme.goldLight }]} numberOfLines={1}>{r.name}{me ? ' (toi)' : ''}</Text>
                 {r.title ? <Text style={styles.title} numberOfLines={1}>{r.title}</Text> : null}
             </View>
-            <Text style={styles.xp}>{r.xp} XP</Text>
+            <Text style={styles.xp}>{r.xp} {t("XP")}</Text>
         </Animated.View>
     );
 
@@ -50,7 +51,7 @@ export default function LeaderboardScreen({ navigation }) {
     return (
         <View style={styles.container}>
             <LuxeBackdrop />
-            <ScreenHeader title="Classement" onBack={() => navigation.goBack()} />
+            <ScreenHeader title={t("Classement")} onBack={() => navigation.goBack()} />
 
             <View style={styles.tabs}>
                 {[['all', 'Général'], ...GAME_ORDER.map((g) => [g, GAMES[g].label])].map(([k, l]) => (
@@ -65,14 +66,14 @@ export default function LeaderboardScreen({ navigation }) {
                     Saison {data.season.id} · {daysLeft(data.season.end)} · {data.players} joueur{data.players > 1 ? 's' : ''} classé{data.players > 1 ? 's' : ''}
                 </Text>
             )}
-            <Text style={styles.reward}>Top 10 en fin de saison : dos de cartes exclusif + badge 🏅</Text>
+            <Text style={styles.reward}>{t("Top 10 en fin de saison : dos de cartes exclusif + badge 🏅")}</Text>
 
             {!data && !error && <ActivityIndicator color={theme.gold} style={{ marginTop: 30 }} />}
             {error && <Text style={styles.error}>{error}</Text>}
 
             {data && (
                 <ScrollView contentContainerStyle={styles.list}>
-                    {data.top.length === 0 && <Text style={styles.empty}>Personne n'est encore classé cette saison. À toi de jouer !</Text>}
+                    {data.top.length === 0 && <Text style={styles.empty}>{t("Personne n'est encore classé cette saison. À toi de jouer !")}</Text>}
                     {data.top.map((r, i) => <Row key={`${r.rank}-${r.name}`} r={r} i={i} me={data.me?.rank === r.rank && data.me?.name === r.name} />)}
                     {data.me && !meInTop && (
                         <>
@@ -81,7 +82,7 @@ export default function LeaderboardScreen({ navigation }) {
                         </>
                     )}
                     {!account.profile && (
-                        <Text style={styles.empty}>Crée ton compte dans le Profil pour apparaître au classement.</Text>
+                        <Text style={styles.empty}>{t("Crée ton compte dans le Profil pour apparaître au classement.")}</Text>
                     )}
                 </ScrollView>
             )}

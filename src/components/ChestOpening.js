@@ -14,6 +14,7 @@ import { GameButton, theme, haptic } from './ui';
 import audioService from '../network/audioService';
 import { BACKS, FELTS, TABLE_SKINS } from '../utils/cosmetics';
 import { CHESTS, RARITIES } from '../../server/progress/defs';
+import { t } from '../i18n';
 
 const EFFECT_ICONS = { confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
 const DARK = { bronze: '#7A4A1C', argent: '#6B7280', or: '#A67C1A' };
@@ -99,7 +100,7 @@ export default function ChestOpening({ chest, request, onClose, onUse }) {
             cancelAnimation(rot);
             rot.value = withTiming(0, { duration: 80 });
             if (!r || r.error || !r.result) {
-                setRes({ error: r?.error || 'Réessaie dans un instant.' });
+                setRes({ error: r?.error || t('Réessaie dans un instant.') });
                 setPhase('done');
                 audioService.playSound('error');
                 return;
@@ -134,22 +135,22 @@ export default function ChestOpening({ chest, request, onClose, onUse }) {
                             <View style={[styles.glow, { backgroundColor: `${rarity.color}33`, borderColor: rarity.color }]}>
                                 <ItemVisual item={item} />
                             </View>
-                            <Text style={[styles.rarity, { color: rarity.color }]}>{rarity.label}{res.result.pity ? ' · garanti' : ''}</Text>
+                            <Text style={[styles.rarity, { color: rarity.color }]}>{rarity.label}{res.result.pity ? t(' · garanti') : ''}</Text>
                             <Text style={styles.itemName}>{item.label}</Text>
-                            <Text style={styles.kind}>{KIND[item.kind]}</Text>
+                            <Text style={styles.kind}>{t(KIND[item.kind])}</Text>
                             {res.result.duplicate
-                                ? <Text style={styles.dup}>Tu l'avais déjà : +{res.result.refund} binga (20 %)</Text>
-                                : <Text style={styles.added}>Ajouté à ton Profil, pour toujours</Text>}
+                                ? <Text style={styles.dup}>{t("Tu l'avais déjà : +")}{res.result.refund} {t("binga (20 %)")}</Text>
+                                : <Text style={styles.added}>{t("Ajouté à ton Profil, pour toujours")}</Text>}
                         </Animated.View>
                     )}
-                    {phase === 'shake' && <Text style={styles.wait}>Ouverture…</Text>}
+                    {phase === 'shake' && <Text style={styles.wait}>{t("Ouverture…")}</Text>}
                     {res?.error && <Text style={styles.error}>{res.error}</Text>}
                     {phase === 'done' && (
                         <Animated.View entering={FadeIn.duration(200)} style={styles.buttons}>
                             {item && !res.result.duplicate && ['back', 'effect', 'felt', 'table', 'avatar'].includes(item.kind) && onUse && (
-                                <GameButton small title="Utiliser" variant="outline" onPress={() => { onUse(item); onClose(); }} />
+                                <GameButton small title={t("Utiliser")} variant="outline" onPress={() => { onUse(item); onClose(); }} />
                             )}
-                            <GameButton small title={item ? 'Super !' : 'Fermer'} onPress={onClose} />
+                            <GameButton small title={item ? t('Super !') : t('Fermer')} onPress={onClose} />
                         </Animated.View>
                     )}
                 </View>

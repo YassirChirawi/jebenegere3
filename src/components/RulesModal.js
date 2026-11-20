@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, Modal, TouchableOpacity, ScrollView } from 'react-native';
 import audioService from '../network/audioService';
+import { t } from '../i18n';
 
 // Règles de la Ronda (version V1 de l'app)
 function RondaRules() {
@@ -15,29 +16,29 @@ function RondaRules() {
     );
     return (
         <>
-            <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+            <Text style={styles.sectionTitle}>{t("🎯 But du jeu")}</Text>
             <Text style={styles.text}>
-                Ramasser un maximum de cartes et de points. Premier camp à <Text style={styles.highlight}>42 points</Text> gagne : dès qu'un camp les atteint, même en pleine manche, la partie s'arrête. En 1 contre 1 ou en 2 contre 2 (coéquipiers face à face, cartes et points en commun).
+                Ramasser un maximum de cartes et de points. Premier camp à <Text style={styles.highlight}>{t("42 points")}</Text> gagne : dès qu'un camp les atteint, même en pleine manche, la partie s'arrête. En 1 contre 1 ou en 2 contre 2 (coéquipiers face à face, cartes et points en commun).
             </Text>
 
-            <Text style={styles.sectionTitle}>🃏 Distribution</Text>
+            <Text style={styles.sectionTitle}>{t("🃏 Distribution")}</Text>
             <Text style={styles.text}>
                 Table vide au départ. 3 cartes, puis 3, puis 4 par joueur (en 1 contre 1, ce cycle se fait deux fois). Chacun pose une carte à son tour, 15 secondes maximum.
             </Text>
 
-            <Text style={styles.sectionTitle}>🍽️ Manger</Text>
+            <Text style={styles.sectionTitle}>{t("🍽️ Manger")}</Text>
             <Text style={styles.text}>
                 Une carte de même valeur qu'une carte de la table la ramasse, avec la suite qui la prolonge (1, 2, 3… 7, 10, 11, 12).{'\n'}
                 Exemple : ton 3 prend le 3, puis le 4 et le 5 s'ils sont sur la table. Un 7 prend 7, 10, 11. Sinon, ta carte reste sur la table.
             </Text>
 
-            <Text style={styles.sectionTitle}>💥 Coups spéciaux</Text>
+            <Text style={styles.sectionTitle}>{t("💥 Coups spéciaux")}</Text>
             <Item icon="👊" name="Darba (+1)" desc="Tu prends la carte que l'adversaire vient juste de poser." />
             <Item icon="🔥" name="Hbel (+5)" desc="Tu rejoues la même valeur juste après une darba : tu reprends les 3 cartes." />
             <Item icon="💣" name="Boug (+10)" desc="Le 4e exemplaire joué à la suite (darba, hbel puis boug) : tu reprends les 4 cartes." />
             <Item icon="🧹" name="Missa (+1)" desc="Tu vides toute la table d'un coup (sauf la toute dernière prise de la manche)." />
 
-            <Text style={styles.sectionTitle}>📣 Annonces</Text>
+            <Text style={styles.sectionTitle}>{t("📣 Annonces")}</Text>
             <Item icon="✌️" name="Ronda (+1)" desc="Une paire en main. Tu peux l'annoncer tant qu'aucune de ses cartes n'est posée." />
             <Item icon="🤟" name="Tringa (+5)" desc="Trois cartes de même valeur en main." />
             <Text style={styles.text}>
@@ -45,19 +46,19 @@ function RondaRules() {
                 Égalité de rondas : le camp qui a mangé en premier avec cette valeur laisse le point à l'autre.
             </Text>
 
-            <Text style={styles.sectionTitle}>🕵️ Il est rondé !</Text>
+            <Text style={styles.sectionTitle}>{t("🕵️ Il est rondé !")}</Text>
             <Text style={styles.text}>
                 Un adversaire a posé une carte de sa ronda sans l'annoncer ? Touche-le (ou le bouton « Il est rondé ? ») pour le dénoncer, à tout moment de la distribution. Une seule dénonciation par distribution.{'\n'}
                 Juste : ton camp prend les points (1 ou 5). Fausse : -1 point.{'\n'}
-                La première fois, c'est seulement un <Text style={styles.highlight}>avertissement</Text> (sans points), dans les deux cas.
+                La première fois, c'est seulement un <Text style={styles.highlight}>{t("avertissement")}</Text> (sans points), dans les deux cas.
             </Text>
 
-            <Text style={styles.sectionTitle}>👑 Dernière carte du donneur</Text>
+            <Text style={styles.sectionTitle}>{t("👑 Dernière carte du donneur")}</Text>
             <Text style={styles.text}>
                 Le donneur doit manger avec sa toute dernière carte. Avec un 12 : +5 pour son camp (9a3a Rey). Avec un 1, ou s'il ne mange rien : +5 pour l'adversaire (9a3a AS).
             </Text>
 
-            <Text style={styles.sectionTitle}>🏁 Fin de manche</Text>
+            <Text style={styles.sectionTitle}>{t("🏁 Fin de manche")}</Text>
             <Text style={styles.text}>
                 Les cartes restées sur la table vont au dernier camp qui a mangé. Chaque carte au-delà de 20 vaut 1 point. Exemple : 26 cartes ramassées = +6 points.
             </Text>
@@ -68,30 +69,30 @@ function RondaRules() {
 function KdoubRules() {
     return (
         <>
-            <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+            <Text style={styles.sectionTitle}>{t("🎯 But du jeu")}</Text>
             <Text style={styles.text}>
                 Être le premier à se débarrasser de toutes ses cartes. 3 à 6 joueurs, les 40 cartes sont distribuées.
             </Text>
 
-            <Text style={styles.sectionTitle}>📣 L'annonce</Text>
+            <Text style={styles.sectionTitle}>{t("📣 L'annonce")}</Text>
             <Text style={styles.text}>
-                Le premier joueur <Text style={styles.highlight}>choisit la carte à annoncer</Text> (1, 2… 7, 10, 11 ou 12). Tant que personne ne crie KDOUB, tout le monde continue sur cette même carte.{'\n'}À ton tour, tu poses <Text style={styles.highlight}>1 à 4 cartes face cachée</Text> en annonçant cette carte. Tu peux mentir sur les cartes, jamais sur le nombre.
+                Le premier joueur <Text style={styles.highlight}>{t("choisit la carte à annoncer")}</Text> {t("(1, 2… 7, 10, 11 ou 12). Tant que personne ne crie KDOUB, tout le monde continue sur cette même carte.")}{'\n'}{t("À ton tour, tu poses")} <Text style={styles.highlight}>{t("1 à 4 cartes face cachée")}</Text> en annonçant cette carte. Tu peux mentir sur les cartes, jamais sur le nombre.
             </Text>
 
-            <Text style={styles.sectionTitle}>🤥 KDOUB !</Text>
+            <Text style={styles.sectionTitle}>{t("🤥 KDOUB !")}</Text>
             <Text style={styles.text}>
-                Après chaque pose, tout adversaire a <Text style={styles.highlight}>5 secondes</Text> pour crier KDOUB (le joueur suivant attend).{'\n'}
+                Après chaque pose, tout adversaire a <Text style={styles.highlight}>{t("5 secondes")}</Text> {t("pour crier KDOUB (le joueur suivant attend).")}{'\n'}
                 • Le poseur a menti : il ramasse tout le tas, et le joueur d'après choisit la nouvelle carte à annoncer.{'\n'}
                 • Il a dit vrai : c'est l'accusateur qui ramasse tout le tas, et le poseur choisit lui-même la nouvelle carte et rejoue.{'\n'}
                 Personne n'accuse : le tas reste et le suivant continue sur la même carte.
             </Text>
 
-            <Text style={styles.sectionTitle}>💡 Exemple</Text>
+            <Text style={styles.sectionTitle}>{t("💡 Exemple")}</Text>
             <Text style={styles.text}>
                 On joue des 5. Tu n'en as qu'un : tu poses ton 5 et un 12 en disant « deux 5 ». Si quelqu'un crie KDOUB, les cartes sont retournées : tu as menti, tu ramasses tout le tas.
             </Text>
 
-            <Text style={styles.sectionTitle}>🏁 Fin</Text>
+            <Text style={styles.sectionTitle}>{t("🏁 Fin")}</Text>
             <Text style={styles.text}>
                 Le premier qui vide sa main gagne, une fois la fenêtre de 5 secondes passée. Les autres sont classés selon le nombre de cartes qui leur restent.
             </Text>
@@ -102,35 +103,35 @@ function KdoubRules() {
 function SotaRules() {
     return (
         <>
-            <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+            <Text style={styles.sectionTitle}>{t("🎯 But du jeu")}</Text>
             <Text style={styles.text}>
-                Se débarrasser de toutes ses cartes en formant des paires, et surtout ne pas finir avec la <Text style={styles.highlight}>Sota</Text> (le 10). 4 à 6 joueurs, chacun pour soi.
+                Se débarrasser de toutes ses cartes en formant des paires, et surtout ne pas finir avec la <Text style={styles.highlight}>{t("Sota")}</Text> (le 10). 4 à 6 joueurs, chacun pour soi.
             </Text>
 
-            <Text style={styles.sectionTitle}>🃏 Le paquet</Text>
+            <Text style={styles.sectionTitle}>{t("🃏 Le paquet")}</Text>
             <Text style={styles.text}>
-                Le jeu espagnol avec seulement <Text style={styles.highlight}>3 Sota</Text> au lieu de 4 (39 cartes), toutes distribuées. Deux Sota font une paire, la troisième ne pourra jamais être appariée : c'est la carte perdante.
+                Le jeu espagnol avec seulement <Text style={styles.highlight}>{t("3 Sota")}</Text> au lieu de 4 (39 cartes), toutes distribuées. Deux Sota font une paire, la troisième ne pourra jamais être appariée : c'est la carte perdante.
             </Text>
 
-            <Text style={styles.sectionTitle}>✨ Les paires</Text>
+            <Text style={styles.sectionTitle}>{t("✨ Les paires")}</Text>
             <Text style={styles.text}>
                 Deux cartes de même valeur, quelle que soit la famille. Elles sont éliminées automatiquement, face visible, dès la distribution puis après chaque pioche.{'\n'}
                 3 cartes identiques : on en élimine 2 et on garde la troisième. 4 identiques : 2 paires.
             </Text>
 
-            <Text style={styles.sectionTitle}>👆 À ton tour</Text>
+            <Text style={styles.sectionTitle}>{t("👆 À ton tour")}</Text>
             <Text style={styles.text}>
                 Tu touches une carte au hasard, face cachée, dans la main du joueur suivant. Si elle fait une paire avec une de tes cartes, la paire part aussitôt. Tu as 30 secondes, sinon une carte est piochée au hasard pour toi.
             </Text>
 
-            <Text style={styles.sectionTitle}>💡 Exemple</Text>
+            <Text style={styles.sectionTitle}>{t("💡 Exemple")}</Text>
             <Text style={styles.text}>
                 Tu as un 4 et un 11. Tu pioches un 4 chez ton voisin : la paire de 4 est éliminée, il te reste le 11. Si tu tombes sur la Sota, garde ton calme… et espère qu'on te la reprenne !
             </Text>
 
-            <Text style={styles.sectionTitle}>🏁 Fin</Text>
+            <Text style={styles.sectionTitle}>{t("🏁 Fin")}</Text>
             <Text style={styles.text}>
-                Main vide = tu es sorti, tu as gagné. Le dernier joueur qui a encore une carte tient la Sota : c'est le <Text style={styles.highlight}>Ghamla</Text>, le perdant.
+                Main vide = tu es sorti, tu as gagné. Le dernier joueur qui a encore une carte tient la Sota : c'est le <Text style={styles.highlight}>{t("Ghamla")}</Text>, le perdant.
             </Text>
         </>
     );
@@ -146,47 +147,47 @@ export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
         >
             <View style={styles.modalOverlay}>
                 <View style={styles.modalContent}>
-                    <Text style={styles.modalTitle}>📜 Règles : {{ ronda: 'Ronda', kdoub: 'Kdoub', sota: 'Sota Ghamla' }[gameType] || 'Hezz2'}</Text>
+                    <Text style={styles.modalTitle}>{t("📜 Règles :")} {{ ronda: 'Ronda', kdoub: 'Kdoub', sota: t('Sota Ghamla') }[gameType] || 'Hezz2'}</Text>
 
                     <ScrollView style={styles.scrollView}>
                         {gameType === 'ronda' ? <RondaRules /> : gameType === 'kdoub' ? <KdoubRules /> : gameType === 'sota' ? <SotaRules /> : <>
-                        <Text style={styles.sectionTitle}>🎯 But du jeu</Text>
+                        <Text style={styles.sectionTitle}>{t("🎯 But du jeu")}</Text>
                         <Text style={styles.text}>
                             Être le premier joueur à se débarrasser de toutes ses cartes. Le dernier joueur avec des cartes est le "Khasser" (Perdant) et est remplacé par un spectateur !
                         </Text>
 
-                        <Text style={styles.sectionTitle}>⏳ Chronomètre de 15s</Text>
+                        <Text style={styles.sectionTitle}>{t("⏳ Chronomètre de 15s")}</Text>
                         <Text style={styles.text}>
-                            Vous avez <Text style={styles.highlight}>15 secondes</Text> maximum pour jouer à chaque tour ! Si le temps est écoulé, vous êtes pénalisé et piochez automatiquement une carte au hasard.
+                            Vous avez <Text style={styles.highlight}>{t("15 secondes")}</Text> maximum pour jouer à chaque tour ! Si le temps est écoulé, vous êtes pénalisé et piochez automatiquement une carte au hasard.
                         </Text>
 
-                        <Text style={styles.sectionTitle}>🃏 Cartes Spéciales</Text>
+                        <Text style={styles.sectionTitle}>{t("🃏 Cartes Spéciales")}</Text>
 
                         <View style={styles.ruleItem}>
                             <Text style={styles.ruleIcon}>1️⃣</Text>
                             <View style={styles.ruleTextContainer}>
-                                <Text style={styles.ruleName}>Carte 1</Text>
-                                <Text style={styles.ruleDesc}>Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 5 secondes : l'attaque rebondit alors sur le joueur d'après.</Text>
+                                <Text style={styles.ruleName}>{t("Carte 1")}</Text>
+                                <Text style={styles.ruleDesc}>{t("Le joueur suivant saute son tour, SAUF s'il pose lui aussi un 1 en moins de 5 secondes : l'attaque rebondit alors sur le joueur d'après.")}</Text>
                             </View>
                         </View>
 
                         <View style={styles.ruleItem}>
                             <Text style={styles.ruleIcon}>2️⃣</Text>
                             <View style={styles.ruleTextContainer}>
-                                <Text style={styles.ruleName}>Carte 2</Text>
-                                <Text style={styles.ruleDesc}>Le joueur suivant doit piocher 2 cartes, SAUF s'il possède lui aussi un 2 pour contrer et renvoyer la pénalité au suivant (+4, +6...).</Text>
+                                <Text style={styles.ruleName}>{t("Carte 2")}</Text>
+                                <Text style={styles.ruleDesc}>{t("Le joueur suivant doit piocher 2 cartes, SAUF s'il possède lui aussi un 2 pour contrer et renvoyer la pénalité au suivant (+4, +6...).")}</Text>
                             </View>
                         </View>
 
                         <View style={styles.ruleItem}>
                             <Text style={styles.ruleIcon}>7️⃣</Text>
                             <View style={styles.ruleTextContainer}>
-                                <Text style={styles.ruleName}>Carte 7</Text>
-                                <Text style={styles.ruleDesc}>Se pose comme une carte normale (même famille ou même valeur), puis tu choisis la nouvelle famille. Après un 7, il faut jouer la famille demandée ou un autre 7.</Text>
+                                <Text style={styles.ruleName}>{t("Carte 7")}</Text>
+                                <Text style={styles.ruleDesc}>{t("Se pose comme une carte normale (même famille ou même valeur), puis tu choisis la nouvelle famille. Après un 7, il faut jouer la famille demandée ou un autre 7.")}</Text>
                             </View>
                         </View>
 
-                        <Text style={styles.sectionTitle}>🏆 Points</Text>
+                        <Text style={styles.sectionTitle}>{t("🏆 Points")}</Text>
                         <Text style={styles.text}>
                             Le 1er à finir marque autant de points qu'il y a d'adversaires, puis 1 de moins par place. Le Khasser ne marque rien. Les points s'additionnent d'une manche à l'autre.
                         </Text>
@@ -194,7 +195,7 @@ export default function RulesModal({ visible, onClose, gameType = 'hezz2' }) {
                     </ScrollView>
 
                     <TouchableOpacity style={styles.closeButton} onPress={() => { audioService.playSound('click'); onClose(); }}>
-                        <Text style={styles.closeButtonText}>J'AI COMPRIS</Text>
+                        <Text style={styles.closeButtonText}>{t("J'AI COMPRIS")}</Text>
                     </TouchableOpacity>
                 </View>
             </View>

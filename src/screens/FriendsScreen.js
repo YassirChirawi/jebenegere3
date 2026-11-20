@@ -14,6 +14,7 @@ import { useAccount } from '../network/accountService';
 import friendsService, { useFriends } from '../network/friendsService';
 import audioService from '../network/audioService';
 import { getRankInfo } from '../utils/stats';
+import { t } from '../i18n';
 
 const PEOPLE = require('../../assets/ui/mode_salon.webp');
 
@@ -26,7 +27,7 @@ function FriendRow({ f, children, sub }) {
             </View>
             <View style={{ flex: 1, marginLeft: 10 }}>
                 <Text style={styles.name} numberOfLines={1}>{f.name}</Text>
-                <Text style={styles.sub} numberOfLines={1}>{sub ?? `Niveau ${(getRankInfo(f.xp || 0).index ?? 0) + 1}${f.online ? ' · en ligne' : ''}`}</Text>
+                <Text style={styles.sub} numberOfLines={1}>{sub ?? `Niveau ${(getRankInfo(f.xp || 0).index ?? 0) + 1}${f.online ? t(' · en ligne') : ''}`}</Text>
             </View>
             <View style={{ flexDirection: 'row', gap: 6 }}>{children}</View>
         </View>
@@ -48,37 +49,37 @@ export default function FriendsScreen({ navigation }) {
         setBusy(false);
         if (r.error) { audioService.playSound('error'); setMsg({ error: true, text: r.error }); return; }
         audioService.playSound('pop');
-        setMsg({ text: r.accepted ? `Vous êtes maintenant amis avec ${r.other.name} 🎉` : `Demande envoyée à ${r.to.name}.` });
+        setMsg({ text: r.accepted ? t("Vous êtes maintenant amis avec {p0} 🎉", { p0: r.other.name }) : t("Demande envoyée à {p0}.", { p0: r.to.name }) });
         setName('');
     };
-    const remove = (f) => dialog.alert(`Retirer ${f.name} ?`, 'Vous ne serez plus amis (vous pourrez vous redemander plus tard).', [
-        { text: 'Annuler', style: 'cancel' },
-        { text: 'Retirer', style: 'destructive', onPress: () => friendsService.remove(f.id) },
+    const remove = (f) => dialog.alert(t("Retirer {p0} ?", { p0: f.name }), 'Vous ne serez plus amis (vous pourrez vous redemander plus tard).', [
+        { text: t('Annuler'), style: 'cancel' },
+        { text: t('Retirer'), style: 'destructive', onPress: () => friendsService.remove(f.id) },
     ]);
 
     return (
         <View style={styles.container}>
             <LuxeBackdrop />
-            <ScreenHeader title="Amis" onBack={() => navigation.goBack()} />
+            <ScreenHeader title={t("Amis")} onBack={() => navigation.goBack()} />
             <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {!account.profile ? (
                     <LuxePanel style={{ padding: 16 }}>
-                        <Text style={styles.title}>Joue avec tes amis</Text>
-                        <Text style={styles.dim}>Avec un compte gratuit : ajoute tes amis par leur pseudo, vois qui est en ligne et invite-les dans ton salon en un geste.</Text>
-                        <GameButton small title="Créer mon compte" icon="🔐" onPress={() => navigation.navigate('Profile')} style={{ marginTop: 12, alignSelf: 'center' }} />
+                        <Text style={styles.title}>{t("Joue avec tes amis")}</Text>
+                        <Text style={styles.dim}>{t("Avec un compte gratuit : ajoute tes amis par leur pseudo, vois qui est en ligne et invite-les dans ton salon en un geste.")}</Text>
+                        <GameButton small title={t("Créer mon compte")} icon="🔐" onPress={() => navigation.navigate('Profile')} style={{ marginTop: 12, alignSelf: 'center' }} />
                     </LuxePanel>
                 ) : (
                     <>
                         <Animated.View entering={FadeInDown.springify().damping(16)}>
                             <LuxePanel inner={false}>
-                                <SectionHead icon={PEOPLE} title="Ajouter un ami" />
+                                <SectionHead icon={PEOPLE} title={t("Ajouter un ami")} />
                                 <View style={{ padding: 12 }}>
                                     <View style={{ flexDirection: 'row', gap: 8 }}>
-                                        <TextInput style={styles.input} placeholder="Son pseudo…" placeholderTextColor={LUXE.dim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} onSubmitEditing={add} accessibilityLabel="Pseudo de l'ami" />
-                                        {busy ? <ActivityIndicator color={LUXE.gold} /> : <GameButton small title="Ajouter" onPress={add} />}
+                                        <TextInput style={styles.input} placeholder={t("Son pseudo…")} placeholderTextColor={LUXE.dim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} onSubmitEditing={add} accessibilityLabel={t("Pseudo de l'ami")} />
+                                        {busy ? <ActivityIndicator color={LUXE.gold} /> : <GameButton small title={t("Ajouter")} onPress={add} />}
                                     </View>
                                     {msg && <Text style={[styles.msg, msg.error && { color: '#FCA5A5' }]}>{msg.text}</Text>}
-                                    <Text style={[styles.dim, { marginTop: 8, textAlign: 'left' }]}>Ton pseudo à donner : <Text style={{ color: LUXE.goldLight, fontWeight: '900' }}>{account.profile.name}</Text></Text>
+                                    <Text style={[styles.dim, { marginTop: 8, textAlign: 'left' }]}>{t("Ton pseudo à donner :")} <Text style={{ color: LUXE.goldLight, fontWeight: '900' }}>{account.profile.name}</Text></Text>
                                 </View>
                             </LuxePanel>
                         </Animated.View>
@@ -86,9 +87,9 @@ export default function FriendsScreen({ navigation }) {
                         {fr.incoming.length > 0 && (
                             <Animated.View entering={FadeInDown.delay(60).springify().damping(16)}>
                                 <LuxePanel inner={false}>
-                                    <SectionHead emoji="📩" title="Demandes reçues" right={`${fr.incoming.length}`} />
+                                    <SectionHead emoji="📩" title={t("Demandes reçues")} right={`${fr.incoming.length}`} />
                                     {fr.incoming.map((f) => (
-                                        <FriendRow key={f.id} f={{ ...f, online: undefined }} sub="veut être ton ami">
+                                        <FriendRow key={f.id} f={{ ...f, online: undefined }} sub={t("veut être ton ami")}>
                                             <GameButton small title="✓" variant="green" onPress={() => friendsService.respond(f.id, true)} />
                                             <GameButton small title="✕" variant="outline" onPress={() => friendsService.respond(f.id, false)} />
                                         </FriendRow>
@@ -99,9 +100,9 @@ export default function FriendsScreen({ navigation }) {
 
                         <Animated.View entering={FadeInDown.delay(120).springify().damping(16)}>
                             <LuxePanel inner={false}>
-                                <SectionHead emoji="🤝" title="Mes amis" right={`${fr.friends.filter((f) => f.online).length} en ligne · ${fr.friends.length}`} />
+                                <SectionHead emoji="🤝" title={t("Mes amis")} right={t("{p0} en ligne · {p1}", { p0: fr.friends.filter((f) => f.online).length, p1: fr.friends.length })} />
                                 {!fr.loaded ? <ActivityIndicator color={LUXE.gold} style={{ margin: 16 }} /> : fr.friends.length === 0 ? (
-                                    <Text style={[styles.dim, { padding: 14 }]}>Pas encore d'amis. Ajoute-les avec leur pseudo, puis invite-les depuis ton salon privé.</Text>
+                                    <Text style={[styles.dim, { padding: 14 }]}>{t("Pas encore d'amis. Ajoute-les avec leur pseudo, puis invite-les depuis ton salon privé.")}</Text>
                                 ) : fr.friends.map((f) => (
                                     <FriendRow key={f.id} f={f}>
                                         <PressableScale onPress={() => remove(f)} style={styles.remove} accessibilityLabel={`Retirer ${f.name}`}><Text style={styles.removeText}>✕</Text></PressableScale>
@@ -109,8 +110,8 @@ export default function FriendsScreen({ navigation }) {
                                 ))}
                                 {fr.friends.some((f) => f.online) && (
                                     <View style={{ padding: 12 }}>
-                                        <GameButton small title="Créer un salon et les inviter" icon="🎮" variant="green" onPress={() => navigation.popToTop()} />
-                                        <Text style={[styles.dim, { marginTop: 6 }]}>Sur l'accueil : « Entre amis », puis « Inviter un ami » dans le salon.</Text>
+                                        <GameButton small title={t("Créer un salon et les inviter")} icon="🎮" variant="green" onPress={() => navigation.popToTop()} />
+                                        <Text style={[styles.dim, { marginTop: 6 }]}>{t("Sur l'accueil : « Entre amis », puis « Inviter un ami » dans le salon.")}</Text>
                                     </View>
                                 )}
                             </LuxePanel>
@@ -118,10 +119,10 @@ export default function FriendsScreen({ navigation }) {
 
                         {fr.outgoing.length > 0 && (
                             <LuxePanel inner={false}>
-                                <SectionHead emoji="⏳" title="Demandes envoyées" />
+                                <SectionHead emoji="⏳" title={t("Demandes envoyées")} />
                                 {fr.outgoing.map((f) => (
-                                    <FriendRow key={f.id} f={{ ...f, online: undefined }} sub="en attente">
-                                        <GameButton small title="Annuler" variant="outline" onPress={() => friendsService.remove(f.id)} />
+                                    <FriendRow key={f.id} f={{ ...f, online: undefined }} sub={t("en attente")}>
+                                        <GameButton small title={t("Annuler")} variant="outline" onPress={() => friendsService.remove(f.id)} />
                                     </FriendRow>
                                 ))}
                             </LuxePanel>

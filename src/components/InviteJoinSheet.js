@@ -3,6 +3,7 @@ import { View, Text, TextInput, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import { GameButton, theme } from './ui';
 import { parseInvite } from '../utils/invite';
+import { t } from '../i18n';
 
 /**
  * Rejoindre un salon :
@@ -28,38 +29,38 @@ export default function InviteJoinSheet({ visible, code: linkCode, name, onChang
         <Animated.View entering={FadeIn.duration(150)} style={styles.overlay}>
             <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
             <Animated.View entering={ZoomIn.springify().damping(14)} style={styles.box}>
-                <Text style={styles.title}>{fromLink ? '🎴 Tu es invité à une partie !' : "🔗 J'ai un lien d'invitation"}</Text>
+                <Text style={styles.title}>{fromLink ? t('🎴 Tu es invité à une partie !') : t("🔗 J'ai un lien d'invitation")}</Text>
                 {fromLink ? (
-                    <Text style={styles.sub}>Choisis ton pseudo et rejoins tes amis.</Text>
+                    <Text style={styles.sub}>{t("Choisis ton pseudo et rejoins tes amis.")}</Text>
                 ) : (
                     <>
-                        <Text style={styles.sub}>Colle le lien reçu (WhatsApp, SMS…).</Text>
+                        <Text style={styles.sub}>{t("Colle le lien reçu (WhatsApp, SMS…).")}</Text>
                         <TextInput
                             style={styles.input}
-                            placeholder="https://jebengere3.fun/salon/…"
+                            placeholder={t("https://jebengere3.fun/salon/…")}
                             placeholderTextColor={theme.textDim}
                             value={pasted}
                             onChangeText={setPasted}
                             autoCapitalize="none"
                             autoCorrect={false}
-                            accessibilityLabel="Lien d'invitation"
+                            accessibilityLabel={t("Lien d'invitation")}
                         />
                     </>
                 )}
-                <Text style={styles.label}>TON PSEUDO</Text>
+                <Text style={styles.label}>{t("TON PSEUDO")}</Text>
                 <TextInput
                     style={styles.input}
-                    placeholder="Ex : Yassir…"
+                    placeholder={t("Ex : Yassir…")}
                     placeholderTextColor={theme.textDim}
                     value={name}
                     onChangeText={onChangeName}
                     maxLength={16}
                     onSubmitEditing={submit}
-                    accessibilityLabel="Ton pseudo"
+                    accessibilityLabel={t("Ton pseudo")}
                 />
                 {error ? <Text style={styles.error}>{error}</Text> : null}
                 <View style={styles.row}>
-                    <GameButton small title="Annuler" variant="outline" onPress={onClose} style={{ flex: 1 }} />
+                    <GameButton small title={t("Annuler")} variant="outline" onPress={onClose} style={{ flex: 1 }} />
                     <GameButton small title={busy ? '…' : 'REJOINDRE'} variant="gold" onPress={submit} disabled={busy} style={{ flex: 1 }} />
                 </View>
             </Animated.View>

@@ -10,17 +10,18 @@ import { LUXE, LuxePanel, GoldSquare } from './Luxe';
 import inboxService, { useInbox } from '../network/inboxService';
 import { useAccount } from '../network/accountService';
 import { gameInfo } from '../games';
+import { t } from '../i18n';
 
 const TEXT = {
-    friend_request: (n) => ({ title: `${n.from?.name} veut être ton ami`, action: 'Voir' }),
-    friend_accepted: (n) => ({ title: `${n.from?.name} a accepté ta demande`, action: 'Amis' }),
-    room_invite: (n) => ({ title: `${n.from?.name} t'invite à jouer`, sub: `${gameInfo(n.data?.gameType).label} · salon ${n.data?.roomId}`, action: 'Rejoindre' }),
+    friend_request: (n) => ({ title: t("{p0} veut être ton ami", { p0: n.from?.name }), action: t('Voir') }),
+    friend_accepted: (n) => ({ title: t("{p0} a accepté ta demande", { p0: n.from?.name }), action: t('Amis') }),
+    room_invite: (n) => ({ title: t("{p0} t'invite à jouer", { p0: n.from?.name }), sub: t("{p0} · salon {p1}", { p0: gameInfo(n.data?.gameType).label, p1: n.data?.roomId }), action: t('Rejoindre') }),
 };
 
 function ago(at) {
     const m = Math.max(0, Math.round((Date.now() - at) / 60000));
     if (m < 1) return "à l'instant";
-    if (m < 60) return `il y a ${m} min`;
+    if (m < 60) return t("il y a {p0} min", { p0: m });
     const h = Math.round(m / 60);
     if (h < 24) return `il y a ${h} h`;
     return `il y a ${Math.round(h / 24)} j`;
@@ -47,7 +48,7 @@ export default function InboxBell({ navigation, onJoinRoom }) {
 
     return (
         <>
-            <GoldSquare onPress={() => { inboxService.refresh(); setOpen(true); }} label={`Notifications${inbox.unread ? ` : ${inbox.unread} non lues` : ''}`}>
+            <GoldSquare onPress={() => { inboxService.refresh(); setOpen(true); }} label={inbox.unread ? t('Notifications : {n} non lues', { n: inbox.unread }) : t('Notifications')}>
                 <Text style={{ fontSize: 18 }}>🔔</Text>
                 {inbox.unread > 0 && (
                     <View style={styles.badge}><Text style={styles.badgeText}>{inbox.unread > 9 ? '9+' : inbox.unread}</Text></View>
@@ -57,12 +58,12 @@ export default function InboxBell({ navigation, onJoinRoom }) {
                 <Pressable style={styles.bg} onPress={() => setOpen(false)}>
                     <Pressable onPress={() => {}} style={{ width: '100%', maxWidth: 440, maxHeight: '80%' }}>
                         <LuxePanel style={{ padding: 14 }}>
-                            <Text style={styles.title}>🔔 Notifications</Text>
+                            <Text style={styles.title}>{t("🔔 Notifications")}</Text>
                             <ScrollView style={{ maxHeight: 460 }} showsVerticalScrollIndicator={false}>
                                 {inbox.items.length === 0 ? (
-                                    <Text style={styles.empty}>Rien de nouveau. Les demandes d'ami et les invitations à jouer apparaissent ici.</Text>
+                                    <Text style={styles.empty}>{t("Rien de nouveau. Les demandes d'ami et les invitations à jouer apparaissent ici.")}</Text>
                                 ) : inbox.items.map((n) => {
-                                    const tx = (TEXT[n.type] || (() => ({ title: 'Notification' })))(n);
+                                    const tx = (TEXT[n.type] || (() => ({ title: t('Notification') })))(n);
                                     return (
                                         <PressableScale key={n.id} onPress={() => act(n)} style={[styles.item, !n.read && styles.itemNew]} scaleTo={0.98} accessibilityLabel={tx.title}>
                                             <PlayerAvatar name={n.from?.name || '?'} variant={n.from?.avatar || 0} size={40} />
@@ -75,7 +76,7 @@ export default function InboxBell({ navigation, onJoinRoom }) {
                                     );
                                 })}
                             </ScrollView>
-                            <GameButton small title="Fermer" variant="outline" onPress={() => setOpen(false)} style={{ alignSelf: 'center', marginTop: 12 }} />
+                            <GameButton small title={t("Fermer")} variant="outline" onPress={() => setOpen(false)} style={{ alignSelf: 'center', marginTop: 12 }} />
                         </LuxePanel>
                     </Pressable>
                 </Pressable>

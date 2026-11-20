@@ -12,6 +12,7 @@ import { LUXE, LuxePanel } from './Luxe';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { gameInfo } from '../games';
+import { t } from '../i18n';
 
 const TTL = 60 * 1000; // une invitation reste valable une minute
 
@@ -69,13 +70,13 @@ export default function FriendInviteToast({ navigationRef }) {
                 <View style={styles.row}>
                     <PlayerAvatar name={invite.from.name} variant={invite.from.avatar || 0} size={46} />
                     <View style={{ flex: 1, marginLeft: 10 }}>
-                        <Text style={styles.title} numberOfLines={1}>{invite.from.name} t'invite</Text>
-                        <Text style={styles.sub} numberOfLines={1}>à jouer à {gameInfo(invite.gameType).label} dans son salon</Text>
+                        <Text style={styles.title} numberOfLines={1}>{invite.from.name} {t("t'invite")}</Text>
+                        <Text style={styles.sub} numberOfLines={1}>{t("à jouer à")} {gameInfo(invite.gameType).label} {t("dans son salon")}</Text>
                     </View>
                 </View>
                 <View style={styles.btns}>
-                    <GameButton small title="Plus tard" variant="outline" onPress={() => setInvite(null)} style={{ flex: 1 }} />
-                    <GameButton small title="Rejoindre" icon="🎮" variant="green" onPress={join} style={{ flex: 1 }} />
+                    <GameButton small title={t("Plus tard")} variant="outline" onPress={() => setInvite(null)} style={{ flex: 1 }} />
+                    <GameButton small title={t("Rejoindre")} icon="🎮" variant="green" onPress={join} style={{ flex: 1 }} />
                 </View>
             </LuxePanel>
         </Animated.View>

@@ -16,6 +16,7 @@ import PlayerAvatar from './PlayerAvatar';
 import { ChestArt } from './ChestOpening';
 import audioService from '../network/audioService';
 import { BINGA, dayKey } from '../../server/progress/defs';
+import { t } from '../i18n';
 
 const KEY = 'dailyPopups';
 
@@ -35,12 +36,12 @@ async function markSeen(id) {
 function LoginCalendar({ login }) {
     return (
         <>
-            <Text style={styles.title}>Connexion du jour</Text>
+            <Text style={styles.title}>{t("Connexion du jour")}</Text>
             <View style={styles.amountRow}>
                 <BingaIcon size={44} />
                 <Text style={styles.amount}>+{login.amount}</Text>
             </View>
-            <Text style={styles.text}>Jour {login.streak} sur {login.days} : reviens chaque jour, le 7ᵉ rapporte {BINGA.login[BINGA.login.length - 1]} binga !</Text>
+            <Text style={styles.text}>{t("Jour")} {login.streak} sur {login.days} : reviens chaque jour, le 7ᵉ rapporte {BINGA.login[BINGA.login.length - 1]} {t("binga !")}</Text>
             <View style={styles.days}>
                 {BINGA.login.map((amount, i) => {
                     const day = i + 1;
@@ -55,7 +56,7 @@ function LoginCalendar({ login }) {
                     );
                 })}
             </View>
-            <Text style={styles.small}>Un jour manqué, et la série repart au jour 1.</Text>
+            <Text style={styles.small}>{t("Un jour manqué, et la série repart au jour 1.")}</Text>
         </>
     );
 }
@@ -63,13 +64,13 @@ function LoginCalendar({ login }) {
 function WheelInvite() {
     return (
         <>
-            <Text style={styles.title}>Ta roue du jour t'attend !</Text>
+            <Text style={styles.title}>{t("Ta roue du jour t'attend !")}</Text>
             <View style={styles.wheelArt}>
                 <Chip name="pique" size={46} style={{ transform: [{ rotate: '-15deg' }] }} />
                 <ChestArt chest="or" size={84} open />
                 <Chip name="coeur" size={46} style={{ transform: [{ rotate: '15deg' }] }} />
             </View>
-            <Text style={styles.text}>1 tour gratuit chaque 24 h : binga, coffres et cosmétiques à gagner. Toujours un lot !</Text>
+            <Text style={styles.text}>{t("1 tour gratuit chaque 24 h : binga, coffres et cosmétiques à gagner. Toujours un lot !")}</Text>
         </>
     );
 }
@@ -77,11 +78,11 @@ function WheelInvite() {
 function ShopPromo() {
     return (
         <>
-            <Text style={styles.title}>Nouveau dans la boutique</Text>
+            <Text style={styles.title}>{t("Nouveau dans la boutique")}</Text>
             <View style={styles.avatars}>
                 {[29, 33, 36].map((v) => <PlayerAvatar key={v} name="?" variant={v} size={64} />)}
             </View>
-            <Text style={styles.text}>Portraits premium, tables, dos de cartes, effets de victoire… et les coffres Bronze, Argent et Or, à ouvrir avec tes binga gagnés en jouant.</Text>
+            <Text style={styles.text}>{t("Portraits premium, tables, dos de cartes, effets de victoire… et les coffres Bronze, Argent et Or, à ouvrir avec tes binga gagnés en jouant.")}</Text>
         </>
     );
 }
@@ -89,12 +90,12 @@ function ShopPromo() {
 function GuestInvite() {
     return (
         <>
-            <Text style={styles.title}>Crée ton compte, c'est gratuit</Text>
+            <Text style={styles.title}>{t("Crée ton compte, c'est gratuit")}</Text>
             <View style={styles.amountRow}>
                 <BingaIcon size={44} />
                 <Text style={styles.amount}>+50</Text>
             </View>
-            <Text style={styles.text}>Avec un compte : des binga à chaque partie (même perdue), une roue gratuite chaque jour, des coffres, la boutique, le classement… et tout est gardé sur tous tes appareils.</Text>
+            <Text style={styles.text}>{t("Avec un compte : des binga à chaque partie (même perdue), une roue gratuite chaque jour, des coffres, la boutique, le classement… et tout est gardé sur tous tes appareils.")}</Text>
         </>
     );
 }
@@ -141,29 +142,29 @@ export default function DailyPopups({ profile, isGuest, ready, navigation }) {
     let actions = null;
     if (current === 'login') {
         body = <LoginCalendar login={profile.binga.login} />;
-        actions = <GameButton title="Super !" onPress={close} />;
+        actions = <GameButton title={t("Super !")} onPress={close} />;
     } else if (current === 'wheel') {
         body = <WheelInvite />;
         actions = (
             <>
-                <GameButton title="Tourner la roue" icon="🎡" onPress={() => go('Wheel')} />
-                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>Plus tard</Text></Pressable>
+                <GameButton title={t("Tourner la roue")} icon="🎡" onPress={() => go('Wheel')} />
+                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>{t("Plus tard")}</Text></Pressable>
             </>
         );
     } else if (current === 'shop') {
         body = <ShopPromo />;
         actions = (
             <>
-                <GameButton title="Voir la boutique" icon="🛍️" onPress={() => go('Shop')} />
-                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>Plus tard</Text></Pressable>
+                <GameButton title={t("Voir la boutique")} icon="🛍️" onPress={() => go('Shop')} />
+                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>{t("Plus tard")}</Text></Pressable>
             </>
         );
     } else if (current === 'guest') {
         body = <GuestInvite />;
         actions = (
             <>
-                <GameButton title="Créer mon compte" icon="🔐" onPress={() => go('Profile')} />
-                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>Jouer sans compte</Text></Pressable>
+                <GameButton title={t("Créer mon compte")} icon="🔐" onPress={() => go('Profile')} />
+                <Pressable onPress={close} style={styles.later}><Text style={styles.laterText}>{t("Jouer sans compte")}</Text></Pressable>
             </>
         );
     }
@@ -173,7 +174,7 @@ export default function DailyPopups({ profile, isGuest, ready, navigation }) {
             <Animated.View entering={FadeIn.duration(150)} style={styles.overlay}>
                 <Pressable style={StyleSheet.absoluteFill} onPress={close} />
                 <Animated.View key={current} entering={ZoomIn.springify().damping(13)} style={styles.box}>
-                    <Pressable onPress={close} hitSlop={12} style={styles.close} accessibilityLabel="Fermer"><Text style={styles.closeText}>✕</Text></Pressable>
+                    <Pressable onPress={close} hitSlop={12} style={styles.close} accessibilityLabel={t("Fermer")}><Text style={styles.closeText}>✕</Text></Pressable>
                     {body}
                     <View style={styles.actions}>{actions}</View>
                 </Animated.View>

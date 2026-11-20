@@ -23,6 +23,7 @@ const STAT_ICONS = {
     played: require('../../assets/ui/stat_taux.webp'),
 };
 import { CHESTS, RARITIES } from '../../server/progress/defs';
+import { t } from '../i18n';
 
 
 // Coups spéciaux affichés par jeu (compteurs du serveur)
@@ -94,19 +95,19 @@ function AccountForm({ localXp }) {
                     </Pressable>
                 ))}
             </View>
-            <TextInput style={styles.input} placeholder="Pseudo (3 à 16 caractères)" placeholderTextColor={theme.textDim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} />
-            <TextInput style={styles.input} placeholder="Mot de passe (6 caractères minimum)" placeholderTextColor={theme.textDim} value={password} onChangeText={setPassword} secureTextEntry maxLength={64} onSubmitEditing={submit} />
+            <TextInput style={styles.input} placeholder={t("Pseudo (3 à 16 caractères)")} placeholderTextColor={theme.textDim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} />
+            <TextInput style={styles.input} placeholder={t("Mot de passe (6 caractères minimum)")} placeholderTextColor={theme.textDim} value={password} onChangeText={setPassword} secureTextEntry maxLength={64} onSubmitEditing={submit} />
             {mode === 'register' && localXp > 0 && (
                 <Pressable onPress={() => setKeepXp(!keepXp)} style={styles.checkRow}>
                     <Text style={styles.check}>{keepXp ? '☑' : '☐'}</Text>
-                    <Text style={styles.dim}>Reprendre mes {Math.min(localXp, 3000)} XP de cet appareil{localXp > 3000 ? ' (maximum 3000)' : ''}</Text>
+                    <Text style={styles.dim}>{t("Reprendre mes")} {Math.min(localXp, 3000)} XP de cet appareil{localXp > 3000 ? t(' (maximum 3000)') : ''}</Text>
                 </Pressable>
             )}
             {error && <Text style={styles.error}>{error}</Text>}
             {busy ? (
                 <ActivityIndicator color={theme.gold} style={{ marginTop: 10 }} />
             ) : (
-                <GameButton small title={mode === 'register' ? 'Créer mon compte' : 'Se connecter'} icon="🔐" variant="gold" onPress={submit} style={{ marginTop: 10 }} />
+                <GameButton small title={mode === 'register' ? t('Créer mon compte') : t('Se connecter')} icon="🔐" variant="gold" onPress={submit} style={{ marginTop: 10 }} />
             )}
         </View>
     );
@@ -120,10 +121,10 @@ function DiscordLink() {
     const [error, setError] = useState(null);
     const submit = () => {
         if (!name.trim() || !password) { setError("Entre le pseudo et le mot de passe de ton compte L'Carta."); return; }
-        dialog.alert('Relier tes comptes ?', `Ta progression gagnée dans Discord (XP, binga, statistiques, objets) sera ajoutée au compte « ${name.trim()} ». Ensuite, Discord ouvrira directement ce compte. C'est définitif.`, [
-            { text: 'Annuler', style: 'cancel' },
+        dialog.alert(t('Relier tes comptes ?'), t("Ta progression gagnée dans Discord (XP, binga, statistiques, objets) sera ajoutée au compte « {p0} ». Ensuite, Discord ouvrira directement ce compte. C'est définitif.", { p0: name.trim() }), [
+            { text: t('Annuler'), style: 'cancel' },
             {
-                text: 'Relier',
+                text: t('Relier'),
                 onPress: async () => {
                     setBusy(true);
                     setError(null);
@@ -132,19 +133,19 @@ function DiscordLink() {
                     if (r.error) { setError(r.error); audioService.playSound('error'); return; }
                     audioService.playSound('victory');
                     haptic('success');
-                    dialog.alert('Comptes reliés 🎉', `Tu joues maintenant avec ton compte « ${r.profile.name} », sur le site comme dans Discord.`);
+                    dialog.alert(t('Comptes reliés 🎉'), t("Tu joues maintenant avec ton compte « {p0} », sur le site comme dans Discord.", { p0: r.profile.name }));
                 },
             },
         ]);
     };
     return (
         <View>
-            <Text style={styles.dim}>Tu as déjà un compte L'Carta sur le site ou l'appli ? Relie-le à Discord : ta progression d'ici y est ajoutée, et tu retrouves le même compte partout.</Text>
-            <TextInput style={styles.input} placeholder="Pseudo de ton compte L'Carta" placeholderTextColor={theme.textDim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} accessibilityLabel="Pseudo du compte L'Carta" />
-            <TextInput style={styles.input} placeholder="Mot de passe" placeholderTextColor={theme.textDim} value={password} onChangeText={setPassword} secureTextEntry maxLength={64} onSubmitEditing={submit} accessibilityLabel="Mot de passe du compte L'Carta" />
+            <Text style={styles.dim}>{t("Tu as déjà un compte L'Carta sur le site ou l'appli ? Relie-le à Discord : ta progression d'ici y est ajoutée, et tu retrouves le même compte partout.")}</Text>
+            <TextInput style={styles.input} placeholder={t("Pseudo de ton compte L'Carta")} placeholderTextColor={theme.textDim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} accessibilityLabel={t("Pseudo du compte L'Carta")} />
+            <TextInput style={styles.input} placeholder={t("Mot de passe")} placeholderTextColor={theme.textDim} value={password} onChangeText={setPassword} secureTextEntry maxLength={64} onSubmitEditing={submit} accessibilityLabel={t("Mot de passe du compte L'Carta")} />
             {error && <Text style={styles.error}>{error}</Text>}
             {busy ? <ActivityIndicator color={theme.gold} style={{ marginTop: 10 }} /> : (
-                <GameButton small title="Relier mes comptes" icon="🔗" onPress={submit} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
+                <GameButton small title={t("Relier mes comptes")} icon="🔗" onPress={submit} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
             )}
         </View>
     );
@@ -153,7 +154,7 @@ function DiscordLink() {
 export default function ProfileScreen({ navigation }) {
     const account = useAccount();
     const profile = account.profile;
-    const [local, setLocal] = useState({ name: 'Joueur', xp: 0, perGame: {}, history: [] });
+    const [local, setLocal] = useState({ name: t('Joueur'), xp: 0, perGame: {}, history: [] });
     const [customize, setCustomize] = useState(false);
     const mod = useChatModeration();
     const [pickAvatar, setPickAvatar] = useState(false);
@@ -162,7 +163,7 @@ export default function ProfileScreen({ navigation }) {
         try {
             const [name, xp, hist] = await Promise.all(['playerName', 'playerXP', 'matchHistory'].map((k) => AsyncStorage.getItem(k)));
             const entries = await Promise.all(GAME_ORDER.map(async (g) => [g, await getGameStats(g)]));
-            setLocal({ name: name || 'Joueur', xp: parseInt(xp || '0', 10), perGame: Object.fromEntries(entries), history: JSON.parse(hist || '[]') });
+            setLocal({ name: name || t('Joueur'), xp: parseInt(xp || '0', 10), perGame: Object.fromEntries(entries), history: JSON.parse(hist || '[]') });
         } catch (e) { /* ignore */ }
     };
 
@@ -180,12 +181,12 @@ export default function ProfileScreen({ navigation }) {
     const [deleting, setDeleting] = useState(false);
     const deleteAccount = () => {
         dialog.alert(
-            'Supprimer ton compte ?',
-            "La suppression est définitive. Elle efface ton pseudo, ton XP, ton rang, tes stats, ton historique, tes défis, tes titres, les dos et tapis débloqués et ta liste de joueurs bloqués. Rien ne pourra être récupéré.",
+            t('Supprimer ton compte ?'),
+            t("La suppression est définitive. Elle efface ton pseudo, ton XP, ton rang, tes stats, ton historique, tes défis, tes titres, les dos et tapis débloqués et ta liste de joueurs bloqués. Rien ne pourra être récupéré."),
             [
-                { text: 'Annuler', style: 'cancel' },
+                { text: t('Annuler'), style: 'cancel' },
                 {
-                    text: 'Supprimer définitivement',
+                    text: t('Supprimer définitivement'),
                     style: 'destructive',
                     onPress: async () => {
                         setDeleting(true);
@@ -193,10 +194,10 @@ export default function ProfileScreen({ navigation }) {
                         setDeleting(false);
                         if (r.error) {
                             audioService.playSound('error');
-                            dialog.alert('Suppression impossible', r.error);
+                            dialog.alert(t('Suppression impossible'), r.error);
                             return;
                         }
-                        dialog.alert('Compte supprimé', 'Toutes tes données ont été effacées. À bientôt peut-être !');
+                        dialog.alert(t('Compte supprimé'), t('Toutes tes données ont été effacées. À bientôt peut-être !'));
                         navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
                     },
                 },
@@ -205,9 +206,9 @@ export default function ProfileScreen({ navigation }) {
     };
 
     const logout = () => {
-        dialog.alert('Se déconnecter ?', 'Ta progression reste sauvegardée sur le serveur.', [
-            { text: 'Annuler', style: 'cancel' },
-            { text: 'Déconnexion', onPress: () => accountService.logout() },
+        dialog.alert(t('Se déconnecter ?'), t('Ta progression reste sauvegardée sur le serveur.'), [
+            { text: t('Annuler'), style: 'cancel' },
+            { text: t('Déconnexion'), onPress: () => accountService.logout() },
         ]);
     };
 
@@ -215,12 +216,12 @@ export default function ProfileScreen({ navigation }) {
         <View style={styles.container}>
             <LuxeBackdrop />
             <ScreenHeader
-                title="Mon Profil"
+                title={t("Mon Profil")}
                 onBack={() => navigation.goBack()}
                 right={(
                     <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <GoldSquare onPress={() => navigation.navigate('Leaderboard')} label="Classement"><Text style={{ fontSize: 18 }}>🏆</Text></GoldSquare>
-                        <GoldSquare onPress={() => setCustomize(true)} label="Style et réglages"><Text style={{ fontSize: 18 }}>⚙️</Text></GoldSquare>
+                        <GoldSquare onPress={() => navigation.navigate('Leaderboard')} label={t("Classement")}><Text style={{ fontSize: 18 }}>🏆</Text></GoldSquare>
+                        <GoldSquare onPress={() => setCustomize(true)} label={t("Style et réglages")}><Text style={{ fontSize: 18 }}>⚙️</Text></GoldSquare>
                     </View>
                 )}
             />
@@ -230,7 +231,7 @@ export default function ProfileScreen({ navigation }) {
                 <Animated.View entering={FadeIn.duration(250)}>
                     <LuxePanel style={styles.card} colors={['#6A1222', '#2A0710']}>
                         <View style={styles.cardRow}>
-                            <Pressable onPress={() => setPickAvatar(!pickAvatar)} accessibilityLabel="Changer de portrait">
+                            <Pressable onPress={() => setPickAvatar(!pickAvatar)} accessibilityLabel={t("Changer de portrait")}>
                                 <LaurelPortrait size={112}>
                                     <PlayerAvatar name={name} variant={myAvatar} size={112 * 0.74} />
                                 </LaurelPortrait>
@@ -245,16 +246,16 @@ export default function ProfileScreen({ navigation }) {
                                     <LevelBadge level={(rank.index ?? 0) + 1} size={40} />
                                     <View style={{ flex: 1, marginLeft: 6 }}>
                                         <XpBar progress={rank.levelProgress} />
-                                        <Text style={styles.xpText}>{xp}{rank.next ? ` / ${rank.next.min}` : ''} XP</Text>
+                                        <Text style={styles.xpText}>{xp}{rank.next ? ` / ${rank.next.min}` : ''} {t("XP")}</Text>
                                     </View>
                                 </View>
                                 <View style={styles.rankChip}>
                                     <Image source={LUXE_IMG.trophy} style={{ width: 32, height: 20 }} />
-                                    <Text style={styles.rankText} numberOfLines={1}>{rank.emoji} {rank.name}</Text>
+                                    <Text style={styles.rankText} numberOfLines={1}>{rank.emoji} {t(rank.name)}</Text>
                                 </View>
                             </View>
                         </View>
-                        {!pickAvatar && <Text style={styles.avatarHint}>Touche ton portrait pour en choisir un autre</Text>}
+                        {!pickAvatar && <Text style={styles.avatarHint}>{t("Touche ton portrait pour en choisir un autre")}</Text>}
                         {pickAvatar && (
                             <View style={styles.avatarGrid}>
                                 {/* 12 portraits offerts, puis ceux débloqués (boutique, coffres) */}
@@ -264,13 +265,13 @@ export default function ProfileScreen({ navigation }) {
                                     </Pressable>
                                 ))}
                                 <Pressable onPress={() => { setPickAvatar(false); navigation.navigate('Shop'); }} style={styles.avatarMore}>
-                                    <Text style={styles.avatarMoreText}>＋ Collection</Text>
+                                    <Text style={styles.avatarMoreText}>{t("＋ Collection")}</Text>
                                 </Pressable>
                             </View>
                         )}
-                        {rank.next && <Text style={styles.cardDim}>Prochain rang : {rank.next.emoji} {rank.next.name} à {rank.next.min} XP</Text>}
+                        {rank.next && <Text style={styles.cardDim}>{t('Prochain rang : {e} {n} à {xp} XP', { e: rank.next.emoji, n: t(rank.next.name), xp: rank.next.min })}</Text>}
                         {profile && (
-                            <Text style={styles.cardDim}>Saison {profile.season.id} : {profile.season.xp} XP · fin le {new Date(profile.season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
+                            <Text style={styles.cardDim}>{t("Saison")} {profile.season.id} : {profile.season.xp} XP · fin le {new Date(profile.season.end).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long' })}</Text>
                         )}
                         {profile?.badges?.length > 0 && (
                             <View style={styles.badges}>
@@ -301,23 +302,23 @@ export default function ProfileScreen({ navigation }) {
 
                 {/* Discord : compte créé dans Discord, à relier à un compte L'Carta existant */}
                 {profile?.discord === 'only' && (
-                    <Section title="🔗 Relier à mon compte L'Carta" delay={40}>
+                    <Section title={t("🔗 Relier à mon compte L'Carta")} delay={40}>
                         <DiscordLink />
                     </Section>
                 )}
 
                 {/* Compte */}
-                <Section title="🔐 Compte" delay={60}>
+                <Section title={t("🔐 Compte")} delay={60}>
                     {profile ? (
                         <View style={styles.rowBetween}>
-                            <Text style={styles.text}>Connecté en tant que <Text style={{ color: theme.goldLight, fontWeight: '900' }}>{profile.name}</Text>. Ta progression est sauvegardée sur le serveur.</Text>
-                            <GameButton small title="Déconnexion" variant="outline" onPress={logout} />
+                            <Text style={styles.text}>{t("Connecté en tant que")} <Text style={{ color: theme.goldLight, fontWeight: '900' }}>{profile.name}</Text>{t(". Ta progression est sauvegardée sur le serveur.")}</Text>
+                            <GameButton small title={t("Déconnexion")} variant="outline" onPress={logout} />
                         </View>
                     ) : null}
                     {profile ? (
                         <View style={styles.deleteBox}>
-                            <GameButton small title={deleting ? 'Suppression…' : 'Supprimer mon compte'} icon="🗑️" variant="red" onPress={deleteAccount} disabled={deleting} />
-                            <Text style={styles.deleteHint}>Efface définitivement ton compte et toutes ses données.</Text>
+                            <GameButton small title={deleting ? 'Suppression…' : t('Supprimer mon compte')} icon="🗑️" variant="red" onPress={deleteAccount} disabled={deleting} />
+                            <Text style={styles.deleteHint}>{t("Efface définitivement ton compte et toutes ses données.")}</Text>
                         </View>
                     ) : account.loading && account.token ? (
                         <ActivityIndicator color={theme.gold} />
@@ -328,19 +329,19 @@ export default function ProfileScreen({ navigation }) {
 
                 {/* Binga : solde, connexion du jour, missions, derniers gains */}
                 {profile?.binga ? (
-                    <Section title="💰 Binga" right={<Text style={styles.dim}>Missions nouvelles dans {untilTomorrow()}</Text>} delay={90}>
+                    <Section title={t("💰 Binga")} right={<Text style={styles.dim}>{t("Missions nouvelles dans")} {untilTomorrow()}</Text>} delay={90}>
                         <View style={styles.bingaRow}>
                             <BingaIcon size={40} />
-                            <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} binga</Text>
+                            <Text style={styles.bingaBalance}>{profile.binga.balance.toLocaleString('fr-FR')} {t("binga")}</Text>
                         </View>
                         <View style={{ alignItems: 'center', marginBottom: 8 }}>
-                            <GameButton small title="Ma collection : dos, effets, réactions" icon="🛍️" onPress={() => navigation.navigate('Shop')} />
+                            <GameButton small title={t("Ma collection : dos, effets, réactions")} icon="🛍️" onPress={() => navigation.navigate('Shop')} />
                         </View>
-                        <Text style={[styles.dim, { textAlign: 'center' }]}>Partie finie : +10 même en perdant, +25 en gagnant (+20 contre l'ordinateur). Les binga se gagnent en jouant : ils ne s'achètent pas et ne valent pas d'argent.</Text>
+                        <Text style={[styles.dim, { textAlign: 'center' }]}>{t("Partie finie : +10 même en perdant, +25 en gagnant (+20 contre l'ordinateur). Les binga se gagnent en jouant : ils ne s'achètent pas et ne valent pas d'argent.")}</Text>
 
-                        <GameButton small title="Missions et connexion du jour" icon="🎯" variant="red" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'center', marginTop: 12 }} />
+                        <GameButton small title={t("Missions et connexion du jour")} icon="🎯" variant="red" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'center', marginTop: 12 }} />
 
-                        {profile.binga.log?.length > 0 && <Text style={styles.bingaSub}>Derniers gains et achats</Text>}
+                        {profile.binga.log?.length > 0 && <Text style={styles.bingaSub}>{t("Derniers gains et achats")}</Text>}
                         {(profile.binga.log || []).slice(0, 6).map((e, i) => (
                             <View key={`${e.at}-${i}`} style={styles.histRow}>
                                 <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{e.reason}</Text>
@@ -349,17 +350,17 @@ export default function ProfileScreen({ navigation }) {
                         ))}
                     </Section>
                 ) : !profile && !(account.loading && account.token) ? (
-                    <Section title="💰 Binga" delay={90}>
-                        <Text style={styles.dim}>Crée ton compte pour gagner des binga à chaque partie, même en perdant, et les garder d'un appareil à l'autre.</Text>
+                    <Section title={t("💰 Binga")} delay={90}>
+                        <Text style={styles.dim}>{t("Crée ton compte pour gagner des binga à chaque partie, même en perdant, et les garder d'un appareil à l'autre.")}</Text>
                     </Section>
                 ) : null}
 
                 {/* Diamants : solde, derniers mouvements */}
                 {profile?.diamonds && (
-                    <Section title="💎 Diamants" delay={95}>
-                        <Text style={styles.bingaBalance}>{profile.diamonds.balance.toLocaleString('fr-FR')} diamants</Text>
-                        <Text style={[styles.dim, { textAlign: 'center' }]}>Achetés en euros sur le site, pour des cosmétiques seulement. Ils ne s'échangent pas contre des binga.</Text>
-                        <GameButton small title="Acheter des diamants" icon="💎" variant="red" onPress={() => navigation.navigate('Shop', { tab: 'diamonds' })} style={{ alignSelf: 'center', marginTop: 10 }} />
+                    <Section title={t("💎 Diamants")} delay={95}>
+                        <Text style={styles.bingaBalance}>{profile.diamonds.balance.toLocaleString('fr-FR')} {t("diamants")}</Text>
+                        <Text style={[styles.dim, { textAlign: 'center' }]}>{t("Achetés en euros sur le site, pour des cosmétiques seulement. Ils ne s'échangent pas contre des binga.")}</Text>
+                        <GameButton small title={t("Acheter des diamants")} icon="💎" variant="red" onPress={() => navigation.navigate('Shop', { tab: 'diamonds' })} style={{ alignSelf: 'center', marginTop: 10 }} />
                         {(profile.diamonds.log || []).slice(0, 5).map((e, i) => (
                             <View key={`${e.at}-${i}`} style={styles.histRow}>
                                 <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{e.reason}</Text>
@@ -371,17 +372,17 @@ export default function ProfileScreen({ navigation }) {
 
                 {/* Coffres ouverts */}
                 {profile?.chests?.history?.length > 0 && (
-                    <Section title="🎁 Coffres ouverts" right={<Text style={styles.dim}>{profile.chests.history.length} au total</Text>} delay={100}>
+                    <Section title={t("🎁 Coffres ouverts")} right={<Text style={styles.dim}>{profile.chests.history.length} {t("au total")}</Text>} delay={100}>
                         {profile.chests.history.slice(0, 15).map((h, i) => (
                             <View key={`${h.at}-${i}`} style={styles.histRow}>
                                 <View style={{ flex: 1 }}>
                                     <Text style={styles.text} numberOfLines={1}>
                                         <Text style={{ color: RARITIES[h.item.rarity]?.color, fontWeight: '900' }}>{h.item.label}</Text>
-                                        <Text style={styles.dim}>  {RARITIES[h.item.rarity]?.label}{h.pity ? ' · garanti' : ''}</Text>
+                                        <Text style={styles.dim}>  {RARITIES[h.item.rarity]?.label}{h.pity ? t(' · garanti') : ''}</Text>
                                     </Text>
                                     <Text style={styles.dim}>{CHESTS[h.chest]?.label} · {new Date(h.at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })} {new Date(h.at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</Text>
                                 </View>
-                                <Text style={styles.histXp}>{h.duplicate ? `Doublon +${h.refund}` : 'Nouveau'}</Text>
+                                <Text style={styles.histXp}>{h.duplicate ? t("Doublon +{p0}", { p0: h.refund }) : t('Nouveau')}</Text>
                             </View>
                         ))}
                     </Section>
@@ -389,18 +390,18 @@ export default function ProfileScreen({ navigation }) {
 
                 {/* Défis du jour, missions, succès et badges : écran Missions */}
                 {profile && (
-                    <Section title="🎯 Défis, missions et badges" delay={120}>
+                    <Section title={t("🎯 Défis, missions et badges")} delay={120}>
                         <Text style={styles.dim}>
                             Défis du jour : {profile.daily.list.filter((c) => c.done).length}/{profile.daily.list.length}
                             {'  ·  '}Badges : {profile.titles.filter((t) => t.unlocked).length}/{profile.titles.length}
-                            {shownTitle ? `  ·  affiché : « ${shownTitle} »` : ''}
+                            {shownTitle ? t("  ·  affiché : « {p0} »", { p0: shownTitle }) : ''}
                         </Text>
-                        <GameButton small title="Voir les missions" icon="🎯" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'flex-start', marginTop: 10 }} />
+                        <GameButton small title={t("Voir les missions")} icon="🎯" onPress={() => navigation.navigate('Missions')} style={{ alignSelf: 'flex-start', marginTop: 10 }} />
                     </Section>
                 )}
 
                 {/* Statistiques par jeu */}
-                <Section title="📊 Statistiques" delay={240}>
+                <Section title={t("📊 Statistiques")} delay={240}>
                     {GAME_ORDER.filter((g) => GAMES[g].available).map((g) => {
                         const st = profile ? profile.stats[g] : { ...local.perGame[g], best: null };
                         const played = st?.played || 0;
@@ -414,8 +415,8 @@ export default function ProfileScreen({ navigation }) {
                                 <View style={styles.statLine}>
                                     <Text style={styles.stat}><Text style={{ color: theme.mint }}>{wins}</Text> V</Text>
                                     <Text style={styles.stat}><Text style={{ color: '#F87171' }}>{st?.losses || 0}</Text> D</Text>
-                                    <Text style={styles.stat}>{played ? Math.round((wins / played) * 100) : 0}% victoires</Text>
-                                    {profile && <Text style={styles.stat}>Série max {st.best || 0}</Text>}
+                                    <Text style={styles.stat}>{played ? Math.round((wins / played) * 100) : 0}{t("% victoires")}</Text>
+                                    {profile && <Text style={styles.stat}>{t("Série max")} {st.best || 0}</Text>}
                                 </View>
                                 {profile && (
                                     <View style={styles.statLine}>
@@ -430,9 +431,9 @@ export default function ProfileScreen({ navigation }) {
                 </Section>
 
                 {/* Historique */}
-                <Section title="🕑 Dernières parties" delay={300}>
+                <Section title={t("🕑 Dernières parties")} delay={300}>
                     {(profile ? profile.history : local.history).length === 0 ? (
-                        <Text style={styles.dim}>Aucune partie jouée pour l'instant.</Text>
+                        <Text style={styles.dim}>{t("Aucune partie jouée pour l'instant.")}</Text>
                     ) : profile ? (
                         profile.history.map((h, i) => (
                             <View key={i} style={styles.histRow}>
@@ -440,7 +441,7 @@ export default function ProfileScreen({ navigation }) {
                                     <Text style={styles.text}><Text style={{ color: gameInfo(h.game).color, fontWeight: '900' }}>{gameInfo(h.game).label}</Text>  <Text style={{ color: h.won ? theme.mint : '#F87171' }}>{h.result}</Text></Text>
                                     <Text style={styles.dim} numberOfLines={1}>{fmtDate(h.at)} · contre {h.opponents || '—'}</Text>
                                 </View>
-                                <Text style={styles.histXp}>+{h.xp} XP</Text>
+                                <Text style={styles.histXp}>+{h.xp} {t("XP")}</Text>
                             </View>
                         ))
                     ) : (
@@ -456,22 +457,22 @@ export default function ProfileScreen({ navigation }) {
                 </Section>
 
                 {/* Joueurs bloqués dans le chat */}
-                <Section title="🚫 Joueurs bloqués" delay={280}>
+                <Section title={t("🚫 Joueurs bloqués")} delay={280}>
                     {mod.blocked.length === 0 ? (
-                        <Text style={styles.dim}>Personne. Pour bloquer un joueur, touche un de ses messages dans le chat.</Text>
+                        <Text style={styles.dim}>{t("Personne. Pour bloquer un joueur, touche un de ses messages dans le chat.")}</Text>
                     ) : mod.blocked.map((b) => (
                         <View key={b.key} style={styles.blockedRow}>
-                            <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{b.name || 'Joueur'}</Text>
-                            <GameButton small title="Débloquer" variant="outline" onPress={() => unblockPlayer(b.key)} />
+                            <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{b.name || t('Joueur')}</Text>
+                            <GameButton small title={t("Débloquer")} variant="outline" onPress={() => unblockPlayer(b.key)} />
                         </View>
                     ))}
                 </Section>
 
                 {/* Confidentialité et conditions (accessibles sans compte) */}
-                <Section title="📄 Confidentialité et conditions" delay={300}>
+                <Section title={t("📄 Confidentialité et conditions")} delay={300}>
                     <View style={styles.legalBtns}>
-                        <GameButton small title="Confidentialité" variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'privacy' })} style={{ flex: 1 }} />
-                        <GameButton small title="Conditions" variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} style={{ flex: 1 }} />
+                        <GameButton small title={t("Confidentialité")} variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'privacy' })} style={{ flex: 1 }} />
+                        <GameButton small title={t("Conditions")} variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} style={{ flex: 1 }} />
                     </View>
                 </Section>
             </ScrollView>

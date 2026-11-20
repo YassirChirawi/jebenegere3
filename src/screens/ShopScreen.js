@@ -21,6 +21,7 @@ import audioService from '../network/audioService';
 import { BACKS, EFFECTS, FELTS, TABLE_SKINS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt, setTable } from '../utils/cosmetics';
 import { COSMETICS, RARITIES, CHESTS, priceOf, diamondPriceOf, DIAMOND_PRICE } from '../../server/progress/defs';
 import { inDiscord } from '../utils/discord';
+import { t } from '../i18n';
 
 
 const TABS = [
@@ -71,16 +72,16 @@ function Preview({ item, onPreviewEffect }) {
             return <CardBack width={58} height={84} palette={BACKS[keyOf(item)]} />;
         case 'effect':
             return (
-                <Pressable onPress={() => onPreviewEffect(keyOf(item))} style={styles.effectIcon} accessibilityLabel={`Voir l'effet ${item.label}`}>
+                <Pressable onPress={() => onPreviewEffect(keyOf(item))} style={styles.effectIcon} accessibilityLabel={t("Voir l'effet {p0}", { p0: item.label })}>
                     <Text style={{ fontSize: 34 }}>{EFFECT_ICONS[keyOf(item)]}</Text>
-                    <Text style={styles.seeText}>▶ Voir</Text>
+                    <Text style={styles.seeText}>{t("▶ Voir")}</Text>
                 </Pressable>
             );
         case 'table': {
             const k = keyOf(item);
             return TABLE_SKINS[k]
                 ? <Image source={TABLE_SKINS[k].src} style={styles.tableThumb} resizeMode="cover" />
-                : <View style={[styles.tableThumb, styles.tableDefault]}><Text style={styles.tableDefaultText}>Table de chaque jeu</Text></View>;
+                : <View style={[styles.tableThumb, styles.tableDefault]}><Text style={styles.tableDefaultText}>{t("Table de chaque jeu")}</Text></View>;
         }
         case 'avatar':
             return <PlayerAvatar name="?" variant={Number(keyOf(item))} size={70} />;
@@ -110,20 +111,20 @@ export default function ShopScreen({ navigation, route }) {
     useEffect(() => { if (tab === 'diamonds' && !packs) accountService.diamondPacks().then(setPacks); }, [tab]);
     // Achats en euros : sur le site seulement (pas dans Discord, pas dans les applis des stores)
     const payBlocked = inDiscord
-        ? "Les diamants ne s'achètent pas dans Discord. Achète-les sur jebengere3.fun avec le même compte."
-        : Platform.OS !== 'web' ? 'Les diamants s\'achètent sur le site jebengere3.fun, avec le même compte.' : null;
+        ? t("Les diamants ne s'achètent pas dans Discord. Achète-les sur jebengere3.fun avec le même compte.")
+        : Platform.OS !== 'web' ? t('Les diamants s\'achètent sur le site jebengere3.fun, avec le même compte.') : null;
     const buyPack = (pack) => {
         if (!profile) { buy({ price: 0 }); return; }
         dialog.alert(`${pack.label} · ${euros(pack.cents)}`,
-            `${pack.diamonds + pack.bonus} diamants${pack.bonus ? ` (dont ${pack.bonus} offerts)` : ''}, pour des cosmétiques seulement : aucun avantage en partie.\n\nEn payant, tu acceptes que les diamants soient livrés tout de suite et tu renonces au droit de rétractation de 14 jours (contenu numérique). Tu as moins de 18 ans ? Demande d'abord l'accord d'un parent.`, [
-                { text: 'Annuler', style: 'cancel' },
+            `${pack.bonus ? t('{n} diamants (dont {b} offerts)', { n: pack.diamonds + pack.bonus, b: pack.bonus }) : t('{n} diamants', { n: pack.diamonds })}${t(', pour des cosmétiques seulement : aucun avantage en partie.')}\n\n${t("En payant, tu acceptes que les diamants soient livrés tout de suite et tu renonces au droit de rétractation de 14 jours (contenu numérique). Tu as moins de 18 ans ? Demande d'abord l'accord d'un parent.")}`, [
+                { text: t('Annuler'), style: 'cancel' },
                 {
                     text: `Payer ${euros(pack.cents)}`,
                     onPress: async () => {
                         setPaying(pack.id);
                         const r = await accountService.checkout(pack.id);
                         setPaying(null);
-                        if (r.error || !r.url) { audioService.playSound('error'); dialog.alert('Paiement impossible', r.error || 'Réessaie dans un instant.'); return; }
+                        if (r.error || !r.url) { audioService.playSound('error'); dialog.alert(t('Paiement impossible'), r.error || t('Réessaie dans un instant.')); return; }
                         if (Platform.OS === 'web') window.location.assign(r.url); else Linking.openURL(r.url);
                     },
                 },
@@ -169,43 +170,43 @@ export default function ShopScreen({ navigation, route }) {
         const have = gems ? diamonds : balance;
         const unit = gems ? 'diamants' : 'binga';
         if (!profile) {
-            dialog.alert('Crée ton compte', 'Les binga sont gardés avec ton compte. Crée-le dans ton Profil pour acheter avec tes binga.', [
-                { text: 'Plus tard', style: 'cancel' },
-                { text: 'Aller au Profil', onPress: () => navigation.navigate('Profile') },
+            dialog.alert(t('Crée ton compte'), t('Les binga sont gardés avec ton compte. Crée-le dans ton Profil pour acheter avec tes binga.'), [
+                { text: t('Plus tard'), style: 'cancel' },
+                { text: t('Aller au Profil'), onPress: () => navigation.navigate('Profile') },
             ]);
             return;
         }
         if (have < price) {
             audioService.playSound('error');
             if (gems) {
-                dialog.alert('Pas assez de diamants', `Il te manque ${price - have} diamants.`, [
-                    { text: 'Plus tard', style: 'cancel' },
-                    { text: 'Voir les diamants', onPress: () => setTab('diamonds') },
+                dialog.alert(t('Pas assez de diamants'), t("Il te manque {p0} diamants.", { p0: price - have }), [
+                    { text: t('Plus tard'), style: 'cancel' },
+                    { text: t('Voir les diamants'), onPress: () => setTab('diamonds') },
                 ]);
             } else {
-                dialog.alert('Pas assez de binga', `Il te manque ${price - have} binga. Joue des parties (même perdues), fais les missions du jour et reviens !`);
+                dialog.alert(t('Pas assez de binga'), t("Il te manque {p0} binga. Joue des parties (même perdues), fais les missions du jour et reviens !", { p0: price - have }));
             }
             return;
         }
-        dialog.alert(`Acheter « ${item.label} » ?`, `${price} ${unit} seront retirés de ton solde (${have} ${unit}). Il est à toi pour toujours, même après une réinstallation.`, [
-            { text: 'Annuler', style: 'cancel' },
+        dialog.alert(t("Acheter « {p0} » ?", { p0: item.label }), t("{p0} {p1} seront retirés de ton solde ({p2} {p3}). Il est à toi pour toujours, même après une réinstallation.", { p0: price, p1: unit, p2: have, p3: unit }), [
+            { text: t('Annuler'), style: 'cancel' },
             {
-                text: `Acheter · ${price} ${unit}`,
+                text: t("Acheter · {p0} {p1}", { p0: price, p1: unit }),
                 onPress: async () => {
                     setBusy(item.id);
                     const r = await accountService.buy(item.id, currency);
                     setBusy(null);
                     if (r.error || !r.success) {
                         audioService.playSound('error');
-                        dialog.alert('Achat impossible', r.error || 'Réessaie dans un instant.');
+                        dialog.alert(t('Achat impossible'), r.error || t('Réessaie dans un instant.'));
                         return;
                     }
                     audioService.playSound('coins');
                     haptic('success');
                     if (item.kind !== 'emote') use(item);
-                    dialog.alert('C\'est à toi ! 🎉', item.kind === 'emote'
-                        ? `« ${item.label} » est dans tes réactions : en partie, touche ✨ à côté des réactions.`
-                        : `« ${item.label} » est maintenant utilisé. Tu peux changer quand tu veux, ici ou dans Profil → Style.`);
+                    dialog.alert(t('C\'est à toi ! 🎉'), item.kind === 'emote'
+                        ? t("« {p0} » est dans tes réactions : en partie, touche ✨ à côté des réactions.", { p0: item.label })
+                        : t("« {p0} » est maintenant utilisé. Tu peux changer quand tu veux, ici ou dans Profil → Style.", { p0: item.label }));
                 },
             },
         ]);
@@ -213,20 +214,20 @@ export default function ShopScreen({ navigation, route }) {
 
     const action = (item) => {
         if (owned(item)) {
-            if (item.kind === 'emote') return <Text style={[styles.status, { color: theme.mint }]}>✓ À toi · ✨ en partie</Text>;
-            if (inUse(item)) return <Text style={[styles.status, { color: theme.mint }]}>✓ Utilisé</Text>;
-            return <GameButton small title="Utiliser" variant="outline" onPress={() => use(item)} />;
+            if (item.kind === 'emote') return <Text style={[styles.status, { color: theme.mint }]}>{t("✓ À toi · ✨ en partie")}</Text>;
+            if (inUse(item)) return <Text style={[styles.status, { color: theme.mint }]}>{t("✓ Utilisé")}</Text>;
+            return <GameButton small title={t("Utiliser")} variant="outline" onPress={() => use(item)} />;
         }
-        if (item.source === 'tournament') return <Text style={styles.status}>🏅 Gagne un tournoi</Text>;
-        if (item.source === 'binga_tournament') return <Text style={styles.status}>🏆 Gagne un tournoi à entrée en binga</Text>;
+        if (item.source === 'tournament') return <Text style={styles.status}>{t("🏅 Gagne un tournoi")}</Text>;
+        if (item.source === 'binga_tournament') return <Text style={styles.status}>{t("🏆 Gagne un tournoi à entrée en binga")}</Text>;
         const price = priceOf(item);
-        if (price === null) return <Text style={[styles.status, { color: RARITIES.legendaire.color }]}>🎁 Coffre Or seulement</Text>;
+        if (price === null) return <Text style={[styles.status, { color: RARITIES.legendaire.color }]}>{t("🎁 Coffre Or seulement")}</Text>;
         const dprice = diamondPriceOf(item);
         return (
             <View style={{ gap: 5, alignItems: 'stretch' }}>
                 <GameButton small title={busy === item.id ? '…' : `💰 ${price}`} onPress={() => buy(item)} disabled={!!busy} variant={profile && balance >= price ? 'gold' : 'outline'} />
                 {dprice !== null && (
-                    <PressableScale onPress={() => buy(item, 'diamonds')} disabled={!!busy} style={[styles.gemBtn, profile && diamonds >= dprice && styles.gemBtnOn]} accessibilityLabel={`Acheter pour ${dprice} diamants`}>
+                    <PressableScale onPress={() => buy(item, 'diamonds')} disabled={!!busy} style={[styles.gemBtn, profile && diamonds >= dprice && styles.gemBtnOn]} accessibilityLabel={t("Acheter pour {p0} diamants", { p0: dprice })}>
                         <GemIcon size={14} /><Text style={styles.gemBtnText}>{dprice}</Text>
                     </PressableScale>
                 )}
@@ -239,7 +240,7 @@ export default function ShopScreen({ navigation, route }) {
         if (!profile) { buy({ price: 0 }); return; }
         if (balance < chest.price) {
             audioService.playSound('error');
-            dialog.alert('Pas assez de binga', `Il te manque ${chest.price - balance} binga. Joue des parties (même perdues), fais les missions du jour et reviens !`);
+            dialog.alert(t('Pas assez de binga'), t("Il te manque {p0} binga. Joue des parties (même perdues), fais les missions du jour et reviens !", { p0: chest.price - balance }));
             return;
         }
         setOpening(id);
@@ -249,7 +250,7 @@ export default function ShopScreen({ navigation, route }) {
         const p = CHESTS[id].pity;
         if (!p || !left) return null;
         const what = RARITIES[p.rarity].label;
-        return left === 1 ? `Le prochain donne un ${what} garanti` : `Plus que ${left} coffres avant un ${what} garanti`;
+        return left === 1 ? t("Le prochain donne un {p0} garanti", { p0: what }) : t("Plus que {p0} coffres avant un {p1} garanti", { p0: left, p1: what });
     };
 
     // Onglet Tables : les tables, puis les couleurs de tapis des défis du jour
@@ -259,12 +260,12 @@ export default function ShopScreen({ navigation, route }) {
         <View style={styles.container}>
             <LuxeBackdrop />
             <ScreenHeader
-                title="Ma Collection"
+                title={t("Ma Collection")}
                 onBack={() => navigation.goBack()}
                 right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? balance.toLocaleString('fr-FR') : '—'} />}
             />
             <View style={styles.wallet}>
-                <PressableScale onPress={() => setTab('diamonds')} style={styles.walletGem} accessibilityLabel={`Diamants : ${diamonds}`}>
+                <PressableScale onPress={() => setTab('diamonds')} style={styles.walletGem} accessibilityLabel={t("Diamants : {p0}", { p0: diamonds })}>
                     <GemIcon size={20} />
                     <Text style={styles.walletText}>{profile ? diamonds.toLocaleString('fr-FR') : '—'}</Text>
                     <View style={styles.walletPlus}><Text style={styles.walletPlusText}>+</Text></View>
@@ -277,12 +278,12 @@ export default function ShopScreen({ navigation, route }) {
                 </Text>
                 {!profile && (
                     <Pressable onPress={() => navigation.navigate('Profile')} style={styles.guest}>
-                        <Text style={styles.guestText}>🔐 Crée ton compte pour gagner des binga et acheter ici. Toucher pour aller au Profil.</Text>
+                        <Text style={styles.guestText}>{t("🔐 Crée ton compte pour gagner des binga et acheter ici. Toucher pour aller au Profil.")}</Text>
                     </Pressable>
                 )}
                 <View style={styles.rarities}>
                     {Object.entries(RARITIES).map(([k, r]) => (
-                        <Text key={k} style={[styles.rarityPill, { borderColor: r.color, color: r.color }]}>{r.label} · {r.price ? `${r.price} binga ou ${DIAMOND_PRICE[k]} 💎` : 'coffre Or'}</Text>
+                        <Text key={k} style={[styles.rarityPill, { borderColor: r.color, color: r.color }]}>{r.label} · {r.price ? t("{p0} binga ou {p1} 💎", { p0: r.price, p1: DIAMOND_PRICE[k] }) : t('coffre Or')}</Text>
                     ))}
                 </View>
 
@@ -305,22 +306,22 @@ export default function ShopScreen({ navigation, route }) {
                     const complete = have === list.length;
                     return (
                         <LuxePanel style={styles.progressBox} inner={false}>
-                            <SectionHead title={`${TAB_TITLES[tab]} (${list.length})`} right={<Text style={[styles.progressCount, complete && { color: '#7CF29A' }]}>{complete ? '✓ ' : ''}{have} / {list.length}</Text>} />
+                            <SectionHead title={`${t(TAB_TITLES[tab])} (${list.length})`} right={<Text style={[styles.progressCount, complete && { color: '#7CF29A' }]}>{complete ? '✓ ' : ''}{have} / {list.length}</Text>} />
                             <View style={{ padding: 10 }}>
                                 <XpBar progress={list.length ? have / list.length : 0} height={10} />
-                                {complete && <Text style={styles.complete}>👑 Collection complète !</Text>}
+                                {complete && <Text style={styles.complete}>{t("👑 Collection complète !")}</Text>}
                             </View>
                         </LuxePanel>
                     );
                 })()}
 
-                {tab === 'table' && <Text style={styles.soon}>Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.</Text>}
-                {tab === 'avatar' && <Text style={styles.soon}>24 portraits en plus des 12 offerts, dont 8 premium (Épique et Légendaire). Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
-                {tab === 'emote' && <Text style={styles.soon}>Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.</Text>}
+                {tab === 'table' && <Text style={styles.soon}>{t("Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.")}</Text>}
+                {tab === 'avatar' && <Text style={styles.soon}>{t("24 portraits en plus des 12 offerts, dont 8 premium (Épique et Légendaire). Les autres joueurs voient ton portrait dans les salons et en partie.")}</Text>}
+                {tab === 'emote' && <Text style={styles.soon}>{t("Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.")}</Text>}
 
                 {tab === 'diamonds' && (
                     <>
-                        <Text style={styles.soon}>Les diamants s'achètent en euros et servent seulement à acheter des cosmétiques (communs, rares, épiques), sans hasard. Ils ne donnent aucun avantage en partie et ne s'échangent pas contre des binga. Les coffres s'ouvrent toujours en binga, et les légendaires restent dans le coffre Or.</Text>
+                        <Text style={styles.soon}>{t("Les diamants s'achètent en euros et servent seulement à acheter des cosmétiques (communs, rares, épiques), sans hasard. Ils ne donnent aucun avantage en partie et ne s'échangent pas contre des binga. Les coffres s'ouvrent toujours en binga, et les légendaires restent dans le coffre Or.")}</Text>
                         {payBlocked && <Text style={[styles.soon, { color: LUXE.goldLight }]}>{payBlocked}</Text>}
                         {!packs ? <ActivityIndicator color={LUXE.gold} style={{ margin: 20 }} /> : packs.packs.map((p, i) => (
                             <LuxePanel key={p.id} style={styles.pack} colors={i === packs.packs.length - 1 ? ['#6A1222', '#2A0710'] : undefined}>
@@ -329,13 +330,13 @@ export default function ShopScreen({ navigation, route }) {
                                 </View>
                                 <View style={{ flex: 1, marginHorizontal: 10 }}>
                                     <Text style={styles.packName}>{p.label}</Text>
-                                    <Text style={styles.packAmount}>{(p.diamonds + p.bonus).toLocaleString('fr-FR')} diamants{p.bonus ? <Text style={styles.packBonus}>  dont {p.bonus} offerts</Text> : null}</Text>
+                                    <Text style={styles.packAmount}>{(p.diamonds + p.bonus).toLocaleString('fr-FR')} diamants{p.bonus ? <Text style={styles.packBonus}>  {t("dont")} {p.bonus} {t("offerts")}</Text> : null}</Text>
                                 </View>
                                 <GameButton small title={paying === p.id ? '…' : euros(p.cents)} onPress={() => buyPack(p)} disabled={!packs.enabled || !!payBlocked || !!paying} />
                             </LuxePanel>
                         ))}
-                        {packs && !packs.enabled && !payBlocked && <Text style={styles.soon}>Le paiement sera bientôt activé.</Text>}
-                        <Text style={styles.soon}>Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay). L'Carta ne voit jamais ta carte. Prix TTC.</Text>
+                        {packs && !packs.enabled && !payBlocked && <Text style={styles.soon}>{t("Le paiement sera bientôt activé.")}</Text>}
+                        <Text style={styles.soon}>{t("Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay). L'Carta ne voit jamais ta carte. Prix TTC.")}</Text>
                     </>
                 )}
 
@@ -345,11 +346,11 @@ export default function ShopScreen({ navigation, route }) {
                             <Image source={DECOR.coffres} style={StyleSheet.absoluteFill} resizeMode="cover" />
                             <Gradient colors={['rgba(6,12,24,0)', 'rgba(6,12,24,0.85)']} />
                             <View style={styles.chestBannerShade}>
-                                <Text style={styles.chestBannerTitle}>Coffres et roue du jour</Text>
-                                <GameButton small title="🎡 Roue du jour (gratuite)" onPress={() => navigation.navigate('Wheel')} />
+                                <Text style={styles.chestBannerTitle}>{t("Coffres et roue du jour")}</Text>
+                                <GameButton small title={t("🎡 Roue du jour (gratuite)")} onPress={() => navigation.navigate('Wheel')} />
                             </View>
                         </View>
-                        <Text style={styles.soon}>Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.</Text>
+                        <Text style={styles.soon}>{t("Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.")}</Text>
                         {Object.entries(CHESTS).map(([id, c]) => (
                             <LuxePanel key={id} style={[styles.chestCard, { borderColor: c.color }]}>
                                 <View style={styles.chestLeft}>
@@ -357,7 +358,7 @@ export default function ShopScreen({ navigation, route }) {
                                     <Text style={[styles.chestName, { color: c.color }]}>{c.label}</Text>
                                 </View>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.oddsTitle}>Chances</Text>
+                                    <Text style={styles.oddsTitle}>{t("Chances")}</Text>
                                     {Object.entries(c.odds).map(([r, pct]) => (
                                         <View key={r} style={styles.oddsRow}>
                                             <Text style={[styles.oddsLabel, { color: RARITIES[r].color }]}>{RARITIES[r].label}</Text>
@@ -366,7 +367,7 @@ export default function ShopScreen({ navigation, route }) {
                                         </View>
                                     ))}
                                     {pityText(id) && <Text style={styles.pity}>⭐ {pityText(id)}</Text>}
-                                    <GameButton small title={`Ouvrir · 💰 ${c.price}`} onPress={() => openChest(id)} variant={profile && balance >= c.price ? 'gold' : 'outline'} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
+                                    <GameButton small title={t("Ouvrir · 💰 {p0}", { p0: c.price })} onPress={() => openChest(id)} variant={profile && balance >= c.price ? 'gold' : 'outline'} style={{ marginTop: 8, alignSelf: 'flex-start' }} />
                                 </View>
                             </LuxePanel>
                         ))}
@@ -382,8 +383,8 @@ export default function ShopScreen({ navigation, route }) {
                                 <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
                                 {owned(item) && <View style={styles.ownedDot}><Text style={styles.ownedDotText}>✓</Text></View>}
                                 <View style={styles.previewBox}><Preview item={item} onPreviewEffect={previewEffect} /></View>
-                                <Text style={styles.itemLabel} numberOfLines={1}>{item.label}</Text>
-                                <Text style={[styles.rarity, { color: r.color }]}>{item.free ? 'Offert' : r.label}</Text>
+                                <Text style={styles.itemLabel} numberOfLines={1}>{t(item.label)}</Text>
+                                <Text style={[styles.rarity, { color: r.color }]}>{item.free ? t('Offert') : r.label}</Text>
                                 <View style={styles.actionBox}>{action(item)}</View>
                             </Animated.View>
                         );

@@ -359,6 +359,16 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
 - Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
 
+## Langues : français, darija, anglais
+
+Décision de Yassir (20 nov 2026) : darija **en lettres latines** (comme « Zid jouj », « Khasser » : 3 = ع, 7 = ح, 9 = ق) et anglais, en plus du français.
+- **Choisir :** premier écran de la présentation (premier lancement), ou Profil → ⚙️ → Réglages → 🌐 Langue. Le choix est gardé sur l'appareil (clé `lang`). Au tout premier lancement, un appareil réglé en anglais démarre en anglais, sinon en français.
+- **Comment ça marche** ([src/i18n/index.js](src/i18n/index.js)) : le texte français sert de clé, `t('Modes de jeu')` donne « Game modes » ou « Anwa3 l-l3ib ». Paramètres : `t('{n} en ligne', { n })`. Un texte absent du dictionnaire reste en français, jamais de clé brute à l'écran. Changer de langue redessine toute l'appli.
+- **Dictionnaires :** [src/i18n/en.json](src/i18n/en.json) et [src/i18n/dar.json](src/i18n/dar.json). Ils couvrent aussi les noms envoyés par le serveur (rangs, titres, missions, défis, objets, coffres, raretés, packs de diamants), traduits à l'affichage.
+- **Ajouter des textes :** `python scripts/i18n-wrap.py [--literals] src/…` entoure les textes d'un écran avec `t(…)` (relire le diff), puis `python scripts/i18n-wrap.py --keys` liste tous les textes dans `src/i18n/keys.txt`, à ajouter aux deux dictionnaires.
+- **Traduit pour l'instant :** accueil (portrait et paysage), barre du bas, Missions, Ma Collection et diamants, Profil, Amis, cloche, Salon privé, Roue, Classement, Tournois, présentation, fenêtres du jour, coffres, règles, réglages. **Pas encore :** l'intérieur des parties (plateaux, bilans, messages de jeu), les messages d'erreur envoyés par le serveur et les pages légales (en français).
+- Test : `e2e/langs.e2e.js` (anglais puis darija depuis les réglages, accueil et missions traduits, retour au français). Les autres tests tournent en français (`locale: 'fr-FR'`).
+
 ## Diamants : achats en euros (Stripe)
 
 Décision de Yassir (20 nov 2026) : la seule chose vendue en argent réel, ce sont des **diamants**. Le binga reste gagné en jouant uniquement.

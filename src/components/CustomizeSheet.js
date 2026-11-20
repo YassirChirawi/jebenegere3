@@ -9,9 +9,11 @@ import {
     BACKS, FELTS, EFFECTS, TABLE_SKINS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
     setBack, setFelt, setEffect, setTable, setVibration, backPalette,
 } from '../utils/cosmetics';
+import { t } from '../i18n';
+import LanguagePicker from './LanguagePicker';
 
 const EFFECT_ICONS = { drapeau: '🎊', confettis: '🎉', etoiles: '⭐', menthe: '🌿', feu: '🔥', tonnerre: '⚡', or: '💰' };
-const lockLabel = (item) => `🔒 ${UNLOCK[item.unlock].label}${item.alsoShop ? ' ou boutique' : ''}`;
+const lockLabel = (item) => `🔒 ${UNLOCK[item.unlock].label}${item.alsoShop ? t(' ou boutique') : ''}`;
 
 /**
  * Personnalisation : dos de cartes, tapis par jeu, vibrations.
@@ -35,15 +37,15 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <Animated.View entering={FadeInDown.springify().damping(16)} style={styles.sheet}>
                     <View style={styles.header}>
-                        <Text style={styles.title}>🎨 Personnaliser</Text>
+                        <Text style={styles.title}>{t("🎨 Personnaliser")}</Text>
                         <Pressable onPress={onClose} hitSlop={10}><Text style={styles.close}>✕</Text></Pressable>
                     </View>
-                    <Text style={styles.xp}>{cos.xp} XP · les rangs, les défis du jour, les saisons et la boutique (en binga) débloquent de nouveaux dos, tapis et effets</Text>
+                    <Text style={styles.xp}>{cos.xp} {t("XP · les rangs, les défis du jour, les saisons et la boutique (en binga) débloquent de nouveaux dos, tapis et effets")}</Text>
 
                     <View style={styles.tabs}>
                         {[['backs', 'Dos'], ['felts', 'Tapis'], ['effects', 'Effets'], ['settings', 'Réglages']].map(([k, label]) => (
                             <Pressable key={k} onPress={() => setTab(k)} style={[styles.tab, tab === k && styles.tabOn]}>
-                                <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{label}</Text>
+                                <Text style={[styles.tabText, tab === k && styles.tabTextOn]}>{t(label)}</Text>
                             </Pressable>
                         ))}
                     </View>
@@ -58,7 +60,7 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                         <Pressable key={id} onPress={() => choose(setBack(id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>
                                             <CardBack width={54} height={78} palette={b.perGame ? backPalette({ ...cos, back: 'game' }, cos.game) : b} />
                                             <Text style={styles.itemLabel}>{b.label}</Text>
-                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : lockLabel(b)}</Text>
+                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? t('✓ Choisi') : open ? t('Disponible') : lockLabel(b)}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -70,20 +72,20 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                 {/* Tables de la boutique possédées (remplacent la table de chaque jeu) */}
                                 {Object.keys(TABLE_SKINS).some((k) => (cos.unlocks || []).includes(`table:${k}`)) && (
                                     <>
-                                        <Text style={styles.itemLabel}>Table (pour les 4 jeux)</Text>
+                                        <Text style={styles.itemLabel}>{t("Table (pour les 4 jeux)")}</Text>
                                         <View style={[styles.grid, { marginTop: 6 }]}>
                                             {[null, ...Object.keys(TABLE_SKINS).filter((k) => (cos.unlocks || []).includes(`table:${k}`))].map((k) => {
                                                 const on = (cos.table || null) === k;
                                                 return (
                                                     <Pressable key={k || 'jeu'} onPress={() => choose(setTable(k))} style={[styles.item, on && styles.itemOn]}>
                                                         {k ? <Image source={TABLE_SKINS[k].src} style={styles.tableThumb} resizeMode="cover" /> : <View style={[styles.tableThumb, { backgroundColor: '#0E5A2E' }]} />}
-                                                        <Text style={styles.itemLabel}>{k ? TABLE_SKINS[k].label : 'Table du jeu'}</Text>
-                                                        <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisie' : 'Disponible'}</Text>
+                                                        <Text style={styles.itemLabel}>{k ? TABLE_SKINS[k].label : t('Table du jeu')}</Text>
+                                                        <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? t('✓ Choisie') : t('Disponible')}</Text>
                                                     </Pressable>
                                                 );
                                             })}
                                         </View>
-                                        <Text style={[styles.itemSub, { marginBottom: 8 }]}>Avec une table de la boutique, les couleurs de tapis ci-dessous ne s'appliquent pas.</Text>
+                                        <Text style={[styles.itemSub, { marginBottom: 8 }]}>{t("Avec une table de la boutique, les couleurs de tapis ci-dessous ne s'appliquent pas.")}</Text>
                                     </>
                                 )}
                                 <View style={styles.gameRow}>
@@ -104,7 +106,7 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                                 </View>
                                                 <Text style={styles.itemLabel}>{f.label}</Text>
                                                 <Text style={[styles.itemSub, on && { color: theme.mint }]}>
-                                                    {on ? '✓ Choisi' : open ? (i === 0 ? 'Par défaut' : 'Disponible') : lockLabel(f)}
+                                                    {on ? t('✓ Choisi') : open ? (i === 0 ? t('Par défaut') : t('Disponible')) : lockLabel(f)}
                                                 </Text>
                                             </Pressable>
                                         );
@@ -122,7 +124,7 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                         <Pressable key={id} onPress={() => choose(setEffect(id))} style={[styles.item, on && styles.itemOn, !open && styles.itemLocked]}>
                                             <Text style={{ fontSize: 34 }}>{EFFECT_ICONS[id]}</Text>
                                             <Text style={styles.itemLabel}>{e.label}</Text>
-                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? '✓ Choisi' : open ? 'Disponible' : lockLabel(e)}</Text>
+                                            <Text style={[styles.itemSub, on && { color: theme.mint }]}>{on ? t('✓ Choisi') : open ? t('Disponible') : lockLabel(e)}</Text>
                                         </Pressable>
                                     );
                                 })}
@@ -130,10 +132,16 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                         )}
 
                         {tab === 'settings' && (
+                            <View style={[styles.settingRow, { flexDirection: 'column', alignItems: 'stretch' }]}>
+                                <Text style={styles.itemLabel}>{t("🌐 Langue")}</Text>
+                                <LanguagePicker style={{ marginTop: 8, justifyContent: 'flex-start' }} />
+                            </View>
+                        )}
+                        {tab === 'settings' && (
                             <View style={styles.settingRow}>
                                 <View style={{ flex: 1 }}>
-                                    <Text style={styles.itemLabel}>📳 Vibrations</Text>
-                                    <Text style={styles.itemSub}>Courte pour une pose, longue pour un KDOUB, double pour une victoire. Le bouton muet coupe aussi les vibrations.</Text>
+                                    <Text style={styles.itemLabel}>{t("📳 Vibrations")}</Text>
+                                    <Text style={styles.itemSub}>{t("Courte pour une pose, longue pour un KDOUB, double pour une victoire. Le bouton muet coupe aussi les vibrations.")}</Text>
                                 </View>
                                 <Switch
                                     value={cos.vibration !== false}
@@ -145,8 +153,8 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                         )}
                         {tab === 'settings' && onOpenLegal && (
                             <View style={styles.legalRow}>
-                                <Text style={styles.legalLink} onPress={() => onOpenLegal('privacy')}>📄 Confidentialité</Text>
-                                <Text style={styles.legalLink} onPress={() => onOpenLegal('terms')}>📄 Conditions d'utilisation</Text>
+                                <Text style={styles.legalLink} onPress={() => onOpenLegal('privacy')}>{t("📄 Confidentialité")}</Text>
+                                <Text style={styles.legalLink} onPress={() => onOpenLegal('terms')}>{t("📄 Conditions d'utilisation")}</Text>
                             </View>
                         )}
                     </ScrollView>

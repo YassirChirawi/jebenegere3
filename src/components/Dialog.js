@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, Pressable } from 'react-native';
 import Animated, { FadeIn, FadeOut, ZoomIn } from 'react-native-reanimated';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
+import { t } from '../i18n';
 
 /**
  * Remplace Alert.alert (qui ne fait rien sur le web) par une boîte de dialogue
  * au style du jeu, utilisable partout :
  *
- *   dialog.alert('Titre', 'Message', [{ text: 'Annuler', style: 'cancel' }, { text: 'OK', onPress }])
+ *   dialog.alert(t('Titre'), t('Message'), [{ text: t('Annuler'), style: 'cancel' }, { text: t('OK'), onPress }])
  */
 let listener = null;
 let pending = null; // demandé avant que la boîte soit prête (tout premier affichage) : montré dès qu'elle l'est
@@ -18,7 +19,7 @@ export const dialog = {
         const payload = {
             title,
             message,
-            buttons: buttons && buttons.length ? buttons : [{ text: 'OK' }],
+            buttons: buttons && buttons.length ? buttons : [{ text: t('OK') }],
         };
         if (listener) listener(payload);
         else pending = payload;
