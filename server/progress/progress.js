@@ -6,6 +6,7 @@
 const crypto = require('crypto');
 const defs = require('./defs');
 
+const { DIAMOND_PACKS, diamondPriceOf } = defs;
 const { rankFor, dailyChallenges, dayKey, TITLES, REWARDS, seasonOf, SEASON_TOP_REWARD, GAME_KEYS, BINGA, RARITIES, priceOf, cosmetic, CHESTS, FREE_AVATARS, MAX_AVATAR, WHEEL, COSMETICS, DUPLICATE_REFUND } = defs;
 const { rollChest, pityLeft, serverRng, rollWheel } = require('./chests');
 const CHEST_HISTORY_MAX = 50;
@@ -60,6 +61,16 @@ function blankUser(name) {
 // Binga : tout est calculé ici, à partir des parties arbitrées par le serveur
 // (jamais sur la parole de l'appli)
 // ----------------------------------------------------------------------------
+// Diamants (achetés en argent réel) : solde, journal, paiements Stripe déjà crédités (par session)
+function blankDiamonds() {
+    return { balance: 0, log: [], payments: {} };
+}
+const DIAMOND_LOG_MAX = 30;
+function diamondsOf(u) {
+    u.diamonds = { ...blankDiamonds(), ...(u.diamonds || {}) };
+    return u.diamonds;
+}
+
 function blankBinga() {
     return { balance: 0, day: null, playToday: 0, missions: { progress: {}, done: [] }, login: { last: null, streak: 0 }, log: [] };
 }
@@ -440,6 +451,40 @@ function createProgress(store) {
         return inboxView(user);
     }
 
+    // ------------------------------------------------------------------ paiements (diamants)
+    /** Paiement confirmé par Stripe : crédite le pack une seule fois par session. */
+    async function creditPurchase(userId, { sessionId, packId, paymentIntent = null, cents = null }, now = Date.now()) {
+        const pack = DIAMOND_PACKS.find((p) => p.id === packId);
+        if (!pack || !sessionId) return { error: 'Pack inconnu.' };
+        const out = await withUser(userId, (u) => {
+            const d = diamondsOf(u);
+            if (d.payments[sessionId]) return { already: true, balance: d.balance };
+            const total = pack.diamonds + pack.bonus;
+            d.balance += total;
+            d.payments[sessionId] = { at: now, pack: pack.id, diamonds: total, pi: paymentIntent, cents: cents ?? pack.cents, refunded: 0 };
+            d.log = [{ at: now, amount: total, reason: `Achat : ${pack.label}` }, ...d.log].slice(0, DIAMOND_LOG_MAX);
+            return { success: true, credited: total, balance: d.balance };
+        });
+        return out || { error: 'Compte introuvable.' };
+    }
+    /** Remboursement (total ou partiel) : retire les diamants correspondants (sans descendre sous 0). */
+    async function refundPurchase(userId, paymentIntent, refundedCents, now = Date.now()) {
+        const out = await withUser(userId, (u) => {
+            const d = diamondsOf(u);
+            const entry = Object.entries(d.payments).find(([, p]) => p.pi && p.pi === paymentIntent);
+            if (!entry) return { error: 'Paiement introuvable.' };
+            const [, p] = entry;
+            const shouldRemove = Math.floor(p.diamonds * Math.min(1, refundedCents / (p.cents || 1)));
+            const remove = Math.max(0, shouldRemove - (p.refunded || 0));
+            if (!remove) return { success: true, removed: 0, balance: d.balance };
+            p.refunded = (p.refunded || 0) + remove;
+            d.balance = Math.max(0, d.balance - remove);
+            d.log = [{ at: now, amount: -remove, reason: 'Remboursement' }, ...d.log].slice(0, DIAMOND_LOG_MAX);
+            return { success: true, removed: remove, balance: d.balance };
+        });
+        return out || { error: 'Compte introuvable.' };
+    }
+
     async function areFriends(aId, bId) {
         const a = await store.get(aId);
         return !!a && (a.friends || []).includes(bId);
@@ -602,9 +647,22 @@ function createProgress(store) {
      * Achat d'un cosmétique en binga : le serveur vérifie le prix, le solde et qu'il n'est pas déjà possédé.
      * Les légendaires et les exclusifs (Champion) ne s'achètent pas.
      */
-    async function buy(user, id, now = Date.now()) {
+    async function buy(user, id, now = Date.now(), currency = 'binga') {
         const item = cosmetic(String(id || ''));
         if (!item) return { error: "Cet objet n'existe pas." };
+        if (currency === 'diamonds') {
+            const dprice = diamondPriceOf(item);
+            if (dprice === null) return { error: item.source ? 'Cet objet ne s\'achète pas.' : 'Les objets légendaires ne s\'achètent pas : on les trouve seulement dans le coffre Or.' };
+            return withUser(user.id, (u) => {
+                const d = diamondsOf(u);
+                if ((u.unlocks || []).includes(item.id)) return { error: "Tu l'as déjà." };
+                if (d.balance < dprice) return { error: `Il te manque ${dprice - d.balance} diamants.` };
+                d.balance -= dprice;
+                d.log = [{ at: now, amount: -dprice, reason: `Achat : ${item.label} (${RARITIES[item.rarity].label})` }, ...d.log].slice(0, DIAMOND_LOG_MAX);
+                u.unlocks = [...(u.unlocks || []), item.id];
+                return { success: true, item: { id: item.id, label: item.label, kind: item.kind }, profile: profileOf(u, now) };
+            });
+        }
         const price = priceOf(item);
         if (price === null) {
             return { error: item.source === 'tournament' ? "Ce dos est réservé au gagnant d'un tournoi." : "Les objets légendaires ne s'achètent pas : on les trouve seulement dans le coffre Or." };
@@ -841,6 +899,7 @@ function createProgress(store) {
             badges: u.badges || [],
             season: { id: season.id, end: season.end, xp: u.seasons?.[season.id]?.all || 0 },
             binga: bingaView(u, now),
+            diamonds: { balance: diamondsOf(u).balance, log: diamondsOf(u).log.slice(0, 10) },
             wheel: { available: !u.wheel || u.wheel.day !== dayKey(now), history: (u.wheel?.history || []).slice(0, 5) },
         };
     }
@@ -867,7 +926,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, discordLogin, linkDiscord, friendsView, requestFriend, respondFriend, removeFriend, areFriends, notify, inboxView, markInboxRead, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, discordLogin, linkDiscord, friendsView, requestFriend, respondFriend, removeFriend, areFriends, notify, inboxView, markInboxRead, creditPurchase, refundPurchase, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

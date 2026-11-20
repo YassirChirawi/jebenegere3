@@ -1,10 +1,10 @@
 /**
- * Ma Collection (Boutique) : cosmétiques achetés avec des binga gagnés en jouant (jamais avec de l'argent).
+ * Ma Collection (Boutique) : cosmétiques achetés avec des binga gagnés en jouant, ou avec des diamants (achetés en euros).
  * Chaque onglet montre où en est la collection (objets possédés / total).
  * Visuels seulement : aucun avantage en partie. Les légendaires ne s'achètent pas (coffre Or).
  */
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, Image } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Linking, ActivityIndicator } from 'react-native';
 import PlayerAvatar from '../components/PlayerAvatar';
 import AppNav from '../components/AppNav';
 import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
@@ -19,7 +19,8 @@ import { dialog } from '../components/Dialog';
 import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { BACKS, EFFECTS, FELTS, TABLE_SKINS, itemUnlocked, useCosmetics, setBack, setEffect, setFelt, setTable } from '../utils/cosmetics';
-import { COSMETICS, RARITIES, CHESTS, priceOf } from '../../server/progress/defs';
+import { COSMETICS, RARITIES, CHESTS, priceOf, diamondPriceOf, DIAMOND_PRICE } from '../../server/progress/defs';
+import { inDiscord } from '../utils/discord';
 
 
 const TABS = [
@@ -29,7 +30,13 @@ const TABS = [
     ['effect', 'Effets'],
     ['emote', 'Réac.'],
     ['avatar', 'Portraits'],
+    ['diamonds', 'Diamants'],
 ];
+const GEM = require('../../assets/ui/diamant.webp');
+export function GemIcon({ size = 18 }) {
+    return <Image source={GEM} style={{ width: size, height: size * 0.85 }} resizeMode="contain" />;
+}
+const euros = (cents) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
 // Nom complet de chaque collection
 const TAB_TITLES = { back: 'Dos de cartes', table: 'Tables et tapis', effect: 'Effets de victoire', emote: 'Réactions', avatar: 'Portraits' };
 const NAV_CARDS = require('../../assets/ui/nav_collection.webp');
@@ -43,6 +50,7 @@ function TabIcon({ k }) {
         case 'effect': return <Text style={{ fontSize: 22 }}>✨</Text>;
         case 'emote': return <Text style={{ fontSize: 22 }}>😂</Text>;
         case 'avatar': return <PlayerAvatar name="?" variant={29} size={28} />;
+        case 'diamonds': return <GemIcon size={28} />;
         default: return null;
     }
 }
@@ -87,15 +95,40 @@ function Preview({ item, onPreviewEffect }) {
     }
 }
 
-export default function ShopScreen({ navigation }) {
+export default function ShopScreen({ navigation, route }) {
     const account = useAccount();
     const cos = useCosmetics();
     const profile = account.profile;
-    const [tab, setTab] = useState('chest');
+    const [tab, setTab] = useState(route?.params?.tab || 'chest');
     const [opening, setOpening] = useState(null);
     const [busy, setBusy] = useState(null);
     const [fx, setFx] = useState(null);
     const balance = profile?.binga?.balance ?? 0;
+    const diamonds = profile?.diamonds?.balance ?? 0;
+    const [packs, setPacks] = useState(null); // { enabled, packs }
+    const [paying, setPaying] = useState(null);
+    useEffect(() => { if (tab === 'diamonds' && !packs) accountService.diamondPacks().then(setPacks); }, [tab]);
+    // Achats en euros : sur le site seulement (pas dans Discord, pas dans les applis des stores)
+    const payBlocked = inDiscord
+        ? "Les diamants ne s'achètent pas dans Discord. Achète-les sur jebengere3.fun avec le même compte."
+        : Platform.OS !== 'web' ? 'Les diamants s\'achètent sur le site jebengere3.fun, avec le même compte.' : null;
+    const buyPack = (pack) => {
+        if (!profile) { buy({ price: 0 }); return; }
+        dialog.alert(`${pack.label} · ${euros(pack.cents)}`,
+            `${pack.diamonds + pack.bonus} diamants${pack.bonus ? ` (dont ${pack.bonus} offerts)` : ''}, pour des cosmétiques seulement : aucun avantage en partie.\n\nEn payant, tu acceptes que les diamants soient livrés tout de suite et tu renonces au droit de rétractation de 14 jours (contenu numérique). Tu as moins de 18 ans ? Demande d'abord l'accord d'un parent.`, [
+                { text: 'Annuler', style: 'cancel' },
+                {
+                    text: `Payer ${euros(pack.cents)}`,
+                    onPress: async () => {
+                        setPaying(pack.id);
+                        const r = await accountService.checkout(pack.id);
+                        setPaying(null);
+                        if (r.error || !r.url) { audioService.playSound('error'); dialog.alert('Paiement impossible', r.error || 'Réessaie dans un instant.'); return; }
+                        if (Platform.OS === 'web') window.location.assign(r.url); else Linking.openURL(r.url);
+                    },
+                },
+            ]);
+    };
 
     const owned = (item) => {
         if (item.free) return true;
@@ -130,8 +163,11 @@ export default function ShopScreen({ navigation }) {
         setTimeout(() => setFx((f) => (f && f.k === k ? null : f)), 2800);
     };
 
-    const buy = (item) => {
-        const price = priceOf(item);
+    const buy = (item, currency = 'binga') => {
+        const gems = currency === 'diamonds';
+        const price = gems ? diamondPriceOf(item) : priceOf(item);
+        const have = gems ? diamonds : balance;
+        const unit = gems ? 'diamants' : 'binga';
         if (!profile) {
             dialog.alert('Crée ton compte', 'Les binga sont gardés avec ton compte. Crée-le dans ton Profil pour acheter avec tes binga.', [
                 { text: 'Plus tard', style: 'cancel' },
@@ -139,18 +175,25 @@ export default function ShopScreen({ navigation }) {
             ]);
             return;
         }
-        if (balance < price) {
+        if (have < price) {
             audioService.playSound('error');
-            dialog.alert('Pas assez de binga', `Il te manque ${price - balance} binga. Joue des parties (même perdues), fais les missions du jour et reviens !`);
+            if (gems) {
+                dialog.alert('Pas assez de diamants', `Il te manque ${price - have} diamants.`, [
+                    { text: 'Plus tard', style: 'cancel' },
+                    { text: 'Voir les diamants', onPress: () => setTab('diamonds') },
+                ]);
+            } else {
+                dialog.alert('Pas assez de binga', `Il te manque ${price - have} binga. Joue des parties (même perdues), fais les missions du jour et reviens !`);
+            }
             return;
         }
-        dialog.alert(`Acheter « ${item.label} » ?`, `${price} binga seront retirés de ton solde (${balance} binga). Il est à toi pour toujours, même après une réinstallation.`, [
+        dialog.alert(`Acheter « ${item.label} » ?`, `${price} ${unit} seront retirés de ton solde (${have} ${unit}). Il est à toi pour toujours, même après une réinstallation.`, [
             { text: 'Annuler', style: 'cancel' },
             {
-                text: `Acheter · ${price} binga`,
+                text: `Acheter · ${price} ${unit}`,
                 onPress: async () => {
                     setBusy(item.id);
-                    const r = await accountService.buy(item.id);
+                    const r = await accountService.buy(item.id, currency);
                     setBusy(null);
                     if (r.error || !r.success) {
                         audioService.playSound('error');
@@ -178,7 +221,17 @@ export default function ShopScreen({ navigation }) {
         if (item.source === 'binga_tournament') return <Text style={styles.status}>🏆 Gagne un tournoi à entrée en binga</Text>;
         const price = priceOf(item);
         if (price === null) return <Text style={[styles.status, { color: RARITIES.legendaire.color }]}>🎁 Coffre Or seulement</Text>;
-        return <GameButton small title={busy === item.id ? '…' : `💰 ${price}`} onPress={() => buy(item)} disabled={!!busy} variant={profile && balance >= price ? 'gold' : 'outline'} />;
+        const dprice = diamondPriceOf(item);
+        return (
+            <View style={{ gap: 5, alignItems: 'stretch' }}>
+                <GameButton small title={busy === item.id ? '…' : `💰 ${price}`} onPress={() => buy(item)} disabled={!!busy} variant={profile && balance >= price ? 'gold' : 'outline'} />
+                {dprice !== null && (
+                    <PressableScale onPress={() => buy(item, 'diamonds')} disabled={!!busy} style={[styles.gemBtn, profile && diamonds >= dprice && styles.gemBtnOn]} accessibilityLabel={`Acheter pour ${dprice} diamants`}>
+                        <GemIcon size={14} /><Text style={styles.gemBtnText}>{dprice}</Text>
+                    </PressableScale>
+                )}
+            </View>
+        );
     };
 
     const openChest = (id) => {
@@ -200,7 +253,7 @@ export default function ShopScreen({ navigation }) {
     };
 
     // Onglet Tables : les tables, puis les couleurs de tapis des défis du jour
-    const list = tab === 'chest' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab || (tab === 'table' && c.kind === 'felt'))];
+    const list = tab === 'chest' || tab === 'diamonds' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab || (tab === 'table' && c.kind === 'felt'))];
 
     return (
         <View style={styles.container}>
@@ -210,10 +263,17 @@ export default function ShopScreen({ navigation }) {
                 onBack={() => navigation.goBack()}
                 right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? balance.toLocaleString('fr-FR') : '—'} />}
             />
+            <View style={styles.wallet}>
+                <PressableScale onPress={() => setTab('diamonds')} style={styles.walletGem} accessibilityLabel={`Diamants : ${diamonds}`}>
+                    <GemIcon size={20} />
+                    <Text style={styles.walletText}>{profile ? diamonds.toLocaleString('fr-FR') : '—'}</Text>
+                    <View style={styles.walletPlus}><Text style={styles.walletPlusText}>+</Text></View>
+                </PressableScale>
+            </View>
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Text style={styles.info}>
-                    Tout s'achète avec des binga gagnés en jouant, jamais avec de l'argent. Ce sont des visuels : aucun avantage en partie. Un objet acheté est à toi pour toujours.
+                    Les objets s'achètent avec des binga gagnés en jouant, ou avec des diamants. Ce sont des visuels : aucun avantage en partie. Un objet acheté est à toi pour toujours.
                 </Text>
                 {!profile && (
                     <Pressable onPress={() => navigation.navigate('Profile')} style={styles.guest}>
@@ -222,7 +282,7 @@ export default function ShopScreen({ navigation }) {
                 )}
                 <View style={styles.rarities}>
                     {Object.entries(RARITIES).map(([k, r]) => (
-                        <Text key={k} style={[styles.rarityPill, { borderColor: r.color, color: r.color }]}>{r.label} · {r.price ? `${r.price} binga` : 'coffre Or'}</Text>
+                        <Text key={k} style={[styles.rarityPill, { borderColor: r.color, color: r.color }]}>{r.label} · {r.price ? `${r.price} binga ou ${DIAMOND_PRICE[k]} 💎` : 'coffre Or'}</Text>
                     ))}
                 </View>
 
@@ -240,7 +300,7 @@ export default function ShopScreen({ navigation }) {
                 </View>
 
                 {/* Où en est la collection de cet onglet */}
-                {tab !== 'chest' && (() => {
+                {tab !== 'chest' && tab !== 'diamonds' && (() => {
                     const have = list.filter(owned).length;
                     const complete = have === list.length;
                     return (
@@ -257,6 +317,27 @@ export default function ShopScreen({ navigation }) {
                 {tab === 'table' && <Text style={styles.soon}>Une table de la boutique remplace la table de chaque jeu, pour les 4 jeux. Les couleurs de tapis (Tadelakt, Safran…) teintent le tapis d'une table de jeu.</Text>}
                 {tab === 'avatar' && <Text style={styles.soon}>24 portraits en plus des 12 offerts, dont 8 premium (Épique et Légendaire). Les autres joueurs voient ton portrait dans les salons et en partie.</Text>}
                 {tab === 'emote' && <Text style={styles.soon}>Les réactions 😂 😡 😱 👏 restent offertes. Celles d'ici s'ajoutent avec ✨ en partie.</Text>}
+
+                {tab === 'diamonds' && (
+                    <>
+                        <Text style={styles.soon}>Les diamants s'achètent en euros et servent seulement à acheter des cosmétiques (communs, rares, épiques), sans hasard. Ils ne donnent aucun avantage en partie et ne s'échangent pas contre des binga. Les coffres s'ouvrent toujours en binga, et les légendaires restent dans le coffre Or.</Text>
+                        {payBlocked && <Text style={[styles.soon, { color: LUXE.goldLight }]}>{payBlocked}</Text>}
+                        {!packs ? <ActivityIndicator color={LUXE.gold} style={{ margin: 20 }} /> : packs.packs.map((p, i) => (
+                            <LuxePanel key={p.id} style={styles.pack} colors={i === packs.packs.length - 1 ? ['#6A1222', '#2A0710'] : undefined}>
+                                <View style={styles.packGems}>
+                                    {Array.from({ length: Math.min(5, i + 1) }).map((_, k) => <View key={k} style={{ marginLeft: k ? -10 : 0 }}><GemIcon size={26} /></View>)}
+                                </View>
+                                <View style={{ flex: 1, marginHorizontal: 10 }}>
+                                    <Text style={styles.packName}>{p.label}</Text>
+                                    <Text style={styles.packAmount}>{(p.diamonds + p.bonus).toLocaleString('fr-FR')} diamants{p.bonus ? <Text style={styles.packBonus}>  dont {p.bonus} offerts</Text> : null}</Text>
+                                </View>
+                                <GameButton small title={paying === p.id ? '…' : euros(p.cents)} onPress={() => buyPack(p)} disabled={!packs.enabled || !!payBlocked || !!paying} />
+                            </LuxePanel>
+                        ))}
+                        {packs && !packs.enabled && !payBlocked && <Text style={styles.soon}>Le paiement sera bientôt activé.</Text>}
+                        <Text style={styles.soon}>Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay). L'Carta ne voit jamais ta carte. Prix TTC.</Text>
+                    </>
+                )}
 
                 {tab === 'chest' && (
                     <>
@@ -324,6 +405,19 @@ export default function ShopScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
+    wallet: { flexDirection: 'row', justifyContent: 'flex-end', paddingHorizontal: 14, marginTop: -2 },
+    walletGem: { flexDirection: 'row', alignItems: 'center', gap: 5, paddingLeft: 8, paddingRight: 3, height: 32, borderRadius: 16, borderWidth: 1.5, borderColor: '#F17A86', backgroundColor: 'rgba(0,0,0,0.4)' },
+    walletText: { color: LUXE.cream, fontWeight: '900', fontSize: 14 },
+    walletPlus: { width: 24, height: 24, borderRadius: 12, backgroundColor: '#D3263A', alignItems: 'center', justifyContent: 'center' },
+    walletPlusText: { color: '#fff', fontWeight: '900', fontSize: 16, lineHeight: 18 },
+    gemBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, paddingVertical: 5, borderRadius: 10, borderWidth: 1.5, borderColor: 'rgba(241,122,134,0.5)', backgroundColor: 'rgba(0,0,0,0.35)' },
+    gemBtnOn: { borderColor: '#F17A86', backgroundColor: 'rgba(211,38,58,0.3)' },
+    gemBtnText: { color: LUXE.cream, fontWeight: '900', fontSize: 13 },
+    pack: { flexDirection: 'row', alignItems: 'center', padding: 12, marginBottom: 10 },
+    packGems: { flexDirection: 'row', width: 70, justifyContent: 'center' },
+    packName: { color: LUXE.goldLight, fontWeight: '900', fontSize: 15 },
+    packAmount: { color: LUXE.cream, fontWeight: '800', fontSize: 13, marginTop: 2 },
+    packBonus: { color: '#7CF29A', fontWeight: '900', fontSize: 11 },
     tabIcon: { height: 30, justifyContent: 'center', alignItems: 'center' },
     progressBox: { marginBottom: 12 },
     progressCount: { color: LUXE.cream, fontWeight: '900', fontSize: 13 },

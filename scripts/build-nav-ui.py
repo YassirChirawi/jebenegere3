@@ -5,7 +5,7 @@ fournie par Yassir (générée par IA, deux téléphones côte à côte, 1199 x 
     python scripts/build-nav-ui.py <profil.png>
 
 Même méthode que build-home-ui.py : le fond est estimé sur le bord de chaque découpe puis rendu transparent.
-Sortie : assets/ui/nav_*.webp, daily_*.webp, mission_*.webp, badge_*.webp.
+Sortie : assets/ui/nav_*.webp, daily_*.webp, mission_*.webp, badge_*.webp, diamant.webp.
 """
 import os
 import sys
@@ -48,6 +48,8 @@ ICONS = {
     'nav_profil': ((1097, 1172, 1148, 1226), 96, {'t0': 70, 't1': 130}),
     # récompense quotidienne
     'daily_pieces': ((876, 586, 930, 634), 110, {'clear': ((49, 0, 54, 48),)}),
+    # diamant (monnaie achetée)
+    'diamant': ((634, 131, 682, 172), 96, {'clear': ((18, 0, 48, 4), (44, 0, 48, 41), (0, 33, 9, 41), (24, 34, 48, 41))}),
     # missions
     'mission_carte': ((638, 752, 692, 802), 96, {}),
     'mission_cartes': ((636, 812, 698, 862), 110, {}),

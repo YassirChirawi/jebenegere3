@@ -16,7 +16,8 @@
           "Ta liste de joueurs bloqués (voir « Chat »).",
           "Les jetons de connexion de tes appareils (sous forme d'empreinte), pour rester connecté.",
           "Si tu ajoutes des amis : la liste de tes amis et des demandes en attente, liée à ton compte. Tes amis voient ton pseudo, ton portrait, ton niveau et si tu es en ligne. Retirer un ami ou supprimer ton compte efface ce lien.",
-          "Tes notifications (demandes d'ami, amis acceptés, invitations à jouer) sont gardées avec ton compte pendant 30 jours au plus (50 maximum), puis effacées."
+          "Tes notifications (demandes d'ami, amis acceptés, invitations à jouer) sont gardées avec ton compte pendant 30 jours au plus (50 maximum), puis effacées.",
+          "Si tu achètes des diamants : le paiement est traité par Stripe, qui reçoit tes données de paiement. L'Carta ne voit jamais ta carte : on garde seulement l'identifiant du paiement, le pack, le montant et la date, pour créditer tes diamants et gérer un éventuel remboursement."
         ]
       },
       {
@@ -24,7 +25,7 @@
         "items": [
           "Pas d'email, pas de numéro de téléphone, pas de nom réel.",
           "Pas de localisation, pas d'accès à la caméra, au micro, aux contacts ni aux photos.",
-          "Pas de revente de données. Nous ne transmettons à personne ton pseudo, ton compte ni ta progression."
+          "Pas de revente de données. Nous ne transmettons à personne ton pseudo, ton compte ni ta progression (pour un achat de diamants, Stripe reçoit seulement un identifiant de compte anonyme)."
         ]
       },
       {
@@ -149,6 +150,18 @@
           "Chaque coffre contient 1 cosmétique tiré au sort par le serveur. Les probabilités de chaque rareté sont affichées sur le coffre avant l'ouverture, et ne changent jamais sans être annoncées. Si tu possèdes déjà l'objet, tu reçois 20 % de sa valeur en binga.",
           "La roue du jour offre un tour gratuit par jour aux joueurs qui ont un compte. Elle ne se paie jamais, ni en binga ni en argent, et donne toujours un lot (binga, coffre ouvert gratuitement ou cosmétique). Les chances de chaque lot sont affichées sous la roue.",
           "Un cosmétique obtenu est gardé avec ton compte tant que ton compte existe. S'il est supprimé, ton binga et tes cosmétiques le sont aussi."
+        ]
+      },
+      {
+        "h": "Achats de diamants",
+        "items": [
+          "Les diamants sont la seule chose qu'on peut acheter avec de l'argent dans L'Carta. Ils se vendent en packs, de 0,99 € à 20,99 € TTC, sur le site jebengere3.fun, avec un compte.",
+          "Les diamants servent seulement à acheter directement des cosmétiques (communs, rares et épiques), sans tirage au sort. Ils ne donnent aucun avantage en partie. Ils ne s'échangent pas contre des binga, ne servent pas à ouvrir des coffres, ne se revendent pas et ne s'échangent pas entre joueurs.",
+          "Le paiement est fait par Stripe (carte bancaire, Apple Pay, Google Pay). Les diamants sont ajoutés à ton compte dès que Stripe confirme le paiement.",
+          "Les diamants sont un contenu numérique livré tout de suite. En validant l'achat, tu demandes cette livraison immédiate et tu renonces au droit de rétractation de 14 jours. En cas de problème (diamants non reçus, paiement en double), écris-nous : nous remboursons. Un paiement remboursé retire les diamants correspondants.",
+          "Si tu as moins de 18 ans, demande l'accord d'un parent avant d'acheter.",
+          "Les diamants et les cosmétiques sont gardés avec ton compte tant qu'il existe. S'il est supprimé, ils le sont aussi, sans remboursement des diamants non utilisés.",
+          "Les achats ne sont pas disponibles dans Discord ni dans les applis des stores pour l'instant : seulement sur le site."
         ]
       }
     ]

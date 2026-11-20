@@ -284,6 +284,25 @@ function priceOf(item) {
     return RARITIES[item.rarity]?.price ?? null;
 }
 const cosmetic = (id) => COSMETICS.find((c) => c.id === id) || null;
+
+// ----------------------------------------------------------------------------
+// Diamants : la seule chose vendue en argent réel (packs, paiement Stripe vérifié par le serveur).
+// Ils achètent directement les cosmétiques communs, rares et épiques (sans hasard).
+// Jamais de binga contre des diamants, jamais de coffre payé en diamants : le binga se gagne en jouant,
+// les coffres s'ouvrent en binga, les légendaires restent dans le coffre Or.
+// ----------------------------------------------------------------------------
+const DIAMOND_PACKS = [
+    { id: 'poignee', label: 'Poignée de diamants', diamonds: 80, bonus: 0, cents: 99 },
+    { id: 'bourse', label: 'Bourse de diamants', diamonds: 250, bonus: 20, cents: 299 },
+    { id: 'coffret', label: 'Coffret de diamants', diamonds: 450, bonus: 50, cents: 499 },
+    { id: 'tresor', label: 'Trésor de diamants', diamonds: 950, bonus: 150, cents: 999 },
+    { id: 'fortune', label: 'Fortune du Sultan', diamonds: 2100, bonus: 400, cents: 2099 },
+];
+const DIAMOND_PRICE = { commun: 40, rare: 100, epique: 200 };
+function diamondPriceOf(item) {
+    if (!item || item.source) return null;
+    return DIAMOND_PRICE[item.rarity] ?? null;
+}
 // Portraits : 1 à 12 offerts, 13 à 36 à débloquer (boutique, coffres)
 const FREE_AVATARS = 12;
 const MAX_AVATAR = 36;
@@ -291,5 +310,5 @@ const MAX_AVATAR = 36;
 module.exports = {
     RARITIES, COSMETICS, priceOf, cosmetic, CHESTS, DUPLICATE_REFUND, WHEEL, FREE_AVATARS, MAX_AVATAR,
     RANKS, rankFor, XP, AFK_XP_LIMIT, REWARDS, CHALLENGES, dailyChallenges, dayKey,
-    TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA,
+    TITLES, seasonOf, SEASON_MS, SEASON_TOP_REWARD, GAME_KEYS, BINGA, DIAMOND_PACKS, DIAMOND_PRICE, diamondPriceOf,
 };

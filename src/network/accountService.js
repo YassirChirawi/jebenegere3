@@ -237,15 +237,27 @@ const accountService = {
     },
 
     /** Achat d'un cosmétique en binga : le serveur vérifie tout et renvoie le profil à jour. */
-    async buy(id) {
+    async buy(id, currency = 'binga') {
         if (!state.token) return { error: 'Crée ton compte pour acheter avec tes binga.' };
         if (socketService.serverInfo && !socketService.supports('shop')) return { error: "Le serveur n'est pas encore à jour : la boutique n'est pas disponible pour l'instant." };
-        const r = await request('/api/shop/buy', { method: 'POST', body: { id } });
+        const r = await request('/api/shop/buy', { method: 'POST', body: { id, currency } });
         if (r.profile) {
             set({ profile: r.profile });
             AsyncStorage.setItem('authProfile', JSON.stringify(r.profile)).catch(() => {});
         }
         return r;
+    },
+
+    /** Diamants : packs en vente (enabled : paiement activé sur le serveur). */
+    async diamondPacks() {
+        const r = await request('/api/pay/packs', { token: null });
+        return Array.isArray(r.packs) ? r : { enabled: false, packs: [] };
+    },
+
+    /** Diamants : page de paiement Stripe pour un pack (renvoie { url } ou { error }). */
+    async checkout(pack) {
+        if (!state.token) return { error: 'Crée ton compte pour acheter des diamants.' };
+        return request('/api/pay/checkout', { method: 'POST', body: { pack, acceptTerms: true } });
     },
 
     /** Ouverture d'un coffre : le serveur retire le prix, tire le lot et renvoie { result, profile }. */

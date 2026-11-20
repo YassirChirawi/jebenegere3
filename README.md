@@ -171,7 +171,7 @@ L'Carta se lance dans un salon vocal Discord : les amis du vocal jouent ensemble
 - **Salon commun :** tous les joueurs de la même partie Discord arrivent dans le même salon privé (événement `discord_room`). Le premier arrivé en est l'hôte, il choisit le jeu et ajoute des bots. Le bouton « Inviter sur Discord » ouvre la fenêtre d'invitation de Discord. Depuis l'accueil, « Salon de la partie Discord » y ramène.
 - **Réseau :** dans Discord, la page ne peut joindre que les adresses déclarées. L'appli passe par `/server` (API et Socket.io, chemin `/server/socket.io`). Le serveur enlève ce préfixe s'il arrive jusqu'à lui (`/server` ou `/.proxy/server`) et autorise l'origine `https://1572975413687226451.discordsays.com`.
 - **Site :** `vercel.json` autorise l'affichage dans Discord (`frame-ancestors` : discord.com et discordsays.com), et seulement là. Pas de service worker ni de publicité dans Discord (le bac à sable de Discord bloque AdSense).
-- **Pas d'achats Discord** pour l'instant : les binga ne s'achètent pas en argent.
+- **Pas d'achats dans Discord** : Discord impose son propre système de paiement. Les diamants s'achètent sur le site, avec le même compte (voir « Diamants »).
 - **Tester :** activer le mode développeur dans Discord, puis lancer L'Carta depuis le lanceur d'Activities d'un salon vocal.
 
 ## Appli installable (PWA) et site (Vercel)
@@ -358,6 +358,31 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - **Profil** : carte du joueur sur velours (lauriers, pseudo ✏️, badge de niveau, barre d'XP, rang, saison), puis 4 cases : victoires, meilleure série, taux de victoire, parties jouées.
 - Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
 - Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
+
+## Diamants : achats en euros (Stripe)
+
+Décision de Yassir (20 nov 2026) : la seule chose vendue en argent réel, ce sont des **diamants**. Le binga reste gagné en jouant uniquement.
+- **Packs** (`DIAMOND_PACKS` dans [server/progress/defs.js](server/progress/defs.js)) :
+
+  | Pack | Diamants | Prix TTC |
+  |---|---|---|
+  | Poignée de diamants | 80 | 0,99 € |
+  | Bourse de diamants | 250 + 20 offerts | 2,99 € |
+  | Coffret de diamants | 450 + 50 offerts | 4,99 € |
+  | Trésor de diamants | 950 + 150 offerts | 9,99 € |
+  | Fortune du Sultan | 2 100 + 400 offerts | 20,99 € |
+- **À quoi ils servent :** acheter directement un cosmétique commun (40 💎), rare (100 💎) ou épique (200 💎), sans hasard. Jamais de binga contre des diamants, jamais de coffre payé en diamants (les coffres s'ouvrent en binga), les légendaires restent dans le coffre Or. Aucun avantage en partie.
+- **Où :** onglet « Diamants » de Ma Collection (et pastille 💎 + en haut), solde et derniers mouvements dans le Profil.
+- **Paiement :** page Stripe Checkout (carte, Apple Pay, Google Pay), avec un compte. Les diamants sont crédités **seulement** quand Stripe confirme par un webhook signé (`POST /api/pay/webhook`, signature HMAC vérifiée, une seule fois par paiement). Un remboursement (`charge.refunded`) retire les diamants correspondants. Code : [server/payments.js](server/payments.js), sans SDK.
+- **Avant de payer**, l'appli affiche : livraison immédiate et renonciation au droit de rétractation (contenu numérique), accord d'un parent sous 18 ans. Conditions d'utilisation : section « Achats de diamants ».
+- **Pas d'achat dans Discord ni dans les applis des stores** (leurs règles imposent leurs propres systèmes de paiement) : seulement sur le site, avec le même compte.
+- **À faire par Yassir pour activer le paiement :**
+  1. créer le compte Stripe et l'activer (identité, IBAN) ;
+  2. Stripe → Développeurs → Webhooks : ajouter `https://jebenegere3.onrender.com/api/pay/webhook`, avec les événements `checkout.session.completed`, `checkout.session.async_payment_succeeded` et `charge.refunded` ;
+  3. dans Render : `STRIPE_SECRET_KEY` (clé secrète) et `STRIPE_WEBHOOK_SECRET` (secret de signature du webhook).
+
+  Sans ces deux variables, les packs s'affichent avec « Le paiement sera bientôt activé ».
+- Tests : `server/tests/payments.test.js`, `e2e/diamonds.e2e.js` (Stripe simulé).
 
 ## Amis et invitations directes
 

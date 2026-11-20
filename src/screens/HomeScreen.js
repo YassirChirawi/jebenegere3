@@ -198,6 +198,31 @@ export default function HomeScreen({ navigation, route }) {
         };
     }, []);
 
+    // Retour de la page de paiement Stripe (?paiement=ok|annule) ; diamants crédités par le serveur (webhook)
+    useEffect(() => {
+        let poll = null;
+        if (Platform.OS === 'web' && typeof window !== 'undefined') {
+            const m = (window.location.search || '').match(/[?&]paiement=(ok|annule)/);
+            if (m) {
+                window.history.replaceState(null, '', '/');
+                if (m[1] === 'annule') {
+                    dialog.alert('Paiement annulé', "Aucun montant n'a été débité.");
+                } else {
+                    dialog.alert('Merci ! 💎', 'Paiement confirmé. Tes diamants arrivent dans quelques secondes (Collection → Diamants).');
+                    let n = 0;
+                    poll = setInterval(() => { accountService.refresh(); n += 1; if (n >= 6) clearInterval(poll); }, 3000);
+                }
+            }
+        }
+        const onGems = () => accountService.refresh();
+        const attach = setInterval(() => {
+            if (!socketService.socket) return;
+            clearInterval(attach);
+            socketService.socket.on('diamonds', onGems);
+        }, 500);
+        return () => { clearInterval(poll); clearInterval(attach); socketService.socket?.off('diamonds', onGems); };
+    }, []);
+
     // Palmarès : dernier champion de tournoi, affiché sous le bouton Tournois
     useEffect(() => {
         if (!isConnected || !serverInfo?.features?.includes('tournaments')) return;

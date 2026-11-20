@@ -354,6 +354,21 @@ export default function ProfileScreen({ navigation }) {
                     </Section>
                 ) : null}
 
+                {/* Diamants : solde, derniers mouvements */}
+                {profile?.diamonds && (
+                    <Section title="💎 Diamants" delay={95}>
+                        <Text style={styles.bingaBalance}>{profile.diamonds.balance.toLocaleString('fr-FR')} diamants</Text>
+                        <Text style={[styles.dim, { textAlign: 'center' }]}>Achetés en euros sur le site, pour des cosmétiques seulement. Ils ne s'échangent pas contre des binga.</Text>
+                        <GameButton small title="Acheter des diamants" icon="💎" variant="red" onPress={() => navigation.navigate('Shop', { tab: 'diamonds' })} style={{ alignSelf: 'center', marginTop: 10 }} />
+                        {(profile.diamonds.log || []).slice(0, 5).map((e, i) => (
+                            <View key={`${e.at}-${i}`} style={styles.histRow}>
+                                <Text style={[styles.text, { flex: 1 }]} numberOfLines={1}>{e.reason}</Text>
+                                <Text style={[styles.histXp, e.amount < 0 && { color: '#FCA5A5' }]}>{e.amount > 0 ? '+' : ''}{e.amount}</Text>
+                            </View>
+                        ))}
+                    </Section>
+                )}
+
                 {/* Coffres ouverts */}
                 {profile?.chests?.history?.length > 0 && (
                     <Section title="🎁 Coffres ouverts" right={<Text style={styles.dim}>{profile.chests.history.length} au total</Text>} delay={100}>

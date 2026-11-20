@@ -12,6 +12,8 @@ const { createStakes } = require('./stakes');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
 const moderation = require('./moderation');
 const discord = require('./discord');
+const payments = require('./payments');
+const { DIAMOND_PACKS } = require('./progress/defs');
 
 // Version annoncée aux clients : permet à l'appli de détecter un serveur pas à jour
 const SERVER_VERSION = 3;
@@ -22,6 +24,29 @@ app.set('trust proxy', 1);
 app.disable('x-powered-by');
 app.use(securityHeaders);
 app.use(cors(corsOptions));
+// Webhook Stripe : corps brut (la signature porte sur les octets exacts), donc avant express.json
+app.post('/api/pay/webhook', express.raw({ type: '*/*', limit: '200kb' }), async (req, res) => {
+    const event = payments.verifyWebhook(req.body?.toString('utf8'), req.headers['stripe-signature']);
+    if (!event) return res.status(400).send('Signature invalide');
+    try {
+        const o = event.data?.object || {};
+        if ((event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') && o.payment_status === 'paid') {
+            const userId = o.metadata?.userId || o.client_reference_id;
+            const r = await progress.creditPurchase(userId, { sessionId: o.id, packId: o.metadata?.pack, paymentIntent: o.payment_intent, cents: o.amount_total });
+            if (r.success) {
+                console.log(`[paiement] +${r.credited} diamants`);
+                tellUser(userId, 'diamonds', { credited: r.credited, balance: r.balance });
+            }
+        } else if (event.type === 'charge.refunded' && o.payment_intent) {
+            const meta = await payments.paymentIntentMeta(o.payment_intent);
+            if (meta.userId) await progress.refundPurchase(meta.userId, o.payment_intent, o.amount_refunded || 0);
+        }
+        res.json({ received: true });
+    } catch (e) {
+        console.error('[paiement] webhook', e.message);
+        res.status(500).send('Erreur'); // Stripe réessaiera
+    }
+});
 app.use(express.json({ limit: '20kb' }));
 app.get('/', (_req, res) => res.send("L'Carta server OK"));
 app.get('/version', (_req, res) => res.json(serverInfo()));
@@ -135,6 +160,21 @@ app.post('/api/friends/remove', api(async (req, res) => {
     res.json(r);
 }));
 
+// === DIAMANTS (argent réel, via Stripe) ===
+app.get('/api/pay/packs', (_req, res) => res.json({ enabled: payments.configured(), packs: DIAMOND_PACKS }));
+app.post('/api/pay/checkout', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const pack = DIAMOND_PACKS.find((p) => p.id === req.body?.pack);
+    if (!pack) return res.status(400).json({ error: 'Pack inconnu.' });
+    if (!req.body?.acceptTerms) return res.status(400).json({ error: 'Il faut accepter les conditions d\'achat.' });
+    // Retour après paiement : sur le site d'où vient le joueur (s'il est autorisé), sinon le site principal
+    const o = String(req.headers.origin || '');
+    const origin = isAllowedOrigin(o) && /^https:\/\//.test(o) && !/discordsays\.com$/.test(o) ? o : 'https://www.jebengere3.fun';
+    const r = await payments.createCheckout({ user, pack, origin });
+    res.status(r.error ? (r.status || 400) : 200).json(r);
+}));
+
 app.post('/api/logout', api(async (req, res) => {
     await progress.logout(bearer(req));
     res.json({ success: true });
@@ -152,7 +192,7 @@ app.post('/api/daily-login', api(async (req, res) => {
 app.post('/api/shop/buy', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
-    const r = await progress.buy(user, req.body?.id);
+    const r = await progress.buy(user, req.body?.id, Date.now(), req.body?.currency === 'diamonds' ? 'diamonds' : 'binga');
     if (r.success) {
         // Réactions achetées : utilisables tout de suite dans les parties en cours
         for (const s of io.sockets.sockets.values()) {
@@ -257,7 +297,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord', 'friends', 'inbox'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord', 'friends', 'inbox', 'diamonds'] };
 }
 
 // === MODÉRATION DU CHAT ===

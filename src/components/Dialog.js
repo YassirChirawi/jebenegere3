@@ -11,6 +11,7 @@ import audioService from '../network/audioService';
  *   dialog.alert('Titre', 'Message', [{ text: 'Annuler', style: 'cancel' }, { text: 'OK', onPress }])
  */
 let listener = null;
+let pending = null; // demandé avant que la boîte soit prête (tout premier affichage) : montré dès qu'elle l'est
 
 export const dialog = {
     alert(title, message, buttons) {
@@ -20,7 +21,7 @@ export const dialog = {
             buttons: buttons && buttons.length ? buttons : [{ text: 'OK' }],
         };
         if (listener) listener(payload);
-        else console.warn('[dialog]', title, message);
+        else pending = payload;
     },
 };
 
@@ -32,6 +33,7 @@ export function DialogHost() {
             audioService.playSound('pop');
             setCurrent(payload);
         };
+        if (pending) { const p = pending; pending = null; listener(p); }
         return () => { listener = null; };
     }, []);
 
