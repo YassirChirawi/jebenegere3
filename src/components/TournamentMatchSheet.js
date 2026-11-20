@@ -4,6 +4,7 @@ import Animated, { FadeIn, ZoomIn } from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { GameButton, theme } from './ui';
+import { t as tr } from '../i18n';
 
 /**
  * Fin d'un match de tournoi, par-dessus l'écran de fin de partie :
@@ -38,17 +39,17 @@ export default function TournamentMatchSheet({ navigation, roomId }) {
                 <Text style={styles.emoji}>{info.final ? '👑' : '🏆'}</Text>
                 <Text style={styles.winner}>{info.winner}</Text>
                 <Text style={styles.sub}>
-                    {info.final ? 'remporte le tournoi !' : 'passe au tour suivant'}
-                    {info.forfeit ? ' (par forfait)' : ''}
+                    {info.final ? tr('remporte le tournoi !') : tr('passe au tour suivant')}
+                    {info.forfeit ? tr(' (par forfait)') : ''}
                 </Text>
-                {info.score ? <Text style={styles.score}>Score final {info.score}</Text> : null}
+                {info.score ? <Text style={styles.score}>{tr("Score final")} {info.score}</Text> : null}
                 {info.summary?.length > 0 && (
                     <View style={styles.summary}>
-                        <Text style={styles.summaryTitle}>COUPS CLÉS</Text>
+                        <Text style={styles.summaryTitle}>{tr("COUPS CLÉS")}</Text>
                         {info.summary.map((s, i) => <Text key={i} style={styles.line}>{s}</Text>)}
                     </View>
                 )}
-                <GameButton title="Retour au tournoi" icon="📋" onPress={back} style={{ marginTop: 16, alignSelf: 'stretch' }} />
+                <GameButton title={tr("Retour au tournoi")} icon="📋" onPress={back} style={{ marginTop: 16, alignSelf: 'stretch' }} />
             </Animated.View>
         </Animated.View>
     );

@@ -5,6 +5,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { theme } from './ui';
 import { canFullscreen, enterFullscreen, isPhoneWeb } from '../utils/fullscreen';
+import { t as tr } from '../i18n';
 
 /**
  * Compte à rebours avant le premier coup (envoyé par le serveur : state.startIn en ms).
@@ -42,20 +43,20 @@ export default function StartCountdown({ initialState, gameType }) {
     return (
         <Animated.View entering={FadeIn.duration(200)} exiting={FadeOut.duration(250)} style={styles.overlay}>
             <View style={styles.box}>
-                <Text style={styles.label}>LA PARTIE COMMENCE DANS</Text>
+                <Text style={styles.label}>{tr("LA PARTIE COMMENCE DANS")}</Text>
                 <Animated.Text key={secs} entering={ZoomIn.springify().damping(12)} style={styles.count}>{secs}</Animated.Text>
                 {info.firstName ? (
                     <Text style={[styles.first, firstIsMe && { color: theme.mint }]}>
-                        {firstIsMe ? '🎯 C’est toi qui commences !' : `🎯 ${info.firstName} commence`}
+                        {firstIsMe ? tr('🎯 C’est toi qui commences !') : tr("🎯 {p0} commence", { p0: info.firstName })}
                     </Text>
                 ) : null}
                 {askRotate && (
                     canFullscreen() ? (
                         <Pressable onPress={() => enterFullscreen('landscape')} style={styles.rotateBtn}>
-                            <Text style={styles.rotateText}>🔄 Tourner l'écran</Text>
+                            <Text style={styles.rotateText}>{tr("🔄 Tourner l'écran")}</Text>
                         </Pressable>
                     ) : (
-                        <Text style={styles.rotateHint}>🔄 Tourne ton téléphone : la Ronda se joue en paysage</Text>
+                        <Text style={styles.rotateHint}>{tr("🔄 Tourne ton téléphone : la Ronda se joue en paysage")}</Text>
                     )
                 )}
             </View>

@@ -10,6 +10,7 @@ import { GameButton, theme, haptic } from './ui';
 import { BingaIcon } from './Decor';
 import audioService from '../network/audioService';
 import { rankFor } from '../../server/progress/defs';
+import { t as tr } from '../i18n';
 
 // Compteur qui défile de 0 à value
 function CountUp({ value, delay = 0, duration = 900, style, prefix = '+' }) {
@@ -79,28 +80,28 @@ export default function GameRecap({ recap, onClose }) {
     const before = Math.max(0, recap.xpAfter - recap.xpGained);
     const after = rankFor(recap.xpAfter);
     const lines = [];
-    if (b.game > 0) lines.push({ label: b.won ? (b.vsBots ? "Victoire contre l'ordinateur" : 'Victoire') : 'Partie finie, même en perdant', amount: b.game });
-    (b.missions || []).forEach((m) => lines.push({ label: `Mission : ${m.label}`, amount: m.binga }));
-    if (b.rank) lines.push({ label: `Nouveau rang : ${after.name}`, amount: b.rank });
+    if (b.game > 0) lines.push({ label: b.won ? (b.vsBots ? tr("Victoire contre l'ordinateur") : tr('Victoire')) : tr('Partie finie, même en perdant'), amount: b.game });
+    (b.missions || []).forEach((m) => lines.push({ label: tr("Mission : {p0}", { p0: m.label }), amount: m.binga }));
+    if (b.rank) lines.push({ label: tr("Nouveau rang : {p0}", { p0: after.name }), amount: b.rank });
 
     return (
         <Modal visible transparent animationType="fade" onRequestClose={onClose}>
             <Animated.View entering={FadeIn.duration(200)} style={styles.overlay}>
                 <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
                 <Animated.View entering={ZoomIn.springify().damping(14)} style={[styles.box, recap.won && styles.boxWon]}>
-                    <Text style={[styles.title, recap.won && { color: '#F5D77A' }]}>{recap.won ? '🏆 Victoire !' : 'Partie terminée'}</Text>
+                    <Text style={[styles.title, recap.won && { color: '#F5D77A' }]}>{recap.won ? tr('🏆 Victoire !') : tr('Partie terminée')}</Text>
                     <ScrollView style={{ alignSelf: 'stretch', maxHeight: 460 }} contentContainerStyle={{ alignItems: 'center' }}>
                         {/* XP */}
                         <View style={styles.block}>
                             <View style={styles.gainRow}>
                                 <Text style={styles.xpIcon}>⭐</Text>
                                 <CountUp value={recap.xpGained} style={styles.xpGain} />
-                                <Text style={styles.unit}>XP</Text>
+                                <Text style={styles.unit}>{tr("XP")}</Text>
                             </View>
                             <XpBar before={before} after={recap.xpAfter} onRankUp={() => { setRankUp(true); audioService.playSound('level_up'); haptic('double'); }} />
                             {rankUp && (
                                 <Animated.View entering={ZoomIn.springify().damping(9)} style={styles.rankUp}>
-                                    <Text style={styles.rankUpText}>Nouveau rang ! {after.emoji} {after.name}</Text>
+                                    <Text style={styles.rankUpText}>{tr("Nouveau rang !")} {after.emoji} {after.name}</Text>
                                 </Animated.View>
                             )}
                         </View>
@@ -111,7 +112,7 @@ export default function GameRecap({ recap, onClose }) {
                                 <View style={styles.gainRow}>
                                     <BingaIcon size={38} />
                                     <CountUp value={b.total || 0} delay={500} style={styles.bingaGain} />
-                                    <Text style={styles.unit}>binga</Text>
+                                    <Text style={styles.unit}>{tr("binga")}</Text>
                                 </View>
                                 {lines.map((l, i) => (
                                     <Animated.View key={l.label} entering={FadeInDown.delay(700 + i * 180)} style={styles.line}>
@@ -119,28 +120,28 @@ export default function GameRecap({ recap, onClose }) {
                                         <Text style={styles.lineAmount}>+{l.amount}</Text>
                                     </Animated.View>
                                 ))}
-                                {b.capped && <Text style={styles.note}>Plafond du jour atteint (500 binga en jouant) : missions et connexion rapportent toujours.</Text>}
+                                {b.capped && <Text style={styles.note}>{tr("Plafond du jour atteint (500 binga en jouant) : missions et connexion rapportent toujours.")}</Text>}
                             </View>
                         )}
 
                         {/* Défis, titres, récompenses */}
                         {(recap.completed || []).map((c) => (
                             <Animated.View key={c.id} entering={FadeInDown.delay(1100)} style={styles.extra}>
-                                <Text style={styles.extraText}>🎯 Défi relevé : {c.label} · +{c.xp} XP{c.reward ? ` · 🎁 ${c.reward.label}` : ''}</Text>
+                                <Text style={styles.extraText}>{tr("🎯 Défi relevé :")} {tr(c.label)} · +{c.xp} XP{c.reward ? ` · 🎁 ${tr(c.reward.label)}` : ''}</Text>
                             </Animated.View>
                         ))}
                         {(recap.titles || []).map((t) => (
                             <Animated.View key={t.id} entering={FadeInDown.delay(1200)} style={styles.extra}>
-                                <Text style={styles.extraText}>🏷️ Nouveau titre : « {t.label} »</Text>
+                                <Text style={styles.extraText}>{tr("🏷️ Nouveau titre : «")} {t.label} »</Text>
                             </Animated.View>
                         ))}
                         {recap.reward && (
                             <Animated.View entering={FadeInDown.delay(1200)} style={styles.extra}>
-                                <Text style={styles.extraText}>👑 Récompense : dos « {recap.reward.label} »</Text>
+                                <Text style={styles.extraText}>{tr("👑 Récompense : dos «")} {recap.reward.label} »</Text>
                             </Animated.View>
                         )}
                     </ScrollView>
-                    <GameButton title="Continuer" onPress={onClose} style={{ alignSelf: 'stretch', marginTop: 12 }} />
+                    <GameButton title={tr("Continuer")} onPress={onClose} style={{ alignSelf: 'stretch', marginTop: 12 }} />
                 </Animated.View>
             </Animated.View>
         </Modal>

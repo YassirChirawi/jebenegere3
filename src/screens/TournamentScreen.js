@@ -13,6 +13,7 @@ import { getMine, remember, forget, GAME_LABEL, formatWhen, formatCountdown } fr
 import { tournamentUrl, copyInvite, shareInvite } from '../utils/invite';
 import { tournamentStyles as base } from './TournamentsScreen';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import { t as tr } from '../i18n';
 
 const STATUS = { open: 'Inscriptions ouvertes', running: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
 
@@ -61,7 +62,7 @@ export default function TournamentScreen({ route, navigation }) {
             setMine(m);
             socketService.tournamentWatch(id, m.ticket, m.hostToken, (r) => {
                 if (!alive) return;
-                if (!r?.success) { setError(r?.message || 'Tournoi introuvable.'); return; }
+                if (!r?.success) { setError(r?.message || tr('Tournoi introuvable.')); return; }
                 setError(null);
                 apply(r.tournament);
                 setMe(r.me);
@@ -81,12 +82,12 @@ export default function TournamentScreen({ route, navigation }) {
     }, [id]));
 
     const register = () => {
-        if (name.trim().length < 2) { dialog.alert('Pseudo', 'Choisis un pseudo pour t\'inscrire.'); return; }
+        if (name.trim().length < 2) { dialog.alert(tr('Pseudo'), tr('Choisis un pseudo pour t\'inscrire.')); return; }
         setBusy(true);
         AsyncStorage.setItem('playerName', name.trim()).catch(() => {});
         socketService.tournamentRegister(id, name.trim(), mine.ticket, async (r) => {
             setBusy(false);
-            if (!r?.success) { dialog.alert('Inscription', r?.message || 'Le serveur ne répond pas.'); return; }
+            if (!r?.success) { dialog.alert(tr('Inscription'), r?.message || tr('Le serveur ne répond pas.')); return; }
             audioService.playSound('coin');
             await remember(id, { ticket: r.ticket, name: r.tournament.name, gameType: r.tournament.gameType, startsAt: r.tournament.startsAt });
             setMine((m) => ({ ...m, ticket: r.ticket }));
@@ -96,13 +97,13 @@ export default function TournamentScreen({ route, navigation }) {
     };
 
     const unregister = () => {
-        dialog.alert('Se désinscrire ?', 'Ta place sera libérée pour quelqu\'un d\'autre.', [
-            { text: 'Rester inscrit' },
+        dialog.alert(tr('Se désinscrire ?'), tr('Ta place sera libérée pour quelqu\'un d\'autre.'), [
+            { text: tr('Rester inscrit') },
             {
-                text: 'Me désinscrire',
+                text: tr('Me désinscrire'),
                 style: 'destructive',
                 onPress: () => socketService.tournamentUnregister(id, mine.ticket, async (r) => {
-                    if (!r?.success) { dialog.alert('Oups', r?.message || 'Le serveur ne répond pas.'); return; }
+                    if (!r?.success) { dialog.alert(tr('Oups'), r?.message || tr('Le serveur ne répond pas.')); return; }
                     await remember(id, { ticket: null });
                     if (!mine.hostToken) await forget(id);
                     setMine((m) => ({ ...m, ticket: null }));
@@ -115,7 +116,7 @@ export default function TournamentScreen({ route, navigation }) {
 
     const startNow = () => {
         socketService.tournamentStartNow(id, mine.hostToken, (r) => {
-            if (!r?.success) dialog.alert('Oups', r?.message || 'Le serveur ne répond pas.');
+            if (!r?.success) dialog.alert(tr('Oups'), r?.message || tr('Le serveur ne répond pas.'));
             else apply(r.tournament);
         });
     };
@@ -128,7 +129,7 @@ export default function TournamentScreen({ route, navigation }) {
     const share = async () => {
         const res = await shareInvite(id, '', {
             url: tournamentUrl(id),
-            message: `Inscris-toi au tournoi « ${t?.name} » (${GAME_LABEL[t?.gameType]}) sur L'Carta : ${tournamentUrl(id)}`,
+            message: tr("Inscris-toi au tournoi « {p0} » ({p1}) sur L'Carta : {p2}", { p0: t?.name, p1: GAME_LABEL[t?.gameType], p2: tournamentUrl(id) }),
         });
         if (res === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
     };
@@ -137,7 +138,7 @@ export default function TournamentScreen({ route, navigation }) {
         return (
             <View style={base.container}>
                 <LuxeBackdrop />
-                <Header navigation={navigation} title="🏆 Tournoi" />
+                <Header navigation={navigation} title={tr("🏆 Tournoi")} />
                 <Text style={base.empty}>{error}</Text>
             </View>
         );
@@ -146,7 +147,7 @@ export default function TournamentScreen({ route, navigation }) {
         return (
             <View style={base.container}>
                 <LuxeBackdrop />
-                <Header navigation={navigation} title="🏆 Tournoi" />
+                <Header navigation={navigation} title={tr("🏆 Tournoi")} />
                 <ActivityIndicator color={theme.gold} style={{ marginTop: 40 }} />
             </View>
         );
@@ -168,11 +169,11 @@ export default function TournamentScreen({ route, navigation }) {
             <Header navigation={navigation} title={`🏆 ${t.name}`} />
             <ScrollView contentContainerStyle={base.list} keyboardShouldPersistTaps="handled">
                 <View style={styles.infoCard}>
-                    <Text style={styles.infoGame}>{GAME_LABEL[t.gameType]}{t.mode === 'duo' ? ' · 2 contre 2' : ' · 1 contre 1'} · {t.size} joueurs · élimination directe</Text>
+                    <Text style={styles.infoGame}>{GAME_LABEL[t.gameType]}{t.mode === 'duo' ? tr(' · 2 contre 2') : tr(' · 1 contre 1')} · {t.size} {tr("joueurs · élimination directe")}</Text>
                     <Text style={styles.infoWhen}>
-                        {t.status === 'open' ? `Début ${formatWhen(t.startsAt)}` : STATUS[t.status]}
+                        {t.status === 'open' ? tr("Début {p0}", { p0: formatWhen(t.startsAt) }) : tr(STATUS[t.status])}
                     </Text>
-                    {t.status === 'open' && <Text style={styles.countdown}>dans {formatCountdown(t.startsAt - serverNow)}</Text>}
+                    {t.status === 'open' && <Text style={styles.countdown}>{tr("dans")} {formatCountdown(t.startsAt - serverNow)}</Text>}
                     {t.status === 'cancelled' && <Text style={styles.warn}>{t.reason}</Text>}
                     {t.entry > 0 && <Chip name="couronne" size={44} style={{ alignSelf: 'center', marginTop: 8 }} />}
                     {t.entry > 0 && (
@@ -185,11 +186,11 @@ export default function TournamentScreen({ route, navigation }) {
                 {t.status === 'done' && t.champion && (
                     <Animated.View entering={FadeIn.duration(500)} style={styles.champion}>
                         <Text style={styles.championCrown}>👑</Text>
-                        <Text style={styles.championLabel}>CHAMPION</Text>
+                        <Text style={styles.championLabel}>{tr("CHAMPION")}</Text>
                         <Text style={styles.championName}>{t.champion.name}</Text>
                         {iAmChampion && (
                             <Text style={styles.championHint}>
-                                {account.profile ? 'Ton dos « Champion » et le titre « Moul chi » sont dans ton Profil.' : 'Connecte-toi à un compte (Profil) depuis cet appareil pour recevoir le dos « Champion » et le titre « Moul chi ».'}
+                                {account.profile ? tr('Ton dos « Champion » et le titre « Moul chi » sont dans ton Profil.') : tr('Connecte-toi à un compte (Profil) depuis cet appareil pour recevoir le dos « Champion » et le titre « Moul chi ».')}
                             </Text>
                         )}
                     </Animated.View>
@@ -198,17 +199,17 @@ export default function TournamentScreen({ route, navigation }) {
                 {/* Mon match */}
                 {myMatch && myMatch.status !== 'done' && (
                     <Animated.View entering={FadeInDown.springify()} style={styles.myMatch}>
-                        <Text style={styles.myMatchTitle}>{t.rounds[t.round].label} · ton match</Text>
+                        <Text style={styles.myMatchTitle}>{t.rounds[t.round].label} {tr("· ton match")}</Text>
                         <Text style={styles.myMatchVs}>{mySide === 'a' ? myMatch.b : myMatch.a}</Text>
                         <Text style={styles.myMatchHint}>
                             {myMatch.status === 'playing'
-                                ? 'La partie est en cours.'
-                                : `La partie se lance toute seule dès que ton adversaire est là. Garde cette page ouverte. Absent dans ${formatCountdown(myMatch.waitLeft - (Date.now() + skew.current - t.serverNow))} : forfait.`}
+                                ? tr('La partie est en cours.')
+                                : tr("La partie se lance toute seule dès que ton adversaire est là. Garde cette page ouverte. Absent dans {p0} : forfait.", { p0: formatCountdown(myMatch.waitLeft - (Date.now() + skew.current - t.serverNow)) })}
                         </Text>
                     </Animated.View>
                 )}
                 {eliminated && t.status === 'running' && !myMatch?.status?.match(/waiting|playing/) && (
-                    <Text style={styles.out}>Tu es éliminé pour ce tournoi. Tu peux suivre la suite ici.</Text>
+                    <Text style={styles.out}>{tr("Tu es éliminé pour ce tournoi. Tu peux suivre la suite ici.")}</Text>
                 )}
 
                 {/* Inscription */}
@@ -216,24 +217,24 @@ export default function TournamentScreen({ route, navigation }) {
                     <View style={base.card}>
                         {me ? (
                             <>
-                                <Text style={styles.registered}>✅ Inscription confirmée</Text>
-                                <Text style={base.hint}>À l'heure du début, garde cette page ouverte : ton match se lance tout seul quand ton adversaire est là. Absent au bout de 3 minutes : forfait.</Text>
-                                <GameButton small title="Me désinscrire" variant="outline" onPress={unregister} style={{ marginTop: 10 }} />
+                                <Text style={styles.registered}>{tr("✅ Inscription confirmée")}</Text>
+                                <Text style={base.hint}>{tr("À l'heure du début, garde cette page ouverte : ton match se lance tout seul quand ton adversaire est là. Absent au bout de 3 minutes : forfait.")}</Text>
+                                <GameButton small title={tr("Me désinscrire")} variant="outline" onPress={unregister} style={{ marginTop: 10 }} />
                             </>
                         ) : full ? (
-                            <Text style={styles.registered}>Le tournoi est complet.</Text>
+                            <Text style={styles.registered}>{tr("Le tournoi est complet.")}</Text>
                         ) : (
                             <>
-                                <Text style={base.label}>TON PSEUDO</Text>
+                                <Text style={base.label}>{tr("TON PSEUDO")}</Text>
                                 <TextInput
                                     style={base.input}
                                     value={name}
                                     onChangeText={setName}
                                     editable={!account.profile}
                                     maxLength={16}
-                                    placeholder="Ex : Yassir"
+                                    placeholder={tr("Ex : Yassir")}
                                     placeholderTextColor={theme.textDim}
-                                    accessibilityLabel="Ton pseudo"
+                                    accessibilityLabel={tr("Ton pseudo")}
                                 />
                                 <GameButton title={busy ? 'Inscription…' : "JE M'INSCRIS"} icon="🎟️" onPress={register} disabled={busy} style={{ marginTop: 12 }} />
                             </>
@@ -244,35 +245,35 @@ export default function TournamentScreen({ route, navigation }) {
                 {/* Lien d'inscription */}
                 {t.status === 'open' && (
                     <View style={base.card}>
-                        <Text style={base.label}>INVITE DES JOUEURS</Text>
+                        <Text style={base.label}>{tr("INVITE DES JOUEURS")}</Text>
                         <Text style={styles.link} selectable numberOfLines={1}>{tournamentUrl(id)}</Text>
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
-                            <GameButton small title={copied ? 'Lien copié ✓' : 'Copier le lien'} icon="📋" variant="outline" onPress={copy} style={{ flex: 1 }} />
-                            <GameButton small title="Partager" icon="📤" variant="blue" onPress={share} style={{ flex: 1 }} />
+                            <GameButton small title={copied ? tr('Lien copié ✓') : tr('Copier le lien')} icon="📋" variant="outline" onPress={copy} style={{ flex: 1 }} />
+                            <GameButton small title={tr("Partager")} icon="📤" variant="blue" onPress={share} style={{ flex: 1 }} />
                         </View>
                         {isHost && (
                             <>
                                 <GameButton
                                     small
-                                    title="Lancer maintenant"
+                                    title={tr("Lancer maintenant")}
                                     icon="🚀"
                                     variant="green"
                                     onPress={startNow}
                                     disabled={(t.mode === 'duo' ? Math.ceil(t.entrants.length / 2) : t.entrants.length) < 2}
                                     style={{ marginTop: 10 }}
                                 />
-                                <Text style={base.hint}>Tu es l'organisateur : tu peux lancer sans attendre l'heure prévue (au moins {minUnits} inscrits). Les places vides font passer un joueur directement au tour suivant.</Text>
+                                <Text style={base.hint}>{tr("Tu es l'organisateur : tu peux lancer sans attendre l'heure prévue (au moins")} {minUnits} {tr("inscrits). Les places vides font passer un joueur directement au tour suivant.")}</Text>
                             </>
                         )}
                     </View>
                 )}
 
-                <Text style={base.section}>INSCRITS · {t.entrants.length}/{t.size}</Text>
+                <Text style={base.section}>{tr("INSCRITS ·")} {t.entrants.length}/{t.size}</Text>
                 <View style={styles.entrants}>
-                    {t.entrants.length === 0 && <Text style={base.emptySmall}>Personne pour l'instant. Partage le lien !</Text>}
+                    {t.entrants.length === 0 && <Text style={base.emptySmall}>{tr("Personne pour l'instant. Partage le lien !")}</Text>}
                     {t.entrants.map((e) => (
                         <View key={e.id} style={[styles.entrant, e.id === me && styles.entrantMe]}>
-                            <Text style={styles.entrantText}>{e.name}{e.id === me ? ' (toi)' : ''}{e.paid ? ' 💰' : ''}</Text>
+                            <Text style={styles.entrantText}>{e.name}{e.id === me ? tr(' (toi)') : ''}{e.paid ? ' 💰' : ''}</Text>
                         </View>
                     ))}
                 </View>
@@ -280,7 +281,7 @@ export default function TournamentScreen({ route, navigation }) {
                 {/* Tableau */}
                 {t.rounds.length > 0 && (
                     <>
-                        <Text style={base.section}>TABLEAU</Text>
+                        <Text style={base.section}>{tr("TABLEAU")}</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 10, paddingBottom: 6 }}>
                             {t.rounds.map((r, ri) => (
                                 <View key={r.label} style={styles.round}>
@@ -293,11 +294,11 @@ export default function TournamentScreen({ route, navigation }) {
                                 </View>
                             ))}
                         </ScrollView>
-                        <Text style={base.hint}>Touche un match terminé pour voir ses coups clés.</Text>
+                        <Text style={base.hint}>{tr("Touche un match terminé pour voir ses coups clés.")}</Text>
                     </>
                 )}
                 {t.status === 'open' && (
-                    <Text style={[base.hint, { textAlign: 'center' }]}>Le tableau est tiré au sort au début du tournoi.</Text>
+                    <Text style={[base.hint, { textAlign: 'center' }]}>{tr("Le tableau est tiré au sort au début du tournoi.")}</Text>
                 )}
             </ScrollView>
         </View>
@@ -312,11 +313,11 @@ function Header({ navigation, title }) {
 
 function MatchCard({ m, me, onPress, expanded }) {
     const status = m.bye
-        ? "Qualifié d'office"
-        : m.status === 'playing' ? '🎮 En cours'
-            : m.status === 'waiting' ? '⏳ Attente des joueurs'
-                : m.status === 'done' ? (m.forfeit ? '🏳️ Forfait' : m.score ? `Score ${m.score}` : 'Terminé')
-                    : 'À venir';
+        ? tr("Qualifié d'office")
+        : m.status === 'playing' ? tr('🎮 En cours')
+            : m.status === 'waiting' ? tr('⏳ Attente des joueurs')
+                : m.status === 'done' ? (m.forfeit ? tr('🏳️ Forfait') : m.score ? tr('Score {s}', { s: m.score }) : tr('Terminé'))
+                    : tr('À venir');
     const line = (side) => {
         const nm = m[side];
         const members = side === 'a' ? m.aMembers : m.bMembers;
@@ -338,7 +339,7 @@ function MatchCard({ m, me, onPress, expanded }) {
             <Text style={styles.matchStatus}>{status}</Text>
             {expanded && m.summary?.length > 0 && (
                 <View style={styles.summary}>
-                    <Text style={styles.summaryTitle}>COUPS CLÉS</Text>
+                    <Text style={styles.summaryTitle}>{tr("COUPS CLÉS")}</Text>
                     {m.summary.map((s, i) => <Text key={i} style={styles.summaryLine}>{s}</Text>)}
                 </View>
             )}

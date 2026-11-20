@@ -5,6 +5,7 @@ import { WinEffect } from './WinEffects';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
+import { t as tr } from '../i18n';
 
 /**
  * Fin de manche Ronda : le détail des points catégorie par catégorie
@@ -40,19 +41,19 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
     }, []);
 
     const title = gameOver
-        ? spectator ? `${teamNames[winnerTeam]} GAGNENT` : iWonGame ? 'VICTOIRE !' : 'DÉFAITE…'
-        : `MANCHE ${manche}`;
+        ? spectator ? tr('{team} GAGNENT', { team: teamNames[winnerTeam] }) : iWonGame ? tr('VICTOIRE !') : tr('DÉFAITE…')
+        : tr('MANCHE {n}', { n: manche });
     const emoji = gameOver ? (iWonGame ? '🏆' : spectator ? '🏁' : '😤') : iWonManche ? '🔥' : '🃏';
 
     const fmt = (v) => `${v > 0 ? '+' : ''}${v}`;
     const d = summary.detail;
     const rows = [
-        { label: 'Makla', hint: 'cartes au-delà de 20', values: summary.cardPoints.map(fmt), subs: summary.captured.map((c) => `${c} cartes`) },
+        { label: tr('Makla'), hint: tr('cartes au-delà de 20'), values: summary.cardPoints.map(fmt), subs: summary.captured.map((c) => tr('{n} cartes', { n: c })) },
         ...(d
             ? DETAIL_ROWS
                 .filter(([k, , always]) => always || d[k]?.[0] || d[k]?.[1])
                 .map(([k, label, , hint]) => ({ label, hint, values: [0, 1].map((t) => fmt(d[k]?.[t] || 0)) }))
-            : [{ label: 'Bonus', values: summary.bonus.map(fmt) }]), // ancien serveur : bonus groupés
+            : [{ label: tr('Bonus'), values: summary.bonus.map(fmt) }]), // ancien serveur : bonus groupés
     ];
 
     return (
@@ -62,7 +63,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                     {!compact && <Text style={styles.emoji}>{emoji}</Text>}
                     <Text style={[styles.title, compact && { fontSize: 22 }]}>{title}</Text>
-                    <Text style={styles.subtitle}>{state.forfeit ? 'Adversaire parti : victoire par forfait' : summary.stopped ? `${target} points atteints : partie arrêtée` : `Premier camp à ${target} points`}</Text>
+                    <Text style={styles.subtitle}>{state.forfeit ? tr('Adversaire parti : victoire par forfait') : summary.stopped ? tr('{n} points atteints : partie arrêtée', { n: target }) : tr('Premier camp à {n} points', { n: target })}</Text>
 
                     <View style={styles.table}>
                         <View style={styles.headRow}>
@@ -74,8 +75,8 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                         {rows.map((r, i) => (
                             <Animated.View key={r.label} entering={FadeInUp.delay(450 + i * STEP)} style={styles.row}>
                                 <View style={styles.labelBox}>
-                                    <Text style={styles.labelText}>{r.label}</Text>
-                                    {r.hint && !compact ? <Text style={styles.hint}>{r.hint}</Text> : null}
+                                    <Text style={styles.labelText}>{tr(r.label)}</Text>
+                                    {r.hint && !compact ? <Text style={styles.hint}>{tr(r.hint)}</Text> : null}
                                 </View>
                                 {r.values.map((v, t) => (
                                     <View key={t} style={styles.valueCell}>
@@ -86,7 +87,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                             </Animated.View>
                         ))}
                         <Animated.View entering={FadeInUp.delay(450 + rows.length * STEP)} style={[styles.row, styles.totalRow]}>
-                            <Text style={[styles.cell, styles.labelCell, { color: theme.goldLight }]}>TOTAL</Text>
+                            <Text style={[styles.cell, styles.labelCell, { color: theme.goldLight }]}>{tr("TOTAL")}</Text>
                             {summary.scores.map((v, t) => (
                                 <Text key={t} style={[styles.cell, styles.totalCell, t === winnerTeam && { color: theme.mint }]}>
                                     {v}<Text style={styles.outOf}> / {target}</Text>
@@ -100,16 +101,16 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
 
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>
                     {canReplay ? (
-                        <GameButton small title={gameOver ? 'Rejouer' : 'Continuer'} icon={gameOver ? '🔄' : '▶️'} variant="gold" onPress={onReplay} style={{ flex: 1 }} />
+                        <GameButton small title={gameOver ? tr('Rejouer') : tr('Continuer')} icon={gameOver ? '🔄' : '▶️'} variant="gold" onPress={onReplay} style={{ flex: 1 }} />
                     ) : (
                         <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>En attente de l'hôte…</Text>
+                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
                         </View>
                     )}
-                    <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
+                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
                 {gameOver && onChangeGame && (
-                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
                 )}
             </Animated.View>
         </Animated.View>

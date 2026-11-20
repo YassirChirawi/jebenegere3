@@ -15,6 +15,7 @@ import Animated, {
 import PlayerAvatar from './PlayerAvatar';
 import { CardBack } from './Card';
 import { theme } from './ui';
+import { t as tr } from '../i18n';
 
 const MINT = require('../../assets/menthe.png');
 const MAX_VISIBLE = 10;
@@ -69,7 +70,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
 
             {badge ? <Text style={[styles.badge, badgeColor && { color: badgeColor, borderColor: badgeColor }]}>{badge}</Text> : null}
             {finished ? (
-                <Animated.Text entering={FadeIn} style={styles.finishedLabel}>Sorti 🏁</Animated.Text>
+                <Animated.Text entering={FadeIn} style={styles.finishedLabel}>{tr("Sorti 🏁")}</Animated.Text>
             ) : (
                 <View style={[styles.handRow, vertical && styles.handCol]}>
                     {cards.map((_, i) => {

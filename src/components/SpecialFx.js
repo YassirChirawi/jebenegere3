@@ -9,6 +9,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import Animated, { ZoomIn, FadeOut, useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming } from 'react-native-reanimated';
+import { t as tr } from '../i18n';
 
 const ICONS = {
     restriction: require('../../assets/fx/restriction.webp'),
@@ -66,7 +67,7 @@ export function SpecialFxOverlay({ fx, top = '26%' }) {
                     {def.badge && <Image source={ICONS[def.badge]} style={styles.badge} />}
                 </Animated.View>
                 <View style={[styles.label, { borderColor: def.color }]}>
-                    <Text style={[styles.title, { color: def.color }]}>{def.title}</Text>
+                    <Text style={[styles.title, { color: def.color }]}>{tr(def.title)}</Text>
                     {fx.sub ? <Text style={styles.sub}>{fx.sub}</Text> : null}
                 </View>
             </Animated.View>

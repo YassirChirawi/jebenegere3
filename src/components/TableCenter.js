@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CardFace, CardBack } from './Card';
 import { theme } from './ui';
+import { t as tr } from '../i18n';
 
 export const PILE_W = 74;
 export const PILE_H = 106;
@@ -138,13 +139,13 @@ export function DeckPile({ count, canDraw, onDraw }) {
                 {count > 0 ? (
                     <CardBack width={PILE_W} height={PILE_H} />
                 ) : (
-                    <View style={[styles.emptyDeck]}><Text style={styles.emptyText}>Vide</Text></View>
+                    <View style={[styles.emptyDeck]}><Text style={styles.emptyText}>{tr("Vide")}</Text></View>
                 )}
             </Animated.View>
             <View style={styles.deckBadge}>
                 <Text style={styles.deckBadgeText}>{count}</Text>
             </View>
-            {canDraw && <Text style={styles.drawHint}>PIOCHER</Text>}
+            {canDraw && <Text style={styles.drawHint}>{tr("PIOCHER")}</Text>}
         </Pressable>
     );
 }

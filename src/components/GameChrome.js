@@ -10,13 +10,14 @@ import { logMessage, shouldHide, isMine, openMessageMenu, useChatModeration } fr
 import ReactionGlyph, { reactionText } from './ReactionGlyph';
 import { useCosmetics } from '../utils/cosmetics';
 import { COSMETICS } from '../../server/progress/defs';
+import { t as tr } from '../i18n';
 
 // Rejouer : le serveur répond toujours (succès ou raison du refus), jamais de clic sans effet
 export function requestReplay(roomId) {
     socketService.playAgain(roomId, (res) => {
         if (res && res.success === false) {
             audioService.playSound('error');
-            dialog.alert('Impossible de rejouer', res.message || 'Réessaie dans un instant.');
+            dialog.alert(tr('Impossible de rejouer'), res.message || tr('Réessaie dans un instant.'));
         }
     });
 }
@@ -29,7 +30,7 @@ export function changeGameHandler(roomId, state) {
     return () => socketService.backToLobby(roomId, (res) => {
         if (res && res.success === false) {
             audioService.playSound('error');
-            dialog.alert('Impossible', res.message || 'Réessaie dans un instant.');
+            dialog.alert(tr('Impossible'), res.message || tr('Réessaie dans un instant.'));
         }
     });
 }
@@ -72,7 +73,7 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
                 audioService.playSound('pop', { rate: 1.15 });
                 if (playerIndex === -1) {
                     const id = `spec-${Date.now()}-${Math.random()}`;
-                    setChatMessages((prev) => [...prev.slice(-3), { id, system: true, playerName: `👀 ${spectatorName || 'Spectateur'}`, message: reactionText(reactionType) }]);
+                    setChatMessages((prev) => [...prev.slice(-3), { id, system: true, playerName: `👀 ${spectatorName || tr('Spectateur')}`, message: reactionText(reactionType) }]);
                     whenVisible(() => setTimeout(() => setChatMessages((prev) => prev.filter((m) => m.id !== id)), 3000));
                     return;
                 }
@@ -87,7 +88,7 @@ export function useRoomChat(roomId, { extraMessages } = {}) {
             }),
             socketService.onChatRejected((r) => {
                 audioService.playSound('error');
-                dialog.alert('Message refusé', r?.message || "Ce message n'a pas été envoyé.");
+                dialog.alert(tr('Message refusé'), r?.message || tr("Ce message n'a pas été envoyé."));
             }),
         ];
         return () => unsubs.forEach((u) => u && u());
@@ -109,17 +110,17 @@ export function TopBar({ roomId, land, isMuted, onQuit, onChat, onMute, onRules,
     return (
         <View style={[styles.topBar, land && styles.topBarLand]} pointerEvents="box-none">
             <View style={styles.topBtns}>
-                <IconButton icon="🚪" onPress={onQuit} label="Quitter" size={38} />
-                <IconButton icon="💬" onPress={onChat} label="Chat" size={38} />
+                <IconButton icon="🚪" onPress={onQuit} label={tr("Quitter")} size={38} />
+                <IconButton icon="💬" onPress={onChat} label={tr("Chat")} size={38} />
             </View>
             {center !== undefined ? center : roomId && !land ? (
                 <View style={styles.roomPill}>
-                    <Text style={styles.roomPillText}>SALON {roomId}</Text>
+                    <Text style={styles.roomPillText}>{tr("SALON")} {roomId}</Text>
                 </View>
             ) : null}
             <View style={styles.topBtns}>
-                <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={onMute} label="Son" size={38} />
-                <IconButton icon="📜" onPress={onRules} label="Règles" size={38} />
+                <IconButton icon={isMuted ? '🔇' : '🔊'} onPress={onMute} label={tr("Son")} size={38} />
+                <IconButton icon="📜" onPress={onRules} label={tr("Règles")} size={38} />
             </View>
         </View>
     );
@@ -142,7 +143,7 @@ export function ChatBubbles({ messages, top = 130 }) {
                         style={styles.chatBubble}
                         onPress={() => openMessageMenu(msg)}
                         disabled={isMine(msg) || msg.system}
-                        accessibilityLabel={`Message de ${msg.playerName}. Toucher pour signaler ou bloquer.`}
+                        accessibilityLabel={tr("Message de {p0}. Toucher pour signaler ou bloquer.", { p0: msg.playerName })}
                     >
                         <Text style={styles.chatText}>
                             <Text style={styles.chatName}>{msg.playerName} : </Text>
@@ -174,7 +175,7 @@ export function ReactionBar({ onSend, land }) {
                 </PressableScale>
             ))}
             {emotes.length > 0 && (
-                <PressableScale sound={null} scaleTo={0.8} style={[styles.reactionBtn, open && styles.reactionBtnOn]} onPress={() => setOpen(!open)} accessibilityLabel="Mes réactions">
+                <PressableScale sound={null} scaleTo={0.8} style={[styles.reactionBtn, open && styles.reactionBtnOn]} onPress={() => setOpen(!open)} accessibilityLabel={tr("Mes réactions")}>
                     <Text style={styles.reactionBtnText}>✨</Text>
                 </PressableScale>
             )}
@@ -209,17 +210,17 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
                 <View style={styles.sheetHandle} />
                 {recent.length > 0 && (
                     <View style={styles.recentBox}>
-                        <Text style={styles.recentTitle}>Derniers messages · ⋯ pour signaler ou bloquer</Text>
+                        <Text style={styles.recentTitle}>{tr("Derniers messages · ⋯ pour signaler ou bloquer")}</Text>
                         {recent.map((m) => (
                             <Pressable
                                 key={m.id}
                                 style={({ hovered }) => [styles.recentRow, !isMine(m) && hovered && styles.recentRowHover]}
                                 disabled={isMine(m)}
                                 onPress={() => { onClose(); openMessageMenu(m); }}
-                                accessibilityLabel={`Signaler ou bloquer ${m.playerName}`}
+                                accessibilityLabel={tr("Signaler ou bloquer {p0}", { p0: m.playerName })}
                             >
                                 <Text style={styles.recentText} numberOfLines={1}>
-                                    <Text style={styles.recentName}>{isMine(m) ? 'Toi' : m.playerName} : </Text>{m.message}
+                                    <Text style={styles.recentName}>{isMine(m) ? tr('Toi') : m.playerName} : </Text>{m.message}
                                 </Text>
                                 {!isMine(m) && (
                                     <View style={styles.recentMore}>
@@ -232,18 +233,18 @@ export function ChatSheet({ visible, onClose, onSend, quickMessages = QUICK_MESS
                 )}
                 {spectator ? (
                     <>
-                        <Text style={styles.sheetTitle}>👀 Tu es spectateur</Text>
-                        <Text style={styles.spectatorNote}>Les spectateurs ne peuvent pas écrire, mais peuvent réagir :</Text>
+                        <Text style={styles.sheetTitle}>{tr("👀 Tu es spectateur")}</Text>
+                        <Text style={styles.spectatorNote}>{tr("Les spectateurs ne peuvent pas écrire, mais peuvent réagir :")}</Text>
                         <View style={{ alignItems: 'center', marginTop: 10 }}>
                             <ReactionBar onSend={(e) => { onReact && onReact(e); onClose(); }} />
                         </View>
                     </>
                 ) : (<>
-                <Text style={styles.sheetTitle}>💬 Message rapide</Text>
+                <Text style={styles.sheetTitle}>{tr("💬 Message rapide")}</Text>
                 <View style={styles.customRow}>
                     <TextInput
                         style={styles.customInput}
-                        placeholder="Message personnalisé..."
+                        placeholder={tr("Message personnalisé...")}
                         placeholderTextColor={theme.textDim}
                         value={customMsg}
                         onChangeText={setCustomMsg}

@@ -26,6 +26,15 @@ const { setup, createChecker } = require('./helpers');
     let txt = await t.text(p);
     c.check('anglais : accueil traduit', /Game modes/.test(txt) && /With friends/.test(txt) && !/Modes de jeu/.test(txt));
     await p.screenshot({ path: path.join(t.OUT, 'accueil-en.png') });
+    // Une partie en anglais : plateau et messages de jeu traduits
+    await p.locator('[aria-label="Solo"]').first().click({ force: true });
+    await t.sleep(1200);
+    await p.locator('[aria-label="2 players"]').first().click({ force: true });
+    await t.sleep(4500);
+    const g = await t.text(p);
+    c.check('anglais : partie traduite', /YOUR TURN|DRAW|Your turn|You ·|Draw/.test(g) && !/PIOCHER|À TOI DE JOUER/.test(g));
+    await p.screenshot({ path: path.join(t.OUT, 'partie-en.png') });
+    await home();
     await pick('Darija');
     await home();
     txt = await t.text(p);

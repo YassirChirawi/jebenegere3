@@ -4,6 +4,7 @@ import Animated, { FadeInDown, FadeOut } from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { theme } from './ui';
+import { t as tr } from '../i18n';
 
 /** Annonce visible quand un joueur quitte la partie (remplacé par un bot, ou victoire par forfait). */
 export default function PlayerLeftBanner() {
@@ -22,7 +23,7 @@ export default function PlayerLeftBanner() {
     return (
         <Animated.View key={info.id} entering={FadeInDown.springify().damping(14)} exiting={FadeOut} style={styles.banner} pointerEvents="none">
             <Text style={styles.text}>
-                🔌 {info.name} a quitté la partie{info.replacedByBot ? ' : un bot prend sa place' : ''}
+                🔌 {info.name} a quitté la partie{info.replacedByBot ? tr(' : un bot prend sa place') : ''}
             </Text>
         </Animated.View>
     );

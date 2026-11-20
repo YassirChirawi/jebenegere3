@@ -6,6 +6,7 @@ import { WinEffect } from './WinEffects';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
+import { t as tr } from '../i18n';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -43,7 +44,7 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                                 <Text style={styles.medal}>{r.loser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
                                 <PlayerAvatar name={r.name} variant={r.avatar || 0} size={28} />
                                 <Text style={[styles.name, r.isMe && { color: theme.goldLight }]} numberOfLines={1}>
-                                    {r.isMe ? 'Toi' : r.name}
+                                    {r.isMe ? tr('Toi') : r.name}
                                 </Text>
                                 <Text style={[styles.detail, r.loser && { color: '#F87171' }]}>{r.detail}</Text>
                             </Animated.View>
@@ -53,16 +54,16 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                 </ScrollView>
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>
                     {canReplay ? (
-                        <GameButton small title="Rejouer" icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
+                        <GameButton small title={tr("Rejouer")} icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
                     ) : (
                         <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>En attente de l'hôte…</Text>
+                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
                         </View>
                     )}
-                    <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
+                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
                 {onChangeGame && (
-                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
                 )}
             </Animated.View>
         </Animated.View>

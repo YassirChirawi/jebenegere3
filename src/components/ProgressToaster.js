@@ -7,6 +7,7 @@ import audioService from '../network/audioService';
 import { haptic, theme } from './ui';
 import { rankFor } from '../../server/progress/defs';
 import GameRecap from './GameRecap';
+import { t as tr } from '../i18n';
 
 /**
  * Notifications de progression envoyées par le serveur en fin de partie :
@@ -36,21 +37,21 @@ export default function ProgressToaster() {
             socketService.onStakeUpdate((d) => {
                 if (d.profile) accountService.applyProgress({ profile: d.profile });
                 show(d.paid
-                    ? { icon: '💰', title: `Mise de ${d.amount} binga`, text: 'Retirée de ton solde. Le gagnant prend le pot !', color: theme.goldLight, sound: 'coin' }
-                    : { icon: '🆓', title: 'Partie gratuite pour toi', text: d.reason || 'Tu joues sans miser.', color: theme.mint, sound: 'pop' });
+                    ? { icon: '💰', title: tr("Mise de {p0} binga", { p0: d.amount }), text: tr('Retirée de ton solde. Le gagnant prend le pot !'), color: theme.goldLight, sound: 'coin' }
+                    : { icon: '🆓', title: tr('Partie gratuite pour toi'), text: d.reason || tr('Tu joues sans miser.'), color: theme.mint, sound: 'pop' });
             }),
             socketService.onStakeResult((d) => {
                 if (d.profile) accountService.applyProgress({ profile: d.profile });
                 if (d.gain === undefined) return; // spectateur
-                const text = d.refunded ? `Le gagnant n'avait pas misé : ta mise de ${d.amount} binga t'est rendue.`
-                    : d.gain > 0 ? `+${d.gain} binga : tu prends le pot !` : `Pot gagné par ${d.winners.join(' et ')}. Tu gardes tes autres binga.`;
-                setTimeout(() => show({ icon: d.gain > 0 ? '🏆' : '💸', title: d.gain > 0 && !d.refunded ? 'Pot gagné !' : 'Partie à mise', text, color: theme.goldLight, sound: d.gain > 0 ? 'victory' : 'pop' }), 1200); // avant les autres notifications de fin de partie
+                const text = d.refunded ? tr("Le gagnant n'avait pas misé : ta mise de {p0} binga t'est rendue.", { p0: d.amount })
+                    : d.gain > 0 ? tr('+{n} binga : tu prends le pot !', { n: d.gain }) : tr('Pot gagné par {w}. Tu gardes tes autres binga.', { w: d.winners.join(tr(' et ')) });
+                setTimeout(() => show({ icon: d.gain > 0 ? '🏆' : '💸', title: d.gain > 0 && !d.refunded ? tr('Pot gagné !') : tr('Partie à mise'), text, color: theme.goldLight, sound: d.gain > 0 ? 'victory' : 'pop' }), 1200); // avant les autres notifications de fin de partie
             }),
             socketService.onTournamentEntry((d) => {
                 if (d.profile) accountService.applyProgress({ profile: d.profile });
                 show(d.paid
-                    ? { icon: '🏆', title: `Entrée du tournoi : ${d.amount} binga`, text: 'Gagne-le pour le dos exclusif Sultan !', color: theme.goldLight, sound: 'coin' }
-                    : { icon: '🆓', title: 'Tournoi gratuit pour toi', text: d.reason || "Tu joues sans payer l'entrée.", color: theme.mint, sound: 'pop' });
+                    ? { icon: '🏆', title: tr("Entrée du tournoi : {p0} binga", { p0: d.amount }), text: tr('Gagne-le pour le dos exclusif Sultan !'), color: theme.goldLight, sound: 'coin' }
+                    : { icon: '🆓', title: tr('Tournoi gratuit pour toi'), text: d.reason || tr("Tu joues sans payer l'entrée."), color: theme.mint, sound: 'pop' });
             }),
         ];
         return () => offs.forEach((off) => off && off());
@@ -72,24 +73,24 @@ export default function ProgressToaster() {
         const b = p.binga;
         if (b && (b.game > 0 || b.capped)) {
             let text;
-            if (b.game === 0) text = 'Plafond du jour atteint (500 binga en jouant). Les missions rapportent toujours, reviens demain !';
-            else if (!b.won) text = `+${b.game} binga, même en perdant`;
-            else text = `+${b.game} binga${b.vsBots ? " · victoire contre l'ordinateur" : ' · victoire'}`;
-            if (b.game > 0 && b.capped) text += ' (plafond du jour atteint)';
-            items.push({ icon: '💰', title: b.won ? 'Binga gagnés' : 'Partie finie', text, color: theme.goldLight, sound: 'coin' });
+            if (b.game === 0) text = tr('Plafond du jour atteint (500 binga en jouant). Les missions rapportent toujours, reviens demain !');
+            else if (!b.won) text = tr("+{p0} binga, même en perdant", { p0: b.game });
+            else text = tr("+{p0} binga{p1}", { p0: b.game, p1: b.vsBots ? tr(" · victoire contre l'ordinateur") : tr(' · victoire') });
+            if (b.game > 0 && b.capped) text += tr(' (plafond du jour atteint)');
+            items.push({ icon: '💰', title: b.won ? tr('Binga gagnés') : tr('Partie finie'), text, color: theme.goldLight, sound: 'coin' });
         }
-        (b?.missions || []).forEach((m) => items.push({ icon: '💰', title: 'Mission du jour réussie', text: `${m.label} · +${m.binga} binga`, color: theme.mint }));
+        (b?.missions || []).forEach((m) => items.push({ icon: '💰', title: tr('Mission du jour réussie'), text: tr("{p0} · +{p1} binga", { p0: m.label, p1: m.binga }), color: theme.mint }));
         (p.completed || []).forEach((c) => {
-            items.push({ icon: '🎯', title: 'Défi relevé !', text: `${c.label} · +${c.xp} XP`, color: theme.mint });
-            if (c.reward) items.push({ icon: '🎁', title: c.reward.kind === 'back' ? 'Nouveau dos de cartes' : 'Nouveau tapis', text: `${c.reward.label} · à choisir dans Profil → Style`, color: theme.goldLight, sound: 'victory' });
+            items.push({ icon: '🎯', title: tr('Défi relevé !'), text: `${tr(c.label)} · +${c.xp} XP`, color: theme.mint });
+            if (c.reward) items.push({ icon: '🎁', title: c.reward.kind === 'back' ? tr('Nouveau dos de cartes') : tr('Nouveau tapis'), text: tr("{p0} · à choisir dans Profil → Style", { p0: c.reward.label }), color: theme.goldLight, sound: 'victory' });
         });
         // Tournoi gagné : dos « Champion »
-        if (p.reward) items.unshift({ icon: '👑', title: 'Champion du tournoi !', text: `Dos « ${p.reward.label} » · à choisir dans Profil → Style`, color: theme.goldLight, sound: 'victory', haptic: 'double' });
-        (p.titles || []).forEach((t) => items.push({ icon: '🏷️', title: 'Nouveau titre !', text: `« ${t.label} » · à afficher depuis ton Profil`, color: '#C4B5FD', sound: 'announce' }));
+        if (p.reward) items.unshift({ icon: '👑', title: tr('Champion du tournoi !'), text: tr("Dos « {p0} » · à choisir dans Profil → Style", { p0: p.reward.label }), color: theme.goldLight, sound: 'victory', haptic: 'double' });
+        (p.titles || []).forEach((t) => items.push({ icon: '🏷️', title: tr('Nouveau titre !'), text: tr("« {p0} » · à afficher depuis ton Profil", { p0: t.label }), color: '#C4B5FD', sound: 'announce' }));
         if (p.profile && p.xpGained) {
             const before = rankFor(p.profile.xp - p.xpGained);
             const after = rankFor(p.profile.xp);
-            if (after.index > before.index) items.push({ icon: after.emoji, title: 'Nouveau rang !', text: `${after.name}${b?.rank ? ` · +${b.rank} binga` : ''}`, color: theme.gold, sound: 'victory', haptic: 'double' });
+            if (after.index > before.index) items.push({ icon: after.emoji, title: tr('Nouveau rang !'), text: `${tr(after.name)}${b?.rank ? ` · +${b.rank} binga` : ''}`, color: theme.gold, sound: 'victory', haptic: 'double' });
         }
         if (!items.length) return;
         // On laisse d'abord l'écran de fin de partie s'afficher

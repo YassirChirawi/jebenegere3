@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import socketService from '../network/socketService';
 import { dialog } from './Dialog';
+import { t as tr } from '../i18n';
 
 /**
  * Partie interrompue : si le serveur a redémarré (mise à jour, panne) ou si la place du joueur est perdue,
@@ -17,10 +18,10 @@ export default function RoomGuard({ navigation, roomId, tournamentId }) {
             if (shown.current) return;
             shown.current = true;
             const message = tournamentId
-                ? "La connexion avec le serveur a été coupée et cette partie s'est arrêtée. Retourne sur la page du tournoi : ton match reprend dès que les deux camps y sont."
-                : "La connexion avec le serveur a été coupée et cette partie s'est arrêtée.";
-            dialog.alert('Partie interrompue', message, [{
-                text: tournamentId ? 'Retour au tournoi' : "Retour à l'accueil",
+                ? tr("La connexion avec le serveur a été coupée et cette partie s'est arrêtée. Retourne sur la page du tournoi : ton match reprend dès que les deux camps y sont.")
+                : tr("La connexion avec le serveur a été coupée et cette partie s'est arrêtée.");
+            dialog.alert(tr('Partie interrompue'), message, [{
+                text: tournamentId ? tr('Retour au tournoi') : tr("Retour à l'accueil"),
                 onPress: () => {
                     socketService.leaveRoom(roomId);
                     if (tournamentId) navigation.navigate('Tournament', { id: tournamentId });

@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { CardFace } from './Card';
 import { PressableScale, theme } from './ui';
+import { t as tr } from '../i18n';
 
 
 export const SUIT_INFO = {
@@ -135,8 +136,8 @@ export function SuitBadge({ suit }) {
         <Animated.View style={[styles.suitBadge, { borderColor: info.color }, style]}>
             <CardFace card={{ suit, value: 1 }} width={22} height={32} />
             <View style={{ marginLeft: 6 }}>
-                <Text style={styles.suitBadgeSmall}>FAMILLE</Text>
-                <Text style={[styles.suitBadgeText, { color: info.color }]}>{info.label}</Text>
+                <Text style={styles.suitBadgeSmall}>{tr("FAMILLE")}</Text>
+                <Text style={[styles.suitBadgeText, { color: info.color }]}>{tr(info.label)}</Text>
             </View>
         </Animated.View>
     );
@@ -173,8 +174,8 @@ export function SuitSelector({ onSelect, onCancel }) {
     return (
         <Animated.View entering={FadeInDown.duration(200)} style={styles.overlay}>
             <Animated.View entering={ZoomIn.springify().damping(13)} style={[styles.sheet, land && { maxWidth: 560, paddingVertical: 12 }]}>
-                <Text style={[styles.sheetTitle, land && { marginBottom: 10, fontSize: 18 }]}>Quelle famille tu veux ?</Text>
-                {!land && <Text style={styles.sheetSub}>Le 7 change la couleur du jeu</Text>}
+                <Text style={[styles.sheetTitle, land && { marginBottom: 10, fontSize: 18 }]}>{tr("Quelle famille tu veux ?")}</Text>
+                {!land && <Text style={styles.sheetSub}>{tr("Le 7 change la couleur du jeu")}</Text>}
                 <View style={styles.suitGrid}>
                     {Object.entries(SUIT_INFO).map(([suit, info], i) => (
                         <Animated.View key={suit} entering={ZoomIn.delay(80 * i).springify()} style={[styles.suitCell, land && { width: '22%' }]}>
@@ -184,14 +185,14 @@ export function SuitSelector({ onSelect, onCancel }) {
                                 style={[styles.suitBtn, { borderColor: info.color }]}
                             >
                                 <CardFace card={{ suit, value: 1 }} width={land ? 46 : 58} height={land ? 66 : 84} />
-                                <Text style={[styles.suitName, { color: info.color }]}>{info.label}</Text>
+                                <Text style={[styles.suitName, { color: info.color }]}>{tr(info.label)}</Text>
                                 <Text style={styles.suitArabic}>{info.arabic}</Text>
                             </PressableScale>
                         </Animated.View>
                     ))}
                 </View>
                 <PressableScale onPress={onCancel} style={[styles.cancelBtn, land && { marginTop: 6, paddingVertical: 4 }]}>
-                    <Text style={styles.cancelText}>Annuler</Text>
+                    <Text style={styles.cancelText}>{tr("Annuler")}</Text>
                 </PressableScale>
             </Animated.View>
         </Animated.View>

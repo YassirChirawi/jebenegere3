@@ -26,6 +26,7 @@ import { useSpecialFx, SpecialFxOverlay } from '../components/SpecialFx';
 import socketService from '../network/socketService';
 import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
+import { t as tr } from '../i18n';
 
 export const SUITS = ['Oros', 'Copas', 'Espadas', 'Bastos'];
 const MINT = require('../../assets/menthe.png');
@@ -52,15 +53,15 @@ const canPlayCardLocal = (card, state) => {
 
 // Pourquoi une carte ne peut pas être jouée (message affiché quand on la touche)
 const refuseReason = (card, state) => {
-    if (state.pendingAction?.type === 'skip_response') return "⛔ Seul un 1 peut contrer l'attaque";
-    if (state.drawPenalty > 0) return `🔥 Contre avec un 2, sinon pioche ${state.drawPenalty}`;
+    if (state.pendingAction?.type === 'skip_response') return tr("⛔ Seul un 1 peut contrer l'attaque");
+    if (state.drawPenalty > 0) return tr("🔥 Contre avec un 2, sinon pioche {p0}", { p0: state.drawPenalty });
     if (state.activeSuitOverride) {
         const info = SUIT_INFO[state.activeSuitOverride];
-        return `Il faut du ${info ? `${info.emoji} ${info.label}` : state.activeSuitOverride} (ou un 7)`;
+        return tr('Il faut du {s} (ou un 7)', { s: info ? `${info.emoji} ${tr(info.label)}` : state.activeSuitOverride });
     }
     const top = state.middlePile[state.middlePile.length - 1];
     const info = SUIT_INFO[top?.suit];
-    return `Il faut la même famille (${info ? `${info.emoji} ${info.label}` : top?.suit}) ou la même valeur (${top?.value})`;
+    return tr('Il faut la même famille ({s}) ou la même valeur ({v})', { s: info ? `${info.emoji} ${tr(info.label)}` : top?.suit, v: top?.value });
 };
 
 export default function GameScreen({ route, navigation }) {
@@ -118,7 +119,7 @@ export default function GameScreen({ route, navigation }) {
         return ['left', 'top', 'right'][rel - 1] || 'top';
     }, [pivot, n]);
 
-    const nameOf = (i, state = gameState) => (i === localPlayerIndex ? 'Vous' : state?.players?.[i]?.name || `Joueur ${i + 1}`);
+    const nameOf = (i, state = gameState) => (i === localPlayerIndex ? tr('Vous') : state?.players?.[i]?.name || tr('Joueur {n}', { n: i + 1 }));
 
     // --- Feedback visuel ---
     const shakeOffset = useSharedValue(0);
@@ -150,7 +151,7 @@ export default function GameScreen({ route, navigation }) {
         if (me >= 0 && state.turn === me && !state.mancheTerminee) {
             later(() => {
                 audioService.playSound('your_turn');
-                showBanner({ text: 'À TOI DE JOUER !', color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
+                showBanner({ text: tr('À TOI DE JOUER !'), color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
             }, 1500);
         }
     };
@@ -173,7 +174,7 @@ export default function GameScreen({ route, navigation }) {
             socketService.onTimerTick((d) => setTimeLeft(d.timeLeft)),
             socketService.onGameError((err) => {
                 audioService.playSound('error');
-                showToast(`⚠️ ${err?.message || 'Action impossible'}`, theme.redLight);
+                showToast(`⚠️ ${err?.message || tr('Action impossible')}`, theme.redLight);
             }),
         ];
 
@@ -192,7 +193,7 @@ export default function GameScreen({ route, navigation }) {
     // --- Statistiques / historique (communs à tous les jeux) ---
     const opponentsOf = (state) => {
         const me = getLocalIndex(state);
-        return state.players?.filter((_, idx) => idx !== me).map((p) => p.name).join(', ') || 'Inconnus';
+        return state.players?.filter((_, idx) => idx !== me).map((p) => p.name).join(', ') || tr('Inconnus');
     };
 
     // Musique : plus tendue quand quelqu'un approche de la sortie
@@ -217,14 +218,14 @@ export default function GameScreen({ route, navigation }) {
             const before = prev.players?.[i];
             if (before && p && before.id !== p.id && p.replaced) {
                 audioService.playSound('pop');
-                showToast(`🔌 ${before.name} a quitté, un bot le remplace`, theme.textDim);
+                showToast(tr("🔌 {p0} a quitté, un bot le remplace", { p0: before.name }), theme.textDim);
             }
         });
 
         // 0 bis) L'adversaire est parti : victoire par forfait
         if (!prev.forfeit && gameState.forfeit) {
             audioService.playSound('warning');
-            showToast(`🔌 ${prev.players?.[gameState.forfeit.player]?.name || 'Ton adversaire'} est parti : victoire par forfait`, theme.mint);
+            showToast(tr("🔌 {p0} est parti : victoire par forfait", { p0: prev.players?.[gameState.forfeit.player]?.name || tr('Ton adversaire') }), theme.mint);
             if (gameState.forfeit.player !== me) { setBurst({ id: Date.now(), color: '#6EE7B7' }); haptic('double'); }
         }
 
@@ -238,20 +239,20 @@ export default function GameScreen({ route, navigation }) {
             audioService.playSound('card_play');
             const who = nameOf(by);
             if (newTop.value === 2) {
-                showFx('plus2', `Le joueur suivant pioche +${gameState.drawPenalty || 2}, sauf s'il contre avec un 2`);
+                showFx('plus2', tr("Le joueur suivant pioche +{p0}, sauf s'il contre avec un 2", { p0: gameState.drawPenalty || 2 }));
                 later(() => audioService.playSound('plus_two'), 120);
                 shake(10);
                 haptic('heavy');
-                if (by !== me) showToast(`${who} joue un 2 ! +${gameState.drawPenalty || 2} 🔥`, '#F87171');
+                if (by !== me) showToast(tr("{p0} joue un 2 ! +{p1} 🔥", { p0: who, p1: gameState.drawPenalty || 2 }), '#F87171');
             } else if (newTop.value === 1) {
-                showFx('restriction', "Le joueur suivant passe son tour, sauf s'il contre avec un 1");
+                showFx('restriction', tr("Le joueur suivant passe son tour, sauf s'il contre avec un 1"));
                 later(() => audioService.playSound('skip'), 120);
                 shake(8);
-                if (by !== me) showToast(`${who} joue un 1 ! ⛔`, '#60A5FA');
+                if (by !== me) showToast(tr("{p0} joue un 1 ! ⛔", { p0: who }), '#60A5FA');
             } else if (newTop.value === 7) {
                 later(() => audioService.playSound('change_suit'), 120);
                 const info = SUIT_INFO[gameState.activeSuitOverride];
-                showFx('choix', info ? `Famille demandée : ${info.emoji} ${info.label}` : 'Nouvelle famille demandée');
+                showFx('choix', info ? tr("Famille demandée : {p0} {p1}", { p0: info.emoji, p1: info.label }) : tr('Nouvelle famille demandée'));
                 if (by !== me && info) showToast(`${who} demande ${info.emoji} ${info.label}`, info.color);
             }
         }
@@ -266,13 +267,13 @@ export default function GameScreen({ route, navigation }) {
             if (i === me) {
                 if (diff >= 2) {
                     audioService.playSound('penalty');
-                    showToast(`Tu pioches ${diff} cartes 😬`, '#F87171');
+                    showToast(tr("Tu pioches {p0} cartes 😬", { p0: diff }), '#F87171');
                 }
             } else {
                 for (let k = 0; k < Math.min(diff, 4); k++) {
                     later(() => audioService.playSound('card_draw', { volume: 0.35 }), k * 110);
                 }
-                if (diff >= 2) showToast(`${nameOf(i)} pioche ${diff} cartes 😂`, '#FCD34D');
+                if (diff >= 2) showToast(tr("{p0} pioche {p1} cartes 😂", { p0: nameOf(i), p1: diff }), '#FCD34D');
             }
         });
 
@@ -289,7 +290,7 @@ export default function GameScreen({ route, navigation }) {
                 recordGame({ game: 'hezz2', won: true, opponents: opponentsOf(gameState) });
             } else if (!gameState.mancheTerminee) {
                 later(() => audioService.playSound('player_out'), 250);
-                showToast(`${nameOf(i)} a fini ses cartes ! 🏁`, theme.mint);
+                showToast(tr("{p0} a fini ses cartes ! 🏁", { p0: nameOf(i) }), theme.mint);
             }
         });
 
@@ -326,12 +327,12 @@ export default function GameScreen({ route, navigation }) {
         if (me >= 0 && gameState.afk?.[me] === 1 && prev.afk?.[me] !== 1) {
             audioService.playSound('warning');
             haptic('warning');
-            showToast("⏱️ Tu n'as pas joué. Au prochain oubli, ton coup sera joué automatiquement.", '#F59E0B');
+            showToast(tr("⏱️ Tu n'as pas joué. Au prochain oubli, ton coup sera joué automatiquement."), '#F59E0B');
         }
         // Anti-blocage : un joueur absent a joué automatiquement
         if (gameState.autoPlay && gameState.autoPlay.n !== prev.autoPlay?.n) {
-            const who = gameState.autoPlay.player === me ? 'Tu ne joues pas' : `${gameState.players?.[gameState.autoPlay.player]?.name || 'Un joueur'} ne joue pas`;
-            showToast(`⏱️ ${who} : coup joué automatiquement`, '#F59E0B');
+            const who = gameState.autoPlay.player === me ? tr('Tu ne joues pas') : tr("{p0} ne joue pas", { p0: gameState.players?.[gameState.autoPlay.player]?.name || tr('Un joueur') });
+            showToast(tr("⏱️ {p0} : coup joué automatiquement", { p0: who }), '#F59E0B');
         }
 
         // 5) C'est à moi de jouer
@@ -341,13 +342,13 @@ export default function GameScreen({ route, navigation }) {
                 haptic('medium');
                 if (gameState.pendingAction?.type === 'skip_response') {
                     audioService.playSound('penalty');
-                    showBanner({ text: 'DÉFENDS-TOI !', sub: 'Joue un 1 vite, sinon tu sautes ton tour', color: '#B91C1C', textColor: '#fff', top: land ? '1%' : '64%', hold: 1000 });
+                    showBanner({ text: tr('DÉFENDS-TOI !'), sub: tr('Joue un 1 vite, sinon tu sautes ton tour'), color: '#B91C1C', textColor: '#fff', top: land ? '1%' : '64%', hold: 1000 });
                 } else if (gameState.drawPenalty > 0) {
                     audioService.playSound('your_turn');
-                    showBanner({ text: `+${gameState.drawPenalty} POUR TOI !`, sub: 'Contre avec un 2 ou pioche', color: '#EA580C', textColor: '#fff', top: land ? '1%' : '64%', hold: 900 });
+                    showBanner({ text: tr("+{p0} POUR TOI !", { p0: gameState.drawPenalty }), sub: tr('Contre avec un 2 ou pioche'), color: '#EA580C', textColor: '#fff', top: land ? '1%' : '64%', hold: 900 });
                 } else {
                     audioService.playSound('your_turn');
-                    showBanner({ text: 'À TOI DE JOUER !', color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
+                    showBanner({ text: tr('À TOI DE JOUER !'), color: theme.gold, top: land ? '1%' : '64%', hold: 650 });
                 }
             }, delay);
         }
@@ -368,17 +369,17 @@ export default function GameScreen({ route, navigation }) {
     };
 
     const handleQuit = () => {
-        dialog.alert('Quitter la partie ?', 'Tu vas abandonner la manche en cours.', [
-            { text: 'Rester', style: 'cancel' },
-            { text: 'Quitter', style: 'destructive', onPress: leave },
+        dialog.alert(tr('Quitter la partie ?'), tr('Tu vas abandonner la manche en cours.'), [
+            { text: tr('Rester'), style: 'cancel' },
+            { text: tr('Quitter'), style: 'destructive', onPress: leave },
         ]);
     };
 
     const handleEndQuit = () => {
         if (gameState?.players?.some((p) => p.isBot)) return leave();
-        dialog.alert('Quitter le salon ?', 'Les autres joueurs continueront sans toi.', [
-            { text: 'Rester', style: 'cancel' },
-            { text: 'Quitter', style: 'destructive', onPress: leave },
+        dialog.alert(tr('Quitter le salon ?'), tr('Les autres joueurs continueront sans toi.'), [
+            { text: tr('Rester'), style: 'cancel' },
+            { text: tr('Quitter'), style: 'destructive', onPress: leave },
         ]);
     };
 
@@ -429,7 +430,7 @@ export default function GameScreen({ route, navigation }) {
     if (!gameState) {
         return (
             <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-                <Text style={{ color: theme.gold }}>Chargement...</Text>
+                <Text style={{ color: theme.gold }}>{tr("Chargement...")}</Text>
             </View>
         );
     }
@@ -462,7 +463,7 @@ export default function GameScreen({ route, navigation }) {
         );
     };
 
-    const turnName = gameState.turn === localPlayerIndex ? 'VOUS' : gameState.players?.[gameState.turn]?.name;
+    const turnName = gameState.turn === localPlayerIndex ? tr('VOUS') : gameState.players?.[gameState.turn]?.name;
     const underAttack = gameState.pendingAction?.type === 'skip_response';
     const myId = socketService.socket?.id;
     const canReplay = gameState.hostId ? gameState.hostId === myId : (isHost || gameState.players?.[0]?.id === myId);
@@ -515,10 +516,10 @@ export default function GameScreen({ route, navigation }) {
                                 <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 5 : (gameState.afk?.[gameState.turn] || 0) >= 2 ? 8 : 15} size={40} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                                     <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>
-                                        {underAttack ? 'ATTAQUE !' : 'TOUR DE'}
+                                        {underAttack ? tr('ATTAQUE !') : tr('TOUR DE')}
                                     </Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {underAttack && isMyTurn ? 'Joue un 1 !' : turnName}
+                                        {underAttack && isMyTurn ? tr('Joue un 1 !') : turnName}
                                     </Text>
                                 </View>
                             </View>
@@ -537,18 +538,18 @@ export default function GameScreen({ route, navigation }) {
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {isSpectator ? (
                         <View style={styles.spectatorBox}>
-                            <Text style={styles.spectatorText}>👀 Vous êtes spectateur</Text>
+                            <Text style={styles.spectatorText}>{tr("👀 Vous êtes spectateur")}</Text>
                         </View>
                     ) : (
                         <>
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Vous'} variant={gameState.players?.[localPlayerIndex]?.avatar || 0} size={38} active={isMyTurn} mood={moods[localPlayerIndex]} />
+                                        <PlayerAvatar name={playerName || tr('Vous')} variant={gameState.players?.[localPlayerIndex]?.avatar || 0} size={38} active={isMyTurn} mood={moods[localPlayerIndex]} />
                                         <ReactionBubble emoji={activeReactions[localPlayerIndex]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
-                                        <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>Vous · {myHand.length}</Text>
+                                        <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>{tr("Vous ·")} {myHand.length}</Text>
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
@@ -574,7 +575,7 @@ export default function GameScreen({ route, navigation }) {
                                 ))}
                                 {gameState.finishedPlayers?.includes(localPlayerIndex) && !gameState.mancheTerminee && (
                                     <Animated.View entering={ZoomIn.springify()} style={styles.doneBox}>
-                                        <Text style={styles.doneText}>🏁 Tu as fini ! Regarde les autres se battre…</Text>
+                                        <Text style={styles.doneText}>{tr("🏁 Tu as fini ! Regarde les autres se battre…")}</Text>
                                     </Animated.View>
                                 )}
                             </View>

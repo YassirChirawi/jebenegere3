@@ -39,10 +39,11 @@ import { isPhoneWeb } from '../utils/fullscreen';
 import { TABLE_INSET } from '../components/MoroccanTable'; // marges de la zone de table (la table elle-même est l'image de fond)
 
 const MINT = require('../../assets/menthe.png');
+import { t as tr } from '../i18n';
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
 const nextVal = (v) => ORDER[ORDER.indexOf(v) + 1] ?? null;
 const VALUE_LABEL = { 1: 'As', 10: 'Sota', 11: 'Cavalier', 12: 'Roi' };
-const valueName = (v) => (VALUE_LABEL[v] ? `${v} (${VALUE_LABEL[v]})` : `${v}`);
+const valueName = (v) => (VALUE_LABEL[v] ? `${v} (${tr(VALUE_LABEL[v])})` : `${v}`);
 const teamOf = (p) => p % 2;
 const TABLE_W = 50;
 const TABLE_H = 72;
@@ -190,8 +191,8 @@ function CapturePile({ label, count, top, mine, points, compact }) {
                 )}
             </View>
             <View style={{ marginLeft: 6 }}>
-                <Text style={[styles.pileLabel, mine && { color: theme.goldLight }]}>{label}{points !== undefined ? ` · ${points} pts` : ''}</Text>
-                <Animated.Text style={[styles.pileCount, s]}>{count} <Text style={styles.pileUnit}>cartes</Text></Animated.Text>
+                <Text style={[styles.pileLabel, mine && { color: theme.goldLight }]}>{label}{points !== undefined ? tr(" · {p0} pts", { p0: points }) : ''}</Text>
+                <Animated.Text style={[styles.pileCount, s]}>{count} <Text style={styles.pileUnit}>{tr("cartes")}</Text></Animated.Text>
             </View>
         </View>
     );
@@ -304,8 +305,8 @@ export default function RondaScreen({ route, navigation }) {
         if (n === 2) return 'top';
         return ['right', 'top', 'left'][rel - 1];
     };
-    const nameOf = (i) => (i === me ? 'Toi' : state?.players?.[i]?.name || `Joueur ${i + 1}`);
-    const teamNames = myTeam === null ? ['Camp A', 'Camp B'] : myTeam === 0 ? ['NOUS', 'EUX'] : ['EUX', 'NOUS'];
+    const nameOf = (i) => (i === me ? tr('Toi') : state?.players?.[i]?.name || tr('Joueur {n}', { n: i + 1 }));
+    const teamNames = myTeam === null ? [tr('Camp A'), tr('Camp B')] : myTeam === 0 ? [tr('NOUS'), tr('EUX')] : [tr('EUX'), tr('NOUS')];
     const teamWord = (t) => (myTeam === null ? teamNames[t] : t === myTeam ? 'nous' : 'eux');
 
     // --- Secousse ---
@@ -359,7 +360,7 @@ export default function RondaScreen({ route, navigation }) {
             socketService.onTimerTick((d) => setTimeLeft(d.timeLeft)),
             socketService.onGameError((err) => {
                 audioService.playSound('error');
-                showToast(`⚠️ ${err?.message || 'Action impossible'}`, theme.redLight);
+                showToast(`⚠️ ${err?.message || tr('Action impossible')}`, theme.redLight);
             }),
             socketService.onActionRejected(() => {
                 audioService.playSound('error');
@@ -410,7 +411,7 @@ export default function RondaScreen({ route, navigation }) {
         switch (e.type) {
             case 'deal':
                 audioService.playDeal(Math.min(e.size * n, 10), 80);
-                showToast(`🃏 Distribution ${e.index}/${e.total} : ${e.size} cartes chacun`, theme.gold);
+                showToast(tr("🃏 Distribution {p0}/{p1} : {p2} cartes chacun", { p0: e.index, p1: e.total, p2: e.size }), theme.gold);
                 break;
             case 'place':
                 audioService.playSound('card_play');
@@ -430,10 +431,10 @@ export default function RondaScreen({ route, navigation }) {
             case 'darba': {
                 react(e.player, 'proud');
                 const pair = s.chain?.cards?.length === 2 ? s.chain.cards : [e.card];
-                setSpot({ id: e.id, cards: pair, color: '#FB923C', title: 'DARBA', next: s.chain ? 'Hbel ?…' : null });
+                setSpot({ id: e.id, cards: pair, color: '#FB923C', title: 'DARBA', next: s.chain ? tr('Hbel ?…') : null });
                 later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
-                    text: 'DARBA !', sub: `${who} prend la carte posée · +${e.points} ${teamWord(e.team)}`, color: '#EA580C', textColor: '#fff', duration: 2800, top: '13%',
+                    text: tr('DARBA !'), sub: tr("{p0} prend la carte posée · +{p1} {p2}", { p0: who, p1: e.points, p2: teamWord(e.team) }), color: '#EA580C', textColor: '#fff', duration: 2800, top: '13%',
                     onShow: () => { audioService.playSound('darba'); haptic('heavy'); shake(9); goldBurst('#FDBA74', 200); mySpecial(e.player); },
                 });
                 break;
@@ -441,10 +442,10 @@ export default function RondaScreen({ route, navigation }) {
             case 'hbel': {
                 react(e.player, 'proud');
                 const three = s.chain?.cards?.length === 3 ? s.chain.cards : [e.card];
-                setSpot({ id: e.id, cards: three, color: '#C4B5FD', title: 'HBEL', next: s.chain ? 'Boug ?…' : null });
+                setSpot({ id: e.id, cards: three, color: '#C4B5FD', title: 'HBEL', next: s.chain ? tr('Boug ?…') : null });
                 later(() => setSpot((sp) => (sp && sp.id === e.id ? null : sp)), SPOT_MS);
                 pushBanner({
-                    text: 'HBEL !', sub: `${who} reprend ${e.count} cartes · +${e.points} ${teamWord(e.team)}`, color: '#7C3AED', textColor: '#fff', duration: 2800, top: '13%',
+                    text: tr('HBEL !'), sub: tr("{p0} reprend {p1} cartes · +{p2} {p3}", { p0: who, p1: e.count, p2: e.points, p3: teamWord(e.team) }), color: '#7C3AED', textColor: '#fff', duration: 2800, top: '13%',
                     onShow: () => { audioService.playSound('hbel'); haptic('double'); shake(14); goldBurst('#C4B5FD', 240); mySpecial(e.player); },
                 });
                 later(() => setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam }), SPOT_MS);
@@ -454,7 +455,7 @@ export default function RondaScreen({ route, navigation }) {
                 setSpot(null);
                 react(e.player, 'proud');
                 pushBanner({
-                    text: 'BOUG !!', sub: `${who} rafle les 4 · +${e.points} ${teamWord(e.team)}`, color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
+                    text: tr('BOUG !!'), sub: tr("{p0} rafle les 4 · +{p1} {p2}", { p0: who, p1: e.points, p2: teamWord(e.team) }), color: '#B91C1C', textColor: '#FFE08A', duration: 3000,
                     onShow: () => { audioService.playSound('bachra'); haptic('long'); shake(18); goldBurst('#FFE08A', 300); mySpecial(e.player); },
                 });
                 setFly({ id: e.id, cards: [e.card], mine: e.team === myTeam });
@@ -462,38 +463,38 @@ export default function RondaScreen({ route, navigation }) {
             case 'missa':
                 react(e.player, 'proud');
                 pushBanner({
-                    text: 'MISSA !', sub: `${who} vide la table · +${e.points} ${teamWord(e.team)}`, color: '#0F766E', textColor: '#fff',
+                    text: tr('MISSA !'), sub: tr("{p0} vide la table · +{p1} {p2}", { p0: who, p1: e.points, p2: teamWord(e.team) }), color: '#0F766E', textColor: '#fff',
                     onShow: () => { audioService.playSound('missa'); haptic('success'); goldBurst('#5EEAD4', 260); mySpecial(e.player); },
                 });
                 break;
             case 'announce':
                 audioService.playSound('announce');
                 haptic('light');
-                showToast(`📣 ${who} annonce une ${e.combo === 'tringa' ? 'TRINGA' : 'RONDA'} !`, theme.goldLight);
+                showToast(tr("📣 {p0} annonce une {p1} !", { p0: who, p1: e.combo === 'tringa' ? 'TRINGA' : 'RONDA' }), theme.goldLight);
                 break;
             case 'announce_win':
                 pushBanner({
-                    text: e.combo === 'tringa' ? 'TRINGA !' : 'RONDA !',
-                    sub: `${who} · ${e.combo} de ${valueName(e.value)} · +${e.points} ${teamWord(e.team)}`,
+                    text: e.combo === 'tringa' ? tr('TRINGA !') : tr('RONDA !'),
+                    sub: tr('{p} · {c} de {v} · +{n} {team}', { p: who, c: e.combo, v: valueName(e.value), n: e.points, team: tr(teamWord(e.team)) }),
                     color: e.combo === 'tringa' ? '#9333EA' : theme.gold, textColor: e.combo === 'tringa' ? '#fff' : theme.bg,
                     onShow: () => { audioService.playSound('announce'); haptic('medium'); showFx(e.combo === 'tringa' ? 'tringa' : 'ronda'); },
                 });
                 break;
             case 'ronda_tie':
-                showToast(`⚖️ Égalité de rondas de ${valueName(e.value)} : celui qui mange avec un ${e.value} laisse le point`, theme.goldLight);
+                showToast(tr("⚖️ Égalité de rondas de {p0} : celui qui mange avec un {p1} laisse le point", { p0: valueName(e.value), p1: e.value }), theme.goldLight);
                 break;
             case 'ronda_tie_resolved':
-                pushBanner({ text: 'RONDA !', sub: `${nameOf(e.eater)} a mangé avec un ${e.value} · +${e.points} ${teamWord(e.team)}`, color: theme.gold, onShow: () => audioService.playSound('announce') });
+                pushBanner({ text: tr('RONDA !'), sub: tr("{p0} a mangé avec un {p1} · +{p2} {p3}", { p0: nameOf(e.eater), p1: e.value, p2: e.points, p3: teamWord(e.team) }), color: theme.gold, onShow: () => audioService.playSound('announce') });
                 break;
             case 'ronda_tie_void':
-                showToast(`⚖️ Égalité de rondas : personne n'a mangé, pas de point`, theme.textDim);
+                showToast(tr("⚖️ Égalité de rondas : personne n'a mangé, pas de point"), theme.textDim);
                 break;
             case 'denounce_ok':
                 pushBanner({
-                    text: 'IL EST RONDÉ !',
+                    text: tr('IL EST RONDÉ !'),
                     sub: e.warning
-                        ? `${nameOf(e.target)} cachait une ${e.combo} de ${e.value} · Avertissement`
-                        : `${nameOf(e.target)} cachait une ${e.combo} de ${e.value} · +${e.points} ${teamWord(e.team)}`,
+                        ? tr("{p0} cachait une {p1} de {p2} · Avertissement", { p0: nameOf(e.target), p1: e.combo, p2: e.value })
+                        : tr("{p0} cachait une {p1} de {p2} · +{p3} {p4}", { p0: nameOf(e.target), p1: e.combo, p2: e.value, p3: e.points, p4: teamWord(e.team) }),
                     color: '#DC2626', textColor: '#fff', duration: 2700,
                     onShow: () => { audioService.playSound('reveal'); haptic('heavy'); shake(10); },
                 });
@@ -501,37 +502,37 @@ export default function RondaScreen({ route, navigation }) {
             case 'denounce_false':
                 pushBanner({
                     text: e.warning ? 'AVERTISSEMENT' : 'FAUSSE DÉNONCIATION',
-                    sub: e.warning ? `${who} s'est trompé (${nameOf(e.target)} n'a pas de ${e.value})` : `${who} s'est trompé · -1 ${teamWord(e.team)}`,
+                    sub: e.warning ? tr("{p} s'est trompé ({q} n'a pas de {v})", { p: who, q: nameOf(e.target), v: e.value }) : tr("{p} s'est trompé · -1 {team}", { p: who, team: tr(teamWord(e.team)) }),
                     color: '#F59E0B', textColor: theme.bg,
                     onShow: () => { audioService.playSound('warning'); haptic('warning'); },
                 });
                 break;
             case 'dealer_last':
                 pushBanner({
-                    text: 'DERNIÈRE CARTE !',
-                    sub: e.player === me ? 'Tu es le donneur : mange avec ta dernière carte !' : `${nameOf(e.player)} (donneur) doit manger`,
+                    text: tr('DERNIÈRE CARTE !'),
+                    sub: e.player === me ? tr('Tu es le donneur : mange avec ta dernière carte !') : tr("{p0} (donneur) doit manger", { p0: nameOf(e.player) }),
                     color: '#1E3A8A', textColor: '#fff', duration: 2600,
                     onShow: () => { audioService.playSound('warning'); haptic('warning'); },
                 });
                 break;
             case 'rey':
-                pushBanner({ text: '9A3A REY !', sub: `${who} mange avec un Roi · +5 ${teamWord(e.team)}`, color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); goldBurst('#F5D77A', 240); showFx('royal', 'Dernière carte avec le 12'); } });
+                pushBanner({ text: tr('9A3A REY !'), sub: tr("{p0} mange avec un Roi · +5 {p1}", { p0: who, p1: teamWord(e.team) }), color: theme.gold, onShow: () => { audioService.playSound('victory'); haptic('success'); goldBurst('#F5D77A', 240); showFx('royal', tr('Dernière carte avec le 12')); } });
                 break;
             case 'as':
                 pushBanner({
-                    text: '9A3A AS !',
-                    sub: `${e.missed ? `${who} n'a rien mangé` : `${who} a mangé avec un As`} · +5 ${teamWord(e.team)}`,
+                    text: tr('9A3A AS !'),
+                    sub: `${e.missed ? tr("{p} n'a rien mangé", { p: who }) : tr('{p} a mangé avec un As', { p: who })} · +5 ${tr(teamWord(e.team))}`,
                     color: '#475569', textColor: '#fff',
-                    onShow: () => { audioService.playSound('penalty'); haptic('heavy'); if (e.missed) showFx('flop', 'Dernière carte sans rien prendre'); },
+                    onShow: () => { audioService.playSound('penalty'); haptic('heavy'); if (e.missed) showFx('flop', tr('Dernière carte sans rien prendre')); },
                 });
                 break;
             case 'table_rest':
-                showToast(`🧺 Le reste de la table (${e.count}) va à ${teamWord(e.team)}`, theme.goldLight);
+                showToast(tr("🧺 Le reste de la table ({p0}) va à {p1}", { p0: e.count, p1: teamWord(e.team) }), theme.goldLight);
                 break;
             case 'forfeit':
                 pushBanner({
-                    text: 'ADVERSAIRE PARTI',
-                    sub: e.team === myTeam ? 'Victoire par forfait !' : 'Partie terminée',
+                    text: tr('ADVERSAIRE PARTI'),
+                    sub: e.team === myTeam ? tr('Victoire par forfait !') : tr('Partie terminée'),
                     color: '#0F766E', textColor: '#fff',
                     onShow: () => { audioService.playSound('warning'); haptic('warning'); },
                 });
@@ -539,7 +540,7 @@ export default function RondaScreen({ route, navigation }) {
             case 'target_reached':
                 setSpot(null);
                 pushBanner({
-                    text: `${e.score} POINTS !`, sub: `${teamWord(e.team) === 'nous' ? 'Vous gagnez' : `${teamNames[e.team]} gagnent`} : la partie s'arrête`,
+                    text: tr('{n} POINTS !', { n: e.score }), sub: tr("{w} : la partie s'arrête", { w: teamWord(e.team) === 'nous' ? tr('Vous gagnez') : tr('{team} gagnent', { team: teamNames[e.team] }) }),
                     color: theme.gold, textColor: theme.bg, duration: 2600,
                     onShow: () => { audioService.playSound(e.team === myTeam ? 'victory' : 'defeat'); haptic('long'); },
                 });
@@ -563,7 +564,7 @@ export default function RondaScreen({ route, navigation }) {
                 recordGame({
                     game: 'ronda',
                     won,
-                    result: `${won ? 'Victoire 🎉' : 'Défaite 💀'} ${s.scores[myTeam]}-${s.scores[1 - myTeam]}`,
+                    result: `${won ? tr('Victoire 🎉') : tr('Défaite 💀')} ${s.scores[myTeam]}-${s.scores[1 - myTeam]}`,
                     opponents: s.players.filter((_, i) => teamOf(i) !== myTeam).map((p) => p.name).join(', '),
                 });
                 later(() => audioService.playSound(won ? 'victory' : 'defeat'), 900);
@@ -590,9 +591,9 @@ export default function RondaScreen({ route, navigation }) {
         navigation.popToTop();
     };
     const handleQuit = () => {
-        dialog.alert('Quitter la partie ?', 'Un bot prendra ta place.', [
-            { text: 'Rester', style: 'cancel' },
-            { text: 'Quitter', style: 'destructive', onPress: leave },
+        dialog.alert(tr('Quitter la partie ?'), tr('Un bot prendra ta place.'), [
+            { text: tr('Rester'), style: 'cancel' },
+            { text: tr('Quitter'), style: 'destructive', onPress: leave },
         ]);
     };
 
@@ -728,7 +729,7 @@ export default function RondaScreen({ route, navigation }) {
                 <View style={[styles.turnChip, styles.turnChipLand, styles.turnChipLandPos, isMyTurn && styles.turnChipMine]} pointerEvents="none">
                     <CircularTimer timeLeft={timeLeft} maxTime={15} size={28} />
                     <Text style={[styles.turnNameLand, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                        {isMyTurn ? 'À TOI' : nameOf(state.turn)}
+                        {isMyTurn ? tr('À TOI') : nameOf(state.turn)}
                     </Text>
                 </View>
             )}
@@ -767,7 +768,7 @@ export default function RondaScreen({ route, navigation }) {
                         <View style={land ? styles.tableColLand : styles.centerCol}>
                         <View style={[styles.tableZone, land && styles.tableZoneLand, land && { height: landZoneH, width: landZoneW }]}>
                             {state.table.length === 0 ? (
-                                <Text style={styles.emptyTable}>Table vide</Text>
+                                <Text style={styles.emptyTable}>{tr("Table vide")}</Text>
                             ) : (
                                 <View style={styles.tableGrid}>
                                     {state.table.map((c) => (
@@ -789,10 +790,10 @@ export default function RondaScreen({ route, navigation }) {
 
                         {preview.kind && (
                             <Animated.Text entering={FadeIn} style={[styles.previewText, preview.kind !== 'capture' && { color: '#FDBA74' }]}>
-                                {preview.kind === 'capture' && `Tu manges ${preview.ids.size} carte${preview.ids.size > 1 ? 's' : ''}`}
-                                {preview.kind === 'darba' && `DARBA ! Tu manges ${preview.ids.size} carte${preview.ids.size > 1 ? 's' : ''} (+1)`}
-                                {preview.kind === 'hbel' && 'HBEL ! Tu reprends 3 cartes (+5)'}
-                                {preview.kind === 'bachra' && 'BOUG ! Tu reprends 4 cartes (+10)'}
+                                {preview.kind === 'capture' && tr("Tu manges {p0} carte{p1}", { p0: preview.ids.size, p1: preview.ids.size > 1 ? 's' : '' })}
+                                {preview.kind === 'darba' && tr("DARBA ! Tu manges {p0} carte{p1} (+1)", { p0: preview.ids.size, p1: preview.ids.size > 1 ? 's' : '' })}
+                                {preview.kind === 'hbel' && tr('HBEL ! Tu reprends 3 cartes (+5)')}
+                                {preview.kind === 'bachra' && tr('BOUG ! Tu reprends 4 cartes (+10)')}
                             </Animated.Text>
                         )}
                         </View>
@@ -815,10 +816,10 @@ export default function RondaScreen({ route, navigation }) {
                                 <CircularTimer timeLeft={timeLeft} maxTime={15} size={36} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                                     <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>
-                                        DISTRIB. {state.dealIndex}/{state.totalDeals}{land ? ` · PAQUET ${state.deckCount ?? 0}` : ''} · TOUR DE
+                                        DISTRIB. {state.dealIndex}/{state.totalDeals}{land ? tr(" · PAQUET {p0}", { p0: state.deckCount ?? 0 }) : ''} · TOUR DE
                                     </Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? 'TOI' : nameOf(state.turn)}
+                                        {isMyTurn ? tr('TOI') : nameOf(state.turn)}
                                     </Text>
                                 </View>
                             </View>
@@ -839,7 +840,7 @@ export default function RondaScreen({ route, navigation }) {
                     <Animated.View entering={FadeIn.delay(600)} exiting={FadeOut} style={styles.rotateHint}>
                         <Pressable onPress={() => setRotateDismissed(true)} style={styles.rotateInner}>
                             <Text style={styles.rotateIcon}>🔄</Text>
-                            <Text style={styles.rotateText}>Tourne ton téléphone : la Ronda se joue mieux en paysage</Text>
+                            <Text style={styles.rotateText}>{tr("Tourne ton téléphone : la Ronda se joue mieux en paysage")}</Text>
                             <Text style={styles.rotateClose}>✕</Text>
                         </Pressable>
                     </Animated.View>
@@ -848,38 +849,38 @@ export default function RondaScreen({ route, navigation }) {
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {me < 0 ? (
                         <View style={styles.spectatorBox}>
-                            <Text style={styles.spectatorText}>👀 Tu es spectateur</Text>
+                            <Text style={styles.spectatorText}>{tr("👀 Tu es spectateur")}</Text>
                         </View>
                     ) : (
                         <>
                             <View style={[styles.actionRow, land && styles.actionRowLand]} pointerEvents="box-none">
                                 {canAnnounce && (
                                     <Animated.View entering={ZoomIn.springify()} exiting={FadeOut}>
-                                        <GameButton small title={myCombo.type === 'tringa' ? 'TRINGA ! +5' : 'RONDA ! +1'} icon="📣" variant="gold" onPress={announce} />
+                                        <GameButton small title={myCombo.type === 'tringa' ? tr('TRINGA ! +5') : tr('RONDA ! +1')} icon="📣" variant="gold" onPress={announce} />
                                     </Animated.View>
                                 )}
                                 {deal?.announced?.[me] && !deal.resolved && (
-                                    <Text style={styles.announcedText}>✓ {deal.announced[me].type} annoncée</Text>
+                                    <Text style={styles.announcedText}>✓ {deal.announced[me].type} {tr("annoncée")}</Text>
                                 )}
                                 {denounceTargets.length > 0 && (
                                     <Animated.View entering={ZoomIn.springify()} exiting={FadeOut}>
-                                        <GameButton small title="Il est rondé ?" icon="🕵️" variant="red" onPress={openDenounce} />
+                                        <GameButton small title={tr('Il est rondé ?')} icon="🕵️" variant="red" onPress={openDenounce} />
                                     </Animated.View>
                                 )}
                                 {myDealerLast && (
-                                    <Animated.Text entering={FadeIn} style={styles.lastCardHint}>⚠️ Dernière carte : il faut manger !</Animated.Text>
+                                    <Animated.Text entering={FadeIn} style={styles.lastCardHint}>{tr("⚠️ Dernière carte : il faut manger !")}</Animated.Text>
                                 )}
                             </View>
 
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || tr('Toi')} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
                                         <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>
-                                            Toi{me === state.dealer ? ' · donneur' : ''}
+                                            Toi{me === state.dealer ? tr(' · donneur') : ''}
                                         </Text>
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
@@ -921,8 +922,8 @@ export default function RondaScreen({ route, navigation }) {
                 <Animated.View entering={FadeIn.duration(150)} style={styles.sheetOverlay}>
                     <Pressable style={StyleSheet.absoluteFill} onPress={() => setDenounceOpen(false)} />
                     <Animated.View entering={SlideInDown.springify().damping(16)} style={styles.sheet}>
-                        <Text style={styles.sheetTitle}>🕵️ Il est rondé !</Text>
-                        <Text style={styles.sheetSub}>Il a posé une carte de sa ronda sans l'annoncer ? Juste : tu prends ses points. Faux : avertissement, puis -1.</Text>
+                        <Text style={styles.sheetTitle}>{tr("🕵️ Il est rondé !")}</Text>
+                        <Text style={styles.sheetSub}>{tr("Il a posé une carte de sa ronda sans l'annoncer ? Juste : tu prends ses points. Faux : avertissement, puis -1.")}</Text>
                         {denounceTargets.length > 1 && (
                             <View style={styles.targetRow}>
                                 {denounceTargets.map((t) => (
@@ -934,11 +935,11 @@ export default function RondaScreen({ route, navigation }) {
                             </View>
                         )}
                         <Text style={styles.sheetLabel}>
-                            {denounceTarget === null ? 'Choisis le joueur' : `${nameOf(denounceTarget)} est rondé ?`}
+                            {denounceTarget === null ? tr('Choisis le joueur') : tr("{p0} est rondé ?", { p0: nameOf(denounceTarget) })}
                         </Text>
-                        <GameButton title={denounceTarget === null ? 'Choisis le joueur' : `OUI, ${nameOf(denounceTarget).toUpperCase()} EST RONDÉ !`} icon="🕵️" variant="red" disabled={denounceTarget === null} onPress={sendDenounce} />
+                        <GameButton title={denounceTarget === null ? tr('Choisis le joueur') : tr("OUI, {p0} EST RONDÉ !", { p0: nameOf(denounceTarget).toUpperCase() })} icon="🕵️" variant="red" disabled={denounceTarget === null} onPress={sendDenounce} />
                         <PressableScale onPress={() => setDenounceOpen(false)} style={{ alignSelf: 'center', padding: 10 }}>
-                            <Text style={{ color: theme.textDim, fontWeight: '800' }}>Annuler</Text>
+                            <Text style={{ color: theme.textDim, fontWeight: '800' }}>{tr("Annuler")}</Text>
                         </PressableScale>
                     </Animated.View>
                 </Animated.View>

@@ -19,6 +19,7 @@ import re
 import sys
 
 ROOT = os.path.join(os.path.dirname(__file__), '..')
+FN = 't'  # nom de la fonction de traduction dans le fichier (« --fn tr » si « t » sert déjà de variable locale)
 LETTER = re.compile(r'[A-Za-zÀ-ÿ]{2}')
 JS_WORDS = re.compile(r'^\s*(else|catch|finally|return|const|let|var|if|while|for|case|default|function|async|await)\b')
 
@@ -42,13 +43,13 @@ def wrap_jsx_text(src):
             return m.group(0)
         if not looks_like_text(text):
             return m.group(0)
-        return f'{tok}{lead}{{t({json.dumps(text, ensure_ascii=False)})}}{trail}{after}'
+        return f'{tok}{lead}{{{FN}({json.dumps(text, ensure_ascii=False)})}}{trail}{after}'
     return pat.sub(rep, src)
 
 
 def wrap_props(src):
     return re.sub(r'\b(title|label|placeholder|sub|accessibilityLabel)="([^"{}]+)"',
-                  lambda m: f'{m.group(1)}={{t({json.dumps(m.group(2), ensure_ascii=False)})}}' if looks_like_text(m.group(2)) else m.group(0), src)
+                  lambda m: f'{m.group(1)}={{{FN}({json.dumps(m.group(2), ensure_ascii=False)})}}' if looks_like_text(m.group(2)) else m.group(0), src)
 
 
 LIT = r"('(?:[^'\\\n]|\\.)*'|\"(?:[^\"\\\n]|\\.)*\")"
@@ -56,10 +57,10 @@ LIT = r"('(?:[^'\\\n]|\\.)*'|\"(?:[^\"\\\n]|\\.)*\")"
 
 def wrap_dialogs(src):
     # dialog.alert('A'  et  dialog.alert(X, 'B'
-    src = re.sub(r'(dialog\.alert\(\s*)' + LIT, lambda m: f'{m.group(1)}t({m.group(2)})', src)
-    src = re.sub(r'(dialog\.alert\(\s*t\(' + LIT + r'\),\s*)' + LIT, lambda m: f'{m.group(1)}t({m.group(3)})', src)
+    src = re.sub(r'(dialog\.alert\(\s*)' + LIT, lambda m: f'{m.group(1)}{FN}({m.group(2)})', src)
+    src = re.sub(r'(dialog\.alert\(\s*' + FN + r'\(' + LIT + r'\),\s*)' + LIT, lambda m: f'{m.group(1)}{FN}({m.group(3)})', src)
     # boutons { text: 'Annuler' }
-    src = re.sub(r'(\{\s*text:\s*)' + LIT, lambda m: f'{m.group(1)}t({m.group(2)})', src)
+    src = re.sub(r'(\{\s*text:\s*)' + LIT, lambda m: f'{m.group(1)}{FN}({m.group(2)})', src)
     return src
 
 
@@ -96,11 +97,11 @@ def wrap_literals(src):
             body = lit[1:-1]
             if not is_phrase(body) or '\\n' in body and len(body) < 4:
                 return m.group(0)
-            return f'{pre}t({lit})'
+            return f'{pre}{FN}({lit})'
         # « ? 'X' », « || 'X' », « ?? 'X' », puis le « : 'Y' » d'une condition déjà traduite (jamais un « : » seul :
         # il apparaît aussi dans les textes, les clés d'objets et les identifiants comme 'avatar:')
         line = re.sub(r'((?<![\w\'"])(?:\?|\|\||\?\?)\s*)(\'(?:[^\'\\]|\\.)*\'|"(?:[^"\\]|\\.)*")', lit_rep, line)
-        line = re.sub(r'(\?\s*t\((?:\'(?:[^\'\\]|\\.)*\'|"(?:[^"\\]|\\.)*")\)\s*:\s*)(\'(?:[^\'\\]|\\.)*\'|"(?:[^"\\]|\\.)*")', lit_rep, line)
+        line = re.sub(r'(\?\s*' + FN + r'\((?:\'(?:[^\'\\]|\\.)*\'|"(?:[^"\\]|\\.)*")\)\s*:\s*)(\'(?:[^\'\\]|\\.)*\'|"(?:[^"\\]|\\.)*")', lit_rep, line)
 
         def tpl_rep(m):
             pre, body = m.group(1), m.group(2)
@@ -118,16 +119,18 @@ def wrap_literals(src):
                 return '{' + f'p{len(exprs) - 1}' + '}'
             key = re.sub(r'\$\{([^}]*)\}', name, body)
             if not exprs:
-                return f'{pre}t({json.dumps(key, ensure_ascii=False)})'
+                return f'{pre}{FN}({json.dumps(key, ensure_ascii=False)})'
             params = ', '.join(f'p{i}: {e}' for i, e in enumerate(exprs))
-            return f'{pre}t({json.dumps(key, ensure_ascii=False)}, {{ {params} }})'
-        line = re.sub(r'([^\w`$]|^)`((?:[^`\\]|\\.)*)`', tpl_rep, line)
+            return f'{pre}{FN}({json.dumps(key, ensure_ascii=False)}, {{ {params} }})'
+        # gabarits imbriqués ou plusieurs gabarits sur la ligne : à traiter à la main
+        if line.count('`') == 2:
+            line = re.sub(r'([^\w`$]|^)`((?:[^`\\]|\\.)*)`', tpl_rep, line)
         out.append(line)
     return '\n'.join(out)
 
 
 def add_import(src, path):
-    if re.search(r"import \{[^}]*\bt\b[^}]*\} from '[./]+i18n'", src):
+    if re.search(r"import \{[^}]*\b" + FN + r"\b[^}]*\} from '[./]+i18n'", src):
         return src
     rel = os.path.relpath(os.path.join(ROOT, 'src', 'i18n'), os.path.dirname(path)).replace(os.sep, '/')
     if not rel.startswith('.'):
@@ -137,7 +140,7 @@ def add_import(src, path):
     # fin de l'import (peut tenir sur plusieurs lignes)
     while not lines[last].rstrip().endswith(';'):
         last += 1
-    lines.insert(last + 1, f"import {{ t }} from '{rel}';")
+    lines.insert(last + 1, f"import {{ t }} from '{rel}';" if FN == 't' else f"import {{ t as {FN} }} from '{rel}';")
     return '\n'.join(lines)
 
 
@@ -151,7 +154,7 @@ def keys():
     found = {}
     for f in glob.glob(os.path.join(ROOT, 'src', '**', '*.js'), recursive=True):
         s = open(f, encoding='utf-8').read()
-        for m in re.finditer(r'\bt\(\s*' + LIT, s):
+        for m in re.finditer(r'\b(?:t|tr)\(\s*' + LIT, s):
             k = unjs(m.group(1))
             found.setdefault(k, os.path.relpath(f, ROOT))
     out = os.path.join(ROOT, 'src', 'i18n', 'keys.txt')
@@ -166,7 +169,11 @@ if __name__ == '__main__':
         keys()
         sys.exit(0)
     literals = '--literals' in sys.argv
-    for path in [a for a in sys.argv[1:] if not a.startswith('--')]:
+    args = sys.argv[1:]
+    if '--fn' in args:
+        FN = args[args.index('--fn') + 1]
+        args = [a for i, a in enumerate(args) if a != '--fn' and (i == 0 or args[i - 1] != '--fn')]
+    for path in [a for a in args if not a.startswith('--')]:
         s = open(path, encoding='utf-8').read()
         o = s
         s = wrap_dialogs(wrap_props(wrap_jsx_text(s)))

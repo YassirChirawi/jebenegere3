@@ -465,7 +465,7 @@ export default function HomeScreen({ navigation, route }) {
             <Text style={styles.lxSizeHint}>{t("Choisis le nombre de joueurs")}</Text>
             <View style={styles.lxSizes}>
                 {selected.sizes.map((n) => (
-                    <PressableScale key={n} onPress={() => onPick(n)} style={styles.lxSize} scaleTo={0.92} accessibilityLabel={game === 'ronda' ? (n === 2 ? t('1 contre 1') : t('2 contre 2')) : `${n} joueurs`}>
+                    <PressableScale key={n} onPress={() => onPick(n)} style={styles.lxSize} scaleTo={0.92} accessibilityLabel={game === 'ronda' ? (n === 2 ? t('1 contre 1') : t('2 contre 2')) : t('{n} joueurs', { n })}>
                         <Gradient colors={colors} />
                         <View style={styles.lxSizeShine} />
                         <Text style={styles.lxSizeNum}>{game === 'ronda' ? (n === 2 ? '1v1' : '2v2') : n}</Text>

@@ -35,6 +35,7 @@ import socketService from '../network/socketService';
 import useHintDelay from '../utils/useHintDelay';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
+import { t as tr } from '../i18n';
 
 const MINT = require('../../assets/menthe.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -53,7 +54,7 @@ function Pile({ count, bumpKey }) {
     return (
         <Animated.View style={[styles.pile, style]}>
             {count === 0 ? (
-                <View style={styles.pileEmpty}><Text style={styles.pileEmptyText}>Tas vide</Text></View>
+                <View style={styles.pileEmpty}><Text style={styles.pileEmptyText}>{tr("Tas vide")}</Text></View>
             ) : (
                 Array.from({ length: layers }).map((_, i) => (
                     <View key={i} style={{ position: 'absolute', transform: [{ rotate: `${(i * 37) % 21 - 10}deg` }, { translateY: -i * 1.5 }] }}>
@@ -110,7 +111,7 @@ function Reveal({ reveal, nameOf }) {
     const liar = !reveal.truthful;
     return (
         <Animated.View entering={FadeIn.duration(150)} exiting={FadeOut.duration(250)} style={styles.revealOverlay} pointerEvents="none">
-            <Text style={styles.revealCall}>{nameOf(reveal.by)} crie KDOUB !</Text>
+            <Text style={styles.revealCall}>{nameOf(reveal.by)} {tr("crie KDOUB !")}</Text>
             <Text style={styles.revealClaim}>{nameOf(reveal.target)} avait annoncé {plural(reveal.revealed.length, '×')} {reveal.value}</Text>
             <View style={styles.revealCards}>
                 {reveal.revealed.map((c) => {
@@ -127,7 +128,7 @@ function Reveal({ reveal, nameOf }) {
                 })}
             </View>
             <Animated.View style={[styles.verdict, { backgroundColor: liar ? '#B91C1C' : '#047857' }, verdictStyle]}>
-                <Text style={styles.verdictText}>{liar ? 'MENTEUR !' : "C'ÉTAIT VRAI !"}</Text>
+                <Text style={styles.verdictText}>{liar ? tr('MENTEUR !') : tr("C'ÉTAIT VRAI !")}</Text>
                 <Text style={styles.verdictSub}>{nameOf(reveal.loser)} ramasse {plural(reveal.taken, 'carte')}</Text>
             </Animated.View>
         </Animated.View>
@@ -145,8 +146,8 @@ function KdoubButton({ onPress }) {
     return (
         <Animated.View entering={ZoomIn.springify().damping(10)} exiting={FadeOut} style={style}>
             <PressableScale onPress={onPress} sound={null} scaleTo={0.9} style={styles.kdoubBtn}>
-                <Text style={styles.kdoubText}>KDOUB !</Text>
-                <Text style={styles.kdoubSub}>il ment ?</Text>
+                <Text style={styles.kdoubText}>{tr("KDOUB !")}</Text>
+                <Text style={styles.kdoubSub}>{tr("il ment ?")}</Text>
             </PressableScale>
         </Animated.View>
     );
@@ -189,7 +190,7 @@ export default function KdoubScreen({ route, navigation }) {
     const me = state?.myIndex ?? -1;
     const n = state?.numPlayers || 3;
     const seats = useMemo(() => seatMap(n, me >= 0 ? me : 0), [n, me]);
-    const nameOf = (i) => (i === me ? 'Toi' : state?.players?.[i]?.name || `Joueur ${i + 1}`);
+    const nameOf = (i) => (i === me ? tr('Toi') : state?.players?.[i]?.name || tr('Joueur {n}', { n: i + 1 }));
     const isMyTurn = me >= 0 && state?.phase === 'play' && state.turn === me;
     // Début de partie ou après un KDOUB : le joueur dont c'est le tour choisit la valeur à annoncer
     const choosing = state?.phase === 'play' && (state.expected === null || state.expected === undefined);
@@ -221,7 +222,7 @@ export default function KdoubScreen({ route, navigation }) {
             socketService.onTimerTick((d) => setTimeLeft(d.timeLeft)),
             socketService.onGameError((err) => {
                 audioService.playSound('error');
-                showToast(`⚠️ ${err?.message || 'Action impossible'}`, theme.redLight);
+                showToast(`⚠️ ${err?.message || tr('Action impossible')}`, theme.redLight);
             }),
             socketService.onActionRejected(() => audioService.playSound('error')),
         ];
@@ -263,10 +264,10 @@ export default function KdoubScreen({ route, navigation }) {
         switch (e.type) {
             case 'deal':
                 audioService.playDeal(10, 70);
-                showToast(`🃏 Cartes distribuées. ${s.turn === me ? 'À toi de choisir la carte à annoncer !' : `${nameOf(s.turn)} choisit la carte à annoncer`}`, theme.gold);
+                showToast(`🃏 Cartes distribuées. ${s.turn === me ? tr('À toi de choisir la carte à annoncer !') : `${nameOf(s.turn)} choisit la carte à annoncer`}`, theme.gold);
                 break;
             case 'choose':
-                if (e.player !== me) showToast(`📣 ${nameOf(e.player)} annonce des ${valueLabel(e.value)}`, theme.goldLight);
+                if (e.player !== me) showToast(tr("📣 {p0} annonce des {p1}", { p0: nameOf(e.player), p1: valueLabel(e.value) }), theme.goldLight);
                 break;
             case 'pose':
                 setFly({ id: e.id, count: e.count, from: seats[e.player] || 'top' });
@@ -275,7 +276,7 @@ export default function KdoubScreen({ route, navigation }) {
                 haptic('light');
                 if (e.last) {
                     later(() => { audioService.playSound('warning'); haptic('warning'); }, 400);
-                    showToast(`😱 ${nameOf(e.player)} pose ses dernières cartes ! KDOUB ?`, '#FCA5A5');
+                    showToast(tr("😱 {p0} pose ses dernières cartes ! KDOUB ?", { p0: nameOf(e.player) }), '#FCA5A5');
                 }
                 break;
             case 'kdoub':
@@ -287,7 +288,7 @@ export default function KdoubScreen({ route, navigation }) {
                     shake(e.truthful ? 6 : 14);
                     haptic(e.truthful ? 'success' : 'error');
                     audioService.playSound(e.truthful ? 'vrai' : 'menteur');
-                    if (!e.truthful) showFx('pinocchio', e.target === me ? 'Tu as menti : tu ramasses le tas' : `${nameOf(e.target)} a menti : il ramasse le tas`);
+                    if (!e.truthful) showFx('pinocchio', e.target === me ? tr('Tu as menti : tu ramasses le tas') : tr("{p0} a menti : il ramasse le tas", { p0: nameOf(e.target) }));
                     setBurst({ id: e.id, color: e.truthful ? '#6EE7B7' : '#FCA5A5' });
                     react(e.loser, 'lose');
                     audioService.playSound(e.truthful ? 'coin' : 'penalty');
@@ -297,16 +298,16 @@ export default function KdoubScreen({ route, navigation }) {
                     audioService.playSound('card_draw');
                     // Le tas glisse vers celui qui ramasse
                     setPickup({ id: e.id, count: Math.min(e.taken, 6), to: seats[e.loser] || 'top', scale: land ? 0.5 : 0.9, stagger: 60 });
-                    if (e.loser === me) showToast(`Tu ramasses ${plural(e.taken, 'carte')} 😬`, '#F87171');
+                    if (e.loser === me) showToast(tr("Tu ramasses {p0} 😬", { p0: plural(e.taken, 'carte') }), '#F87171');
                 }, 2700);
                 break;
             case 'forfeit':
                 audioService.playSound('warning');
                 haptic('warning');
-                showToast(`🔌 ${state.players?.[e.player]?.name || 'Un joueur'} est parti : victoire par forfait`, theme.mint);
+                showToast(tr("🔌 {p0} est parti : victoire par forfait", { p0: state.players?.[e.player]?.name || tr('Un joueur') }), theme.mint);
                 break;
             case 'auto_pose':
-                showToast(`⏱️ Temps écoulé : ${nameOf(e.player)} pose une carte au hasard`, theme.textDim);
+                showToast(tr("⏱️ Temps écoulé : {p0} pose une carte au hasard", { p0: nameOf(e.player) }), theme.textDim);
                 break;
             case 'game_over':
                 audioService.stopTickTock();
@@ -328,7 +329,7 @@ export default function KdoubScreen({ route, navigation }) {
             recordGame({
                 game: 'kdoub',
                 won,
-                result: won ? 'Victoire 🎉' : `${place + 1}e place`,
+                result: won ? tr('Victoire 🎉') : tr("{p0}e place", { p0: place + 1 }),
                 opponents: s.players.filter((_, i) => i !== me).map((p) => p.name).join(', '),
             });
             later(() => audioService.playSound(won ? 'victory' : 'defeat'), 800);
@@ -347,9 +348,9 @@ export default function KdoubScreen({ route, navigation }) {
         socketService.leaveRoom(roomId);
         navigation.popToTop();
     };
-    const handleQuit = () => dialog.alert('Quitter la partie ?', 'Un bot prendra ta place.', [
-        { text: 'Rester', style: 'cancel' },
-        { text: 'Quitter', style: 'destructive', onPress: leave },
+    const handleQuit = () => dialog.alert(tr('Quitter la partie ?'), tr('Un bot prendra ta place.'), [
+        { text: tr('Rester'), style: 'cancel' },
+        { text: tr('Quitter'), style: 'destructive', onPress: leave },
     ]);
 
     const myHand = me >= 0 ? state?.hands?.[me] || [] : [];
@@ -416,7 +417,7 @@ export default function KdoubScreen({ route, navigation }) {
     // Choix de la carte à annoncer (portrait : au-dessus de la main ; paysage : au centre, à la place de l'annonce)
     const picker = (
         <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.picker}>
-            <Text style={styles.pickerTitle}>📣 CHOISIS LA CARTE À ANNONCER</Text>
+            <Text style={styles.pickerTitle}>{tr("📣 CHOISIS LA CARTE À ANNONCER")}</Text>
             <View style={styles.pickerRow}>
                 {ORDER.map((v) => (
                     <PressableScale key={v} onPress={() => { setChosen(v); audioService.playSound('pop', { volume: 0.5 }); }} style={[styles.pickerChip, chosen === v && styles.pickerChipOn]}>
@@ -450,10 +451,10 @@ export default function KdoubScreen({ route, navigation }) {
                 <CircularTimer timeLeft={timeLeft} maxTime={inWindow ? 5 : 40} size={36} />
                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                     <Text style={[styles.turnLabel, (isMyTurn || canAccuse) && { color: theme.bg }]}>
-                        {inWindow ? 'FENÊTRE KDOUB' : 'TOUR DE'}
+                        {inWindow ? tr('FENÊTRE KDOUB') : tr('TOUR DE')}
                     </Text>
                     <Text style={[styles.turnName, (isMyTurn || canAccuse) && { color: theme.bg }]} numberOfLines={1}>
-                        {inWindow ? (lp?.player === me ? 'On te croit ?' : 'Il ment ?') : isMyTurn ? 'TOI' : nameOf(state.turn)}
+                        {inWindow ? (lp?.player === me ? tr('On te croit ?') : tr('Il ment ?')) : isMyTurn ? tr('TOI') : nameOf(state.turn)}
                     </Text>
                 </View>
             </View>
@@ -488,7 +489,7 @@ export default function KdoubScreen({ route, navigation }) {
                         <View style={[styles.centerRow, land && { gap: 18 }]}>
                             {land && isMyTurn && choosing ? picker : (
                             <View style={styles.expectedBox}>
-                                <Text style={styles.expectedLabel}>{inWindow ? 'ANNONCÉ' : choosing ? 'NOUVELLE CARTE' : 'À ANNONCER'}</Text>
+                                <Text style={styles.expectedLabel}>{inWindow ? tr('ANNONCÉ') : choosing ? tr('NOUVELLE CARTE') : tr('À ANNONCER')}</Text>
                                 {choosing && !chosen ? (
                                     <View style={[styles.choiceCard, { width: land ? 40 : 48, height: land ? 58 : 70 }]}>
                                         <Text style={styles.choiceMark}>?</Text>
@@ -497,7 +498,7 @@ export default function KdoubScreen({ route, navigation }) {
                                     <CardFace card={{ suit: 'Oros', value: inWindow && lp ? lp.value : announceValue }} width={land ? 40 : 48} height={land ? 58 : 70} />
                                 )}
                                 <Text style={styles.expectedValue} numberOfLines={1}>
-                                    {inWindow && lp ? valueLabel(lp.value) : choosing && !chosen ? (isMyTurn ? 'À toi de choisir' : `${nameOf(state.turn)} choisit`) : valueLabel(announceValue)}
+                                    {inWindow && lp ? valueLabel(lp.value) : choosing && !chosen ? (isMyTurn ? tr('À toi de choisir') : tr('{p} choisit', { p: nameOf(state.turn) })) : valueLabel(announceValue)}
                                 </Text>
                             </View>
                             )}
@@ -530,7 +531,7 @@ export default function KdoubScreen({ route, navigation }) {
 
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {me < 0 ? (
-                        <View style={styles.spectatorBox}><Text style={styles.spectatorText}>👀 Tu es spectateur</Text></View>
+                        <View style={styles.spectatorBox}><Text style={styles.spectatorText}>{tr("👀 Tu es spectateur")}</Text></View>
                     ) : (
                         <>
                             <View style={[styles.actionRow, land && styles.actionRowLand]} pointerEvents="box-none">
@@ -540,8 +541,8 @@ export default function KdoubScreen({ route, navigation }) {
                                     <Animated.View entering={ZoomIn.springify()} exiting={FadeOut}>
                                         <GameButton
                                             small
-                                            title={!announceValue ? (selected.length ? 'Choisis la carte annoncée' : 'Choisis la carte et 1 à 4 cartes')
-                                                : selected.length ? `POSER ${selected.length} × ${announceValue}` : `Choisis 1 à 4 cartes (${announceValue})`}
+                                            title={!announceValue ? (selected.length ? tr('Choisis la carte annoncée') : tr('Choisis la carte et 1 à 4 cartes'))
+                                                : selected.length ? tr('POSER {n} × {v}', { n: selected.length, v: announceValue }) : tr('Choisis 1 à 4 cartes ({v})', { v: announceValue })}
                                             icon="🂠"
                                             variant={selected.length && announceValue ? 'gold' : 'outline'}
                                             disabled={!selected.length || !announceValue}
@@ -554,11 +555,11 @@ export default function KdoubScreen({ route, navigation }) {
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || tr('Toi')} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
-                                        <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>Toi · {myHand.length}</Text>
+                                        <Text style={[styles.meName, isMyTurn && { color: theme.bg }]}>{tr("Toi ·")} {myHand.length}</Text>
                                     </View>
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
@@ -596,14 +597,14 @@ export default function KdoubScreen({ route, navigation }) {
             {showEnd && state.phase === 'over' && state.ranking && (
                 <RankingEndOverlay
                     emoji={state.winner === me ? '🏆' : '🃏'}
-                    title={state.winner === me ? 'VICTOIRE !' : `${nameOf(state.winner).toUpperCase()} GAGNE`}
-                    subtitle={state.forfeit ? 'Adversaire parti : victoire par forfait' : state.winner === me ? 'Tu as vidé ta main en premier' : 'Classement au nombre de cartes restantes'}
+                    title={state.winner === me ? tr('VICTOIRE !') : tr('{p} GAGNE', { p: nameOf(state.winner).toUpperCase() })}
+                    subtitle={state.forfeit ? tr('Adversaire parti : victoire par forfait') : state.winner === me ? tr('Tu as vidé ta main en premier') : tr('Classement au nombre de cartes restantes')}
                     rows={state.ranking.map((r, k) => ({
                         player: r.player,
                         name: state.players[r.player]?.name,
                         avatar: state.players[r.player]?.avatar,
                         isMe: r.player === me,
-                        detail: k === 0 ? '0 carte 🏆' : plural(r.cards, 'carte'),
+                        detail: k === 0 ? tr('0 carte 🏆') : plural(r.cards, 'carte'),
                     }))}
                     won={state.winner === me}
                     lost={me >= 0 && state.winner !== me && state.ranking[state.ranking.length - 1]?.player === me}

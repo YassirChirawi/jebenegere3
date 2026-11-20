@@ -33,6 +33,7 @@ import { dialog } from '../components/Dialog';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { recordGame, addXp } from '../utils/stats';
+import { t as tr } from '../i18n';
 
 const MINT = require('../../assets/menthe.png');
 const ORDER = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12];
@@ -74,7 +75,7 @@ function PairFlash({ flash }) {
     }));
     return (
         <Animated.View pointerEvents="none" style={[styles.pairFlash, style]}>
-            <Text style={styles.pairTitle}>PAIRE !</Text>
+            <Text style={styles.pairTitle}>{tr("PAIRE !")}</Text>
             <View style={{ flexDirection: 'row', gap: 6 }}>
                 {flash.pair.map((c) => <CardFace key={c.id} card={c} width={52} height={76} />)}
             </View>
@@ -92,7 +93,7 @@ function SotaReveal({ reveal }) {
     const style = useAnimatedStyle(() => ({ transform: [{ scale: 0.3 + t.value * 0.7 }, { rotateZ: `${(1 - t.value) * -30}deg` }], opacity: Math.min(1, t.value * 2) }));
     return (
         <Animated.View entering={FadeIn} exiting={FadeOut} style={styles.revealOverlay} pointerEvents="none">
-            <Text style={styles.revealTitle}>SOTA !</Text>
+            <Text style={styles.revealTitle}>{tr("SOTA !")}</Text>
             <Animated.View style={style}>
                 {reveal.sota ? <CardFace card={reveal.sota} width={130} height={186} /> : <CardBack width={130} height={186} />}
             </Animated.View>
@@ -138,7 +139,7 @@ export default function SotaScreen({ route, navigation }) {
     const me = state?.myIndex ?? -1;
     const n = state?.numPlayers || 4;
     const seats = useMemo(() => seatMap(n, me >= 0 ? me : 0), [n, me]);
-    const nameOf = (i) => (i === me ? 'Toi' : state?.players?.[i]?.name || `Joueur ${i + 1}`);
+    const nameOf = (i) => (i === me ? tr('Toi') : state?.players?.[i]?.name || tr('Joueur {n}', { n: i + 1 }));
     const isMyTurn = me >= 0 && state?.phase === 'play' && state.turn === me;
 
     const shakeX = useSharedValue(0);
@@ -166,7 +167,7 @@ export default function SotaScreen({ route, navigation }) {
             socketService.onTimerTick((d) => setTimeLeft(d.timeLeft)),
             socketService.onGameError((err) => {
                 audioService.playSound('error');
-                showToast(`⚠️ ${err?.message || 'Action impossible'}`, theme.redLight);
+                showToast(`⚠️ ${err?.message || tr('Action impossible')}`, theme.redLight);
             }),
             socketService.onActionRejected(() => { setPicking(false); audioService.playSound('error'); }),
         ];
@@ -204,12 +205,12 @@ export default function SotaScreen({ route, navigation }) {
         switch (e.type) {
             case 'deal':
                 audioService.playDeal(10, 70);
-                showToast('🃏 Distribution : chacun élimine ses paires', theme.gold);
+                showToast(tr('🃏 Distribution : chacun élimine ses paires'), theme.gold);
                 break;
             case 'initial_pairs':
                 if (e.player === me) {
                     later(() => { audioService.playSound('coin'); haptic('light'); }, 600);
-                    showToast(`✨ Tu élimines ${plural(e.pairs.length, 'paire')} au départ`, theme.mint);
+                    showToast(tr("✨ Tu élimines {p0} au départ", { p0: plural(e.pairs.length, 'paire') }), theme.mint);
                 }
                 break;
             case 'pick':
@@ -219,11 +220,11 @@ export default function SotaScreen({ route, navigation }) {
                 setPickFly({ id: e.id, count: 1, to: seats[e.by] || 'bottom', cards: e.card && (e.by === me) ? [e.card] : undefined, scale: land ? 0.5 : 0.85 });
                 if (e.by === me && e.card) {
                     haptic('light');
-                    if (e.card.value === 10) showFx('dix', 'Tu as pioché la Sota : toi seul la vois');
+                    if (e.card.value === 10) showFx('dix', tr('Tu as pioché la Sota : toi seul la vois'));
                     setLastDrawn({ id: e.id, card: e.card });
                     later(() => setLastDrawn((d) => (d && d.id === e.id ? null : d)), 2200);
                 } else if (e.from === me && e.card) {
-                    showToast(`${nameOf(e.by)} t'a pris ${e.card.value === 10 ? 'la SOTA 😈' : `un ${e.card.value}`}`, e.card.value === 10 ? theme.mint : theme.cream);
+                    showToast(`${nameOf(e.by)} t'a pris ${e.card.value === 10 ? tr('la SOTA 😈') : `un ${e.card.value}`}`, e.card.value === 10 ? theme.mint : theme.cream);
                     if (e.card.value === 10) { audioService.playSound('laugh', { volume: 0.4 }); haptic('success'); }
                 }
                 break;
@@ -240,17 +241,17 @@ export default function SotaScreen({ route, navigation }) {
                 if (e.player === me) {
                     audioService.playSound('victory');
                     haptic('success');
-                    setBanner({ id: e.id, text: 'TU ES SORTI !', sub: 'Pas de Sota pour toi 😎', color: '#047857', textColor: '#fff' });
+                    setBanner({ id: e.id, text: tr('TU ES SORTI !'), sub: tr('Pas de Sota pour toi 😎'), color: '#047857', textColor: '#fff' });
                 } else {
                     audioService.playSound('player_out');
-                    showToast(`🏁 ${nameOf(e.player)} est sorti !`, theme.mint);
+                    showToast(tr("🏁 {p0} est sorti !", { p0: nameOf(e.player) }), theme.mint);
                 }
                 break;
             case 'auto_pick':
-                showToast(`⏱️ Temps écoulé : ${nameOf(e.player)} pioche au hasard`, theme.textDim);
+                showToast(tr("⏱️ Temps écoulé : {p0} pioche au hasard", { p0: nameOf(e.player) }), theme.textDim);
                 break;
             case 'forfeit':
-                showToast(`🔌 ${state.players?.[e.player]?.name || 'Un joueur'} est parti`, theme.textDim);
+                showToast(tr("🔌 {p0} est parti", { p0: state.players?.[e.player]?.name || tr('Un joueur') }), theme.textDim);
                 break;
             case 'game_over':
                 audioService.stopTickTock();
@@ -270,7 +271,7 @@ export default function SotaScreen({ route, navigation }) {
             setBurst({ id: Date.now(), color: '#D8B4FE', size: 320 });
             setReveal({
                 sota: e.sota,
-                text: iLost ? 'Tu as la Sota : tu es le Ghamla !' : `Sota chez ${nameOf(e.loser)} : c'est le Ghamla !`,
+                text: iLost ? tr('Tu as la Sota : tu es le Ghamla !') : tr("Sota chez {p0} : c'est le Ghamla !", { p0: nameOf(e.loser) }),
             });
         }, 700);
         later(() => {
@@ -286,7 +287,7 @@ export default function SotaScreen({ route, navigation }) {
             recordGame({
                 game: 'sota',
                 won: !iLost,
-                result: iLost ? 'Ghamla 💀 (Sota)' : place === 0 ? 'Sorti 1er 🎉' : `Sorti ${place + 1}e`,
+                result: iLost ? tr('Ghamla 💀 (Sota)') : place === 0 ? tr('Sorti 1er 🎉') : tr("Sorti {p0}e", { p0: place + 1 }),
                 opponents: s.players.filter((_, i) => i !== me).map((p) => p.name).join(', '),
             });
         }
@@ -303,9 +304,9 @@ export default function SotaScreen({ route, navigation }) {
         socketService.leaveRoom(roomId);
         navigation.popToTop();
     };
-    const handleQuit = () => dialog.alert('Quitter la partie ?', 'Un bot prendra ta place.', [
-        { text: 'Rester', style: 'cancel' },
-        { text: 'Quitter', style: 'destructive', onPress: leave },
+    const handleQuit = () => dialog.alert(tr('Quitter la partie ?'), tr('Un bot prendra ta place.'), [
+        { text: tr('Rester'), style: 'cancel' },
+        { text: tr('Quitter'), style: 'destructive', onPress: leave },
     ]);
 
     const pick = (index) => {
@@ -341,7 +342,7 @@ export default function SotaScreen({ route, navigation }) {
                 position={pos === 'left' || pos === 'right' ? pos : 'top'}
                 compact={land && pos.startsWith('top')}
                 finished={out}
-                badge={state.target === i && state.phase === 'play' ? (state.turn === me ? 'TU PIOCHES ICI' : 'CIBLE') : `${plural(state.pairs[i].length, 'paire')}`}
+                badge={state.target === i && state.phase === 'play' ? (state.turn === me ? tr('TU PIOCHES ICI') : tr('CIBLE')) : (state.pairs[i].length > 1 ? tr('{n} paires', { n: state.pairs[i].length }) : tr('{n} paire', { n: state.pairs[i].length }))}
                 badgeColor={state.target === i && state.phase === 'play' ? '#FCD34D' : undefined}
                 isInitialDeal={false}
             />
@@ -382,7 +383,7 @@ export default function SotaScreen({ route, navigation }) {
                         {state.phase === 'play' && target !== null && (
                             <>
                                 <Text style={styles.pickLabel}>
-                                    {isMyTurn ? `Touche une carte de ${nameOf(target)}` : `${nameOf(state.turn)} pioche chez ${nameOf(target)}`}
+                                    {isMyTurn ? tr('Touche une carte de {p}', { p: nameOf(target) }) : tr('{p} pioche chez {q}', { p: nameOf(state.turn), q: nameOf(target) })}
                                 </Text>
                                 <View style={[styles.pickFan, isMyTurn && styles.pickFanMine]}>
                                     {Array.from({ length: targetCount }).map((_, i) => (
@@ -394,7 +395,7 @@ export default function SotaScreen({ route, navigation }) {
 
                         {lastDrawn && (
                             <Animated.View entering={ZoomIn.springify()} exiting={FadeOut} style={styles.drawn}>
-                                <Text style={styles.drawnLabel}>Tu as pioché</Text>
+                                <Text style={styles.drawnLabel}>{tr("Tu as pioché")}</Text>
                                 <CardFace card={lastDrawn.card} width={44} height={64} />
                             </Animated.View>
                         )}
@@ -403,9 +404,9 @@ export default function SotaScreen({ route, navigation }) {
                             <View style={[styles.turnChip, isMyTurn && styles.turnChipMine]}>
                                 <CircularTimer timeLeft={timeLeft} maxTime={30} size={36} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
-                                    <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>TOUR DE</Text>
+                                    <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>{tr("TOUR DE")}</Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? 'TOI' : nameOf(state.turn)}
+                                        {isMyTurn ? tr('TOI') : nameOf(state.turn)}
                                     </Text>
                                 </View>
                             </View>
@@ -423,13 +424,13 @@ export default function SotaScreen({ route, navigation }) {
 
                 <View style={[styles.playerArea, land && styles.playerAreaLand]}>
                     {me < 0 ? (
-                        <View style={styles.spectatorBox}><Text style={styles.spectatorText}>👀 Tu es spectateur</Text></View>
+                        <View style={styles.spectatorBox}><Text style={styles.spectatorText}>{tr("👀 Tu es spectateur")}</Text></View>
                     ) : (
                         <>
                             <View style={[styles.meRow, land && styles.meRowLand]} pointerEvents="box-none">
                                 <View style={styles.meInfo}>
                                     <View>
-                                        <PlayerAvatar name={playerName || 'Toi'} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
+                                        <PlayerAvatar name={playerName || tr('Toi')} variant={state.players?.[me]?.avatar || 0} size={38} active={isMyTurn} mood={moods[me]} />
                                         <ReactionBubble emoji={activeReactions[me]} />
                                     </View>
                                     <View style={[styles.mePill, isMyTurn && styles.mePillActive]}>
@@ -437,7 +438,7 @@ export default function SotaScreen({ route, navigation }) {
                                             Toi · {myHand.length} · {plural(myPairs, 'paire')}
                                         </Text>
                                     </View>
-                                    {state.target === me && state.phase === 'play' && <Text style={styles.targetMe}>on pioche chez toi</Text>}
+                                    {state.target === me && state.phase === 'play' && <Text style={styles.targetMe}>{tr("on pioche chez toi")}</Text>}
                                     {isMyTurn && <Image source={MINT} style={styles.mint} />}
                                 </View>
                                 <ReactionBar land={land} onSend={sendReaction} />
@@ -445,7 +446,7 @@ export default function SotaScreen({ route, navigation }) {
 
                             <View style={[styles.hand, land && styles.handLand]}>
                                 {myHand.length === 0 && state.phase === 'play' ? (
-                                    <View style={styles.outBox}><Text style={styles.outText}>🏁 Tu es sorti ! Regarde qui finira avec la Sota…</Text></View>
+                                    <View style={styles.outBox}><Text style={styles.outText}>{tr("🏁 Tu es sorti ! Regarde qui finira avec la Sota…")}</Text></View>
                                 ) : (
                                     handLayout.map(({ card, x, angle, arcY }, i) => (
                                         <MasterCard key={card.id} card={card} index={i} x={x} angle={angle} arcY={arcY} isMyTurn={false} isPlayable={false} glow={card.value === 10} isInitialDeal />
@@ -465,17 +466,17 @@ export default function SotaScreen({ route, navigation }) {
             {showEnd && state.phase === 'over' && (
                 <RankingEndOverlay
                     emoji={state.loser === me ? '💀' : '🎉'}
-                    title={state.loser === me ? 'GHAMLA !' : 'BRAVO !'}
-                    subtitle={state.forfeit ? 'Un joueur est parti' : state.loser === me ? 'Tu as fini avec la Sota' : `Sota chez ${nameOf(state.loser)}`}
+                    title={state.loser === me ? tr('GHAMLA !') : tr('BRAVO !')}
+                    subtitle={state.forfeit ? tr('Un joueur est parti') : state.loser === me ? tr('Tu as fini avec la Sota') : tr("Sota chez {p0}", { p0: nameOf(state.loser) })}
                     hero={state.sota ? (
                         <View style={styles.heroSota}>
                             <CardFace card={state.sota} width={60} height={86} />
-                            <Text style={styles.heroText}>La Sota</Text>
+                            <Text style={styles.heroText}>{tr("La Sota")}</Text>
                         </View>
                     ) : null}
                     rows={[
-                        ...state.outOrder.map((p, k) => ({ player: p, name: state.players[p]?.name, avatar: state.players[p]?.avatar, isMe: p === me, detail: k === 0 ? 'Sorti 1er 🏆' : `Sorti ${k + 1}e` })),
-                        ...(state.loser !== null ? [{ player: state.loser, name: state.players[state.loser]?.name, avatar: state.players[state.loser]?.avatar, isMe: state.loser === me, detail: 'Ghamla (Sota)', loser: true }] : []),
+                        ...state.outOrder.map((p, k) => ({ player: p, name: state.players[p]?.name, avatar: state.players[p]?.avatar, isMe: p === me, detail: k === 0 ? tr('Sorti 1er 🏆') : tr("Sorti {p0}e", { p0: k + 1 }) })),
+                        ...(state.loser !== null ? [{ player: state.loser, name: state.players[state.loser]?.name, avatar: state.players[state.loser]?.avatar, isMe: state.loser === me, detail: tr('Ghamla (Sota)'), loser: true }] : []),
                     ]}
                     won={me >= 0 && state.loser !== me}
                     lost={state.loser === me}

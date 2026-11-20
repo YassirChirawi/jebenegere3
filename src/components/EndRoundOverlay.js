@@ -6,6 +6,7 @@ import { WinEffect } from './WinEffects';
 import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
+import { t as tr } from '../i18n';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -29,7 +30,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
         return () => ts.forEach(clearTimeout);
     }, []);
 
-    const loserName = players[loser]?.name || 'Un joueur';
+    const loserName = players[loser]?.name || tr('Un joueur');
     const { width, height } = useWindowDimensions();
     const compact = height < 520; // téléphone en paysage
 
@@ -40,12 +41,12 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                 <ScrollView style={{ width: '100%' }} contentContainerStyle={{ alignItems: 'center' }} showsVerticalScrollIndicator={false}>
                 {!compact && <Text style={styles.emoji}>{iLost ? '💀' : isPlayer ? '🎉' : '🏁'}</Text>}
                 <Text style={[styles.title, iLost && { color: '#F87171' }, compact && { fontSize: 22 }]}>
-                    {iLost ? 'KHASSER !' : isPlayer ? 'BRAVO !' : 'MANCHE TERMINÉE'}
+                    {iLost ? tr('KHASSER !') : isPlayer ? tr('BRAVO !') : tr('MANCHE TERMINÉE')}
                 </Text>
                 <Text style={[styles.subtitle, compact && { marginBottom: 8 }]}>
                     {gameState.forfeit
-                        ? `Adversaire parti : victoire par forfait !`
-                        : iLost ? 'Tu es le dernier avec des cartes…' : `${loserName} est le Khasser !`}
+                        ? tr("Adversaire parti : victoire par forfait !")
+                        : iLost ? tr('Tu es le dernier avec des cartes…') : tr("{p0} est le Khasser !", { p0: loserName })}
                 </Text>
 
                 <View style={styles.table}>
@@ -62,11 +63,11 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                                 <Text style={styles.medal}>{isLoser ? '💀' : MEDALS[rank] ?? `${rank + 1}.`}</Text>
                                 <PlayerAvatar name={players[pIdx]?.name} variant={players[pIdx]?.avatar || 0} size={30} />
                                 <Text style={[styles.name, isMe && { color: theme.goldLight }]} numberOfLines={1}>
-                                    {isMe ? 'Vous' : players[pIdx]?.name}
+                                    {isMe ? tr('Vous') : players[pIdx]?.name}
                                 </Text>
                                 <View style={styles.scoreCol}>
                                     <Text style={[styles.earned, isLoser && { color: '#F87171' }]}>+{earned}</Text>
-                                    <Text style={styles.totalScore}>{gameState.scores?.[pIdx] ?? 0} pts</Text>
+                                    <Text style={styles.totalScore}>{gameState.scores?.[pIdx] ?? 0} {tr("pts")}</Text>
                                 </View>
                             </Animated.View>
                         );
@@ -84,16 +85,16 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                 </ScrollView>
                 <View style={[styles.actions, compact && { marginTop: 8 }]}>
                     {canReplay ? (
-                        <GameButton small title="Rejouer" icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
+                        <GameButton small title={tr("Rejouer")} icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
                     ) : (
                         <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>En attente de l'hôte…</Text>
+                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
                         </View>
                     )}
-                    <GameButton small title="Quitter" icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
+                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
                 </View>
                 {onChangeGame && (
-                    <GameButton small title="Changer de jeu" icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
+                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
                 )}
             </Animated.View>
         </Animated.View>
