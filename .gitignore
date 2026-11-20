@@ -44,3 +44,7 @@ yarn-error.*
 assets/music/808xri-*.mp3
 # Planches originales de Yassir (plusieurs Mo) : seules les images découpées sont versionnées
 assets/sources/
+
+# Tests dans le navigateur : site construit et captures
+e2e/.web/
+e2e/.shots/

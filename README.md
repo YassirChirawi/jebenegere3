@@ -575,6 +575,19 @@ npm test                   # tests des moteurs, puis tests réseau de bout en bo
                            # compte à rebours, changement de jeu et retour au salon
 ```
 
+**Dans le navigateur** (dossier [e2e/](e2e/)) : le vrai site, construit, avec le vrai serveur et Chrome sans fenêtre.
+
+```bash
+npm run e2e                # construit le site (e2e/.web) puis lance tous les tests
+npm run e2e -- --no-build  # relance sans reconstruire
+npm run e2e -- discord     # seulement les tests dont le nom contient « discord »
+```
+
+- `onboarding.e2e.js` : premier lancement (4 écrans, pseudo, première partie contre l'ordinateur, pas revu ensuite).
+- `discord.e2e.js` : la page servie comme dans Discord (`…discordsays.com`, serveur par `/server`), SDK chargé seulement là.
+- `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
+- Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.
+
 ## Architecture
 
 ```
