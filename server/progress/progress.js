@@ -415,6 +415,31 @@ function createProgress(store) {
         return { success: true };
     }
 
+    // ------------------------------------------------------------------ notifications
+    // u.inbox : [{ id, type, at, read, from: { id, name, avatar }, data }] (50 au plus, 30 jours)
+    const INBOX_MAX = 50;
+    const INBOX_TTL = 30 * 24 * 3600 * 1000;
+    async function notify(userId, { type, from = null, data = {} }, now = Date.now()) {
+        const item = { id: crypto.randomUUID(), type, at: now, read: false, from, data };
+        const ok = await withUser(userId, (u) => {
+            if (!isPlayer(u)) return false;
+            u.inbox = [item, ...(u.inbox || []).filter((x) => now - x.at < INBOX_TTL)].slice(0, INBOX_MAX);
+            return true;
+        });
+        return ok ? item : null;
+    }
+    async function inboxView(user, now = Date.now()) {
+        const u = await store.get(user.id);
+        const items = (u?.inbox || []).filter((x) => now - x.at < INBOX_TTL);
+        return { items, unread: items.filter((x) => !x.read).length };
+    }
+    async function markInboxRead(user, ids = null) {
+        await withUser(user.id, (u) => {
+            (u.inbox || []).forEach((x) => { if (!ids || ids.includes(x.id)) x.read = true; });
+        });
+        return inboxView(user);
+    }
+
     async function areFriends(aId, bId) {
         const a = await store.get(aId);
         return !!a && (a.friends || []).includes(bId);
@@ -794,6 +819,7 @@ function createProgress(store) {
             id: u.id,
             name: u.name,
             discord: u.discordId ? (u.id === `discord-${u.discordId}` ? 'only' : 'linked') : null, // compte créé dans Discord / relié
+            unread: (u.inbox || []).filter((x) => !x.read && Date.now() - x.at < 30 * 24 * 3600 * 1000).length,
             avatar: u.avatar || 0,
             title: u.title,
             xp: u.xp,
@@ -841,7 +867,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, discordLogin, linkDiscord, friendsView, requestFriend, respondFriend, removeFriend, areFriends, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, discordLogin, linkDiscord, friendsView, requestFriend, respondFriend, removeFriend, areFriends, notify, inboxView, markInboxRead, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

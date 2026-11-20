@@ -31,6 +31,13 @@ const { setup, createChecker } = require('./helpers');
     // Nadia crée un salon et invite Omar
     await pa.goto(t.url);
     await t.sleep(3500);
+    c.check('cloche de Nadia : 1 notification non lue', (await pa.locator('[aria-label^="Notifications : 1 non lue"]').count()) > 0);
+    await pa.locator('[aria-label^="Notifications"]').first().click({ force: true });
+    await t.sleep(1200);
+    c.check('notification « Omar a accepté ta demande »', /Omar a accepté ta demande/.test(await t.text(pa)));
+    await pa.locator('text=/^Fermer$/').last().click();
+    await t.sleep(1500);
+    c.check('lue : plus de pastille', (await pa.locator('[aria-label^="Notifications : "]').count()) === 0);
     await pa.locator('[aria-label="Entre amis"]').first().click({ force: true });
     await t.sleep(2000);
     await pa.locator('text=/Inviter un ami/').first().click();

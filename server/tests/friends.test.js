@@ -94,3 +94,32 @@ test('routes amis et invitation directe d\'un ami connecté dans un salon', asyn
     assert.equal((await emitAck(cb, 'friend_invite', { roomId, userId: la.friends[0].id })).success, false);
     assert.equal((await call('/api/friends', 'faux.jeton')).status, 401);
 });
+
+test('notifications : demande, acceptation, invitation même hors ligne ; lues', async () => {
+    const a = await app.progress.register({ name: 'Leila', password: 'secret12' });
+    const b = await app.progress.register({ name: 'Mehdi', password: 'secret12' });
+    await call('/api/friends/request', a.token, { name: 'Mehdi' });
+    let ib = await call('/api/inbox', b.token);
+    assert.equal(ib.unread, 1);
+    assert.equal(ib.items[0].type, 'friend_request');
+    assert.equal(ib.items[0].from.name, 'Leila');
+    assert.equal((await call('/api/me', b.token)).profile.unread, 1, 'le profil porte le nombre de non lues');
+
+    await call('/api/friends/respond', b.token, { id: ib.items[0].from.id, accept: true });
+    const ia = await call('/api/inbox', a.token);
+    assert.equal(ia.items[0].type, 'friend_accepted');
+
+    // Mehdi n'est pas connecté : l'invitation l'attend dans ses notifications
+    const ca = await client(a.token);
+    const { roomId } = await emitAck(ca, 'create_room', { playerName: 'Leila', gameType: 'hezz2' });
+    const meId = (await app.progress.userFromToken(b.token)).id;
+    const r = await emitAck(ca, 'friend_invite', { roomId, userId: meId });
+    assert.ok(r.success && !r.delivered);
+    ib = await call('/api/inbox', b.token);
+    assert.equal(ib.items[0].type, 'room_invite');
+    assert.equal(ib.items[0].data.roomId, roomId);
+    assert.equal(ib.unread, 2);
+
+    const read = await call('/api/inbox/read', b.token, {});
+    assert.equal(read.unread, 0);
+});

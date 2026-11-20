@@ -28,6 +28,7 @@ import Onboarding from '../components/Onboarding';
 import { inDiscord, discordInstanceId } from '../utils/discord';
 import AppNav, { useLandscape } from '../components/AppNav';
 import { useFriends } from '../network/friendsService';
+import InboxBell from '../components/InboxBell';
 import { setWideFrame } from '../utils/frame';
 import { ChestArt } from '../components/ChestOpening';
 import { SEASON_MS } from '../../server/progress/defs';
@@ -569,6 +570,7 @@ export default function HomeScreen({ navigation, route }) {
                             <Text style={styles.lxCoinsText}>{profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'}</Text>
                             <View style={styles.lxPlus}><Text style={styles.lxPlusText}>+</Text></View>
                         </PressableScale>
+                        <InboxBell navigation={navigation} onJoinRoom={(code) => setInviteCode(code)} />
                         <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
                         <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
                     </View>
@@ -686,7 +688,8 @@ export default function HomeScreen({ navigation, route }) {
                                 <View style={styles.lxPlus}><Text style={styles.lxPlusText}>+</Text></View>
                             </PressableScale>
                             <View style={{ flexDirection: 'row', gap: 8 }}>
-                                <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
+                                <InboxBell navigation={navigation} onJoinRoom={(code) => setInviteCode(code)} />
+                        <GoldSquare onPress={() => audioService.toggleMusic()} label="Musique" style={!musicOn && { opacity: 0.55 }}><Text style={styles.lxSqIcon}>{musicOn ? '🎵' : '🎶'}</Text></GoldSquare>
                                 <GoldSquare onPress={() => audioService.toggleMute()} label="Son"><Text style={styles.lxSqIcon}>{isMuted ? '🔇' : '🔊'}</Text></GoldSquare>
                             </View>
                         </View>

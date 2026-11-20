@@ -83,6 +83,23 @@ const onlineUsers = () => {
 const tellUser = (userId, event, data) => {
     for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === userId) s.emit(event, data);
 };
+// Notification gardée avec le compte, et envoyée tout de suite aux appareils connectés
+async function pushNotice(userId, notice) {
+    const item = await progress.notify(userId, notice);
+    if (item) tellUser(userId, 'inbox', item);
+    return item;
+}
+const fromOf = (u) => ({ id: u.id, name: u.name, avatar: u.avatar || 0 });
+app.get('/api/inbox', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (user) res.json(await progress.inboxView(user));
+}));
+app.post('/api/inbox/read', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const ids = Array.isArray(req.body?.ids) ? req.body.ids.map(String).slice(0, 100) : null;
+    res.json(await progress.markInboxRead(user, ids));
+}));
 app.get('/api/friends', api(async (req, res) => {
     const user = await requireUser(req, res);
     if (!user) return;
@@ -95,7 +112,10 @@ app.post('/api/friends/request', api(async (req, res) => {
     const r = await progress.requestFriend(user, req.body?.name);
     if (r.error) return res.status(400).json(r);
     const other = r.to || r.other;
-    if (other) tellUser(other.id, 'friends_changed', r.sent ? { type: 'request', from: { id: user.id, name: user.name } } : { type: 'accepted', from: { id: user.id, name: user.name } });
+    if (other) {
+        tellUser(other.id, 'friends_changed', r.sent ? { type: 'request', from: { id: user.id, name: user.name } } : { type: 'accepted', from: { id: user.id, name: user.name } });
+        await pushNotice(other.id, { type: r.sent ? 'friend_request' : 'friend_accepted', from: fromOf(user) });
+    }
     res.json(r);
 }));
 app.post('/api/friends/respond', api(async (req, res) => {
@@ -104,6 +124,7 @@ app.post('/api/friends/respond', api(async (req, res) => {
     const r = await progress.respondFriend(user, req.body?.id, !!req.body?.accept);
     if (r.error) return res.status(400).json(r);
     tellUser(r.other.id, 'friends_changed', { type: r.accepted ? 'accepted' : 'declined', from: { id: user.id, name: user.name } });
+    if (r.accepted) await pushNotice(r.other.id, { type: 'friend_accepted', from: fromOf(user) });
     res.json(r);
 }));
 app.post('/api/friends/remove', api(async (req, res) => {
@@ -236,7 +257,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord', 'friends'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord', 'friends', 'inbox'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -918,6 +939,9 @@ io.on('connection', (socket) => {
             const invite = { id: crypto.randomUUID(), roomId: room.id, gameType: room.gameType, from: { id: me.userId, name: me.name, avatar: me.avatar || 0 }, at: Date.now() };
             let delivered = 0;
             for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === friendId) { s.emit('friend_invite', invite); delivered += 1; }
+            // Gardée aussi dans les notifications (ami pas connecté, ou carte fermée trop vite)
+            const item = await progress.notify(friendId, { type: 'room_invite', from: invite.from, data: { roomId: room.id, gameType: room.gameType } });
+            if (item) tellUser(friendId, 'inbox', item);
             reply({ success: true, delivered: delivered > 0 });
         } catch (e) {
             reply({ success: false, message: 'Erreur serveur, réessaie.' });
