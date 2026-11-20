@@ -63,6 +63,16 @@ app.post('/api/discord/token', api(async (req, res) => {
     if (r.error) return res.status(400).json(r);
     res.json({ access_token: d.accessToken, token: r.token, profile: r.profile });
 }));
+// Relier le compte Discord (session en cours) à un compte L'Carta existant (pseudo + mot de passe)
+app.post('/api/discord/link', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.linkDiscord(user, { ...(req.body || {}), ip: req.ip });
+    if (r.error) return res.status(400).json(r);
+    // Les connexions ouvertes avec l'ancien compte Discord repassent en invité ; l'appli se ré-authentifie
+    for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === user.id) s.data.user = null;
+    res.json(r);
+}));
 app.post('/api/logout', api(async (req, res) => {
     await progress.logout(bearer(req));
     res.json({ success: true });

@@ -112,6 +112,44 @@ function AccountForm({ localXp }) {
     );
 }
 
+// Compte créé dans Discord : le relier à un compte L'Carta existant (sa progression y est ajoutée)
+function DiscordLink() {
+    const [name, setName] = useState('');
+    const [password, setPassword] = useState('');
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState(null);
+    const submit = () => {
+        if (!name.trim() || !password) { setError("Entre le pseudo et le mot de passe de ton compte L'Carta."); return; }
+        dialog.alert('Relier tes comptes ?', `Ta progression gagnée dans Discord (XP, binga, statistiques, objets) sera ajoutée au compte « ${name.trim()} ». Ensuite, Discord ouvrira directement ce compte. C'est définitif.`, [
+            { text: 'Annuler', style: 'cancel' },
+            {
+                text: 'Relier',
+                onPress: async () => {
+                    setBusy(true);
+                    setError(null);
+                    const r = await accountService.linkDiscord(name.trim(), password);
+                    setBusy(false);
+                    if (r.error) { setError(r.error); audioService.playSound('error'); return; }
+                    audioService.playSound('victory');
+                    haptic('success');
+                    dialog.alert('Comptes reliés 🎉', `Tu joues maintenant avec ton compte « ${r.profile.name} », sur le site comme dans Discord.`);
+                },
+            },
+        ]);
+    };
+    return (
+        <View>
+            <Text style={styles.dim}>Tu as déjà un compte L'Carta sur le site ou l'appli ? Relie-le à Discord : ta progression d'ici y est ajoutée, et tu retrouves le même compte partout.</Text>
+            <TextInput style={styles.input} placeholder="Pseudo de ton compte L'Carta" placeholderTextColor={theme.textDim} value={name} onChangeText={setName} autoCapitalize="none" maxLength={16} accessibilityLabel="Pseudo du compte L'Carta" />
+            <TextInput style={styles.input} placeholder="Mot de passe" placeholderTextColor={theme.textDim} value={password} onChangeText={setPassword} secureTextEntry maxLength={64} onSubmitEditing={submit} accessibilityLabel="Mot de passe du compte L'Carta" />
+            {error && <Text style={styles.error}>{error}</Text>}
+            {busy ? <ActivityIndicator color={theme.gold} style={{ marginTop: 10 }} /> : (
+                <GameButton small title="Relier mes comptes" icon="🔗" onPress={submit} style={{ marginTop: 10, alignSelf: 'flex-start' }} />
+            )}
+        </View>
+    );
+}
+
 export default function ProfileScreen({ navigation }) {
     const account = useAccount();
     const profile = account.profile;
@@ -260,6 +298,13 @@ export default function ProfileScreen({ navigation }) {
                         </View>
                     );
                 })()}
+
+                {/* Discord : compte créé dans Discord, à relier à un compte L'Carta existant */}
+                {profile?.discord === 'only' && (
+                    <Section title="🔗 Relier à mon compte L'Carta" delay={40}>
+                        <DiscordLink />
+                    </Section>
+                )}
 
                 {/* Compte */}
                 <Section title="🔐 Compte" delay={60}>

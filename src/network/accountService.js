@@ -159,6 +159,14 @@ const accountService = {
         return r;
     },
 
+    /** Discord : relier le compte créé dans Discord à un compte L'Carta existant (pseudo + mot de passe). */
+    async linkDiscord(name, password) {
+        const r = await request('/api/discord/link', { method: 'POST', body: { name, password } });
+        if (r.error || !r.token) return { error: r.error || 'Liaison impossible, réessaie.' };
+        await accountService._signedIn(r);
+        return r;
+    },
+
     async register(name, password, importXp) {
         const r = await request('/api/register', { method: 'POST', body: { name, password, importXp }, token: null });
         if (r.error) return r;

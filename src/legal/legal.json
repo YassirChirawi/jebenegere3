@@ -40,6 +40,7 @@
           "L'Carta peut se lancer dans un salon vocal Discord (Activity). Tu te connectes alors avec ton compte Discord, sans mot de passe L'Carta.",
           "Discord nous transmet seulement ton identifiant Discord et ton pseudo (autorisation « identify »). Pas ton email, pas tes messages, pas la liste de tes serveurs ni de tes amis.",
           "Ton compte L'Carta est lié à cet identifiant pour garder ta progression et tes binga. Tu peux le supprimer comme n'importe quel compte (Profil → « Supprimer mon compte »).",
+          "Si tu relies ton compte Discord à un compte L'Carta existant (pseudo et mot de passe), ta progression gagnée dans Discord est ajoutée à ce compte. Seul l'identifiant Discord est gardé, pour ouvrir ce compte la prochaine fois.",
           "Dans Discord, le jeu n'affiche aucune publicité."
         ]
       },

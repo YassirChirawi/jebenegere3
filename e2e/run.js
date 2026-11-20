@@ -15,9 +15,16 @@ const ROOT = path.join(__dirname, '..');
 
 if (!args.includes('--no-build')) {
     console.log('Construction du site (e2e/.web)…');
-    execSync('npx expo export --platform web --clear --output-dir e2e/.web', {
-        cwd: ROOT, stdio: 'ignore', env: { ...process.env, EXPO_PUBLIC_SOCKET_URL: 'http://localhost:3000' },
-    });
+    try {
+        execSync('npx expo export --platform web --clear --output-dir e2e/.web', {
+            cwd: ROOT, stdio: 'pipe', env: { ...process.env, EXPO_PUBLIC_SOCKET_URL: 'http://localhost:3000' },
+        });
+    } catch (e) {
+        const out = `${e.stdout || ''}${e.stderr || ''}`;
+        console.log('La construction du site a échoué :');
+        console.log(out.split('\n').filter((l) => /error|Error|^\s*>|\^/.test(l)).slice(0, 12).join('\n'));
+        process.exit(1);
+    }
 }
 
 const tests = fs.readdirSync(__dirname).filter((f) => f.endsWith('.e2e.js') && (!filter || f.includes(filter))).sort();

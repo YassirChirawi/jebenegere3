@@ -252,6 +252,16 @@ function createProgress(store) {
         if (!/^\d{5,25}$/.test(did)) return { error: 'Profil Discord invalide.' };
         const id = `discord-${did}`;
         let user = await store.get(id);
+        // Compte Discord relié à un compte L'Carta : on ouvre une session sur ce compte-là
+        if (user?.linkedTo) {
+            const target = await store.get(user.linkedTo);
+            if (target && target.discordId === did) {
+                const token = await withUser(target.id, (u) => newSession(u));
+                return { token, profile: await profileOf(await store.get(target.id)) };
+            }
+            await store.remove(id); // compte relié supprimé depuis : on repart d'un compte Discord neuf
+            user = null;
+        }
         if (!user) {
             const base = discordName(discord.global_name) || discordName(discord.username) || 'Joueur';
             let name = base;
@@ -268,6 +278,56 @@ function createProgress(store) {
         }
         const token = await withUser(id, (u) => newSession(u));
         return { token, profile: await profileOf(await store.get(id)) };
+    }
+
+    // Relier le compte Discord du joueur (session en cours, dans Discord) à son compte L'Carta existant
+    // (pseudo + mot de passe vérifiés). La progression gagnée dans Discord est ajoutée au compte L'Carta :
+    // XP, binga, statistiques, coups spéciaux, saisons, objets débloqués, historique. Ensuite, se connecter
+    // depuis Discord ouvre directement le compte L'Carta.
+    async function linkDiscord(sessionUser, { name, password, ip = '' }, now = Date.now()) {
+        const did = sessionUser?.discordId;
+        if (!did || sessionUser.id !== `discord-${did}`) return { error: 'Seul un compte créé dans Discord peut être relié.' };
+        const key = `${String(name || '').toLowerCase()}|${ip}`;
+        if (tooMany(key)) return { error: 'Trop d\'essais. Réessaie dans quelques minutes.' };
+        const target = await store.getByName(name);
+        const hash = target?.salt && target?.hash ? await scrypt(String(password || ''), target.salt) : null;
+        const ok = target && hash && crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(target.hash, 'hex'));
+        if (!ok) { fail(key); return { error: 'Pseudo ou mot de passe incorrect.' }; }
+        fails.delete(key);
+        if (target.discordId && target.discordId !== did) return { error: 'Ce compte L\'Carta est déjà relié à un autre compte Discord.' };
+        const source = await store.get(sessionUser.id);
+        if (!source) return { error: 'Compte Discord introuvable.' };
+        if (Object.keys(source.binga?.stakes || {}).length) return { error: 'Termine d\'abord ta partie à mise en cours.' };
+
+        await withUser(target.id, (t) => {
+            t.discordId = did;
+            t.xp = (t.xp || 0) + (source.xp || 0);
+            const sumInto = (dst, src) => {
+                for (const [k, v] of Object.entries(src || {})) if (typeof v === 'number') dst[k] = (dst[k] || 0) + v;
+                return dst;
+            };
+            for (const [g, st] of Object.entries(source.stats || {})) {
+                const cur = (t.stats[g] = t.stats[g] || { played: 0, wins: 0, losses: 0, streak: 0, best: 0 });
+                cur.played = (cur.played || 0) + (st.played || 0);
+                cur.wins = (cur.wins || 0) + (st.wins || 0);
+                cur.losses = (cur.losses || 0) + (st.losses || 0);
+                cur.best = Math.max(cur.best || 0, st.best || 0);
+            }
+            t.counters = sumInto({ ...(t.counters || {}) }, source.counters);
+            t.seasons = t.seasons || {};
+            for (const [sid, row] of Object.entries(source.seasons || {})) t.seasons[sid] = sumInto({ ...(t.seasons[sid] || {}) }, row);
+            t.unlocks = [...new Set([...(t.unlocks || []), ...(source.unlocks || [])])];
+            const badgeIds = new Set((t.badges || []).map((b) => b.id));
+            t.badges = [...(t.badges || []), ...(source.badges || []).filter((b) => !badgeIds.has(b.id))];
+            t.history = [...(t.history || []), ...(source.history || [])].sort((a, b) => (b.at || 0) - (a.at || 0)).slice(0, HISTORY_MAX);
+            const b = bingaDay(t, now);
+            credit(t, source.binga?.balance || 0, 'Progression Discord ajoutée (compte relié)', now);
+            b.playToday = Math.max(b.playToday || 0, source.binga?.day === b.day ? source.binga.playToday || 0 : 0);
+        });
+        // Le compte Discord devient un simple renvoi vers le compte L'Carta (pas de pseudo, pas de session)
+        await store.save({ id: source.id, name: `#discord-${did}`, nameLower: `#discord-${did}`, linkedTo: target.id, discordId: did, createdAt: source.createdAt, sessions: [], seasons: {}, stats: {} });
+        const token = await withUser(target.id, (u) => newSession(u));
+        return { token, profile: await profileOf(await store.get(target.id), now) };
     }
 
     async function userFromToken(token) {
@@ -643,6 +703,7 @@ function createProgress(store) {
         return {
             id: u.id,
             name: u.name,
+            discord: u.discordId ? (u.id === `discord-${u.discordId}` ? 'only' : 'linked') : null, // compte créé dans Discord / relié
             avatar: u.avatar || 0,
             title: u.title,
             xp: u.xp,
@@ -690,7 +751,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, discordLogin, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, discordLogin, linkDiscord, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

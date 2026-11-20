@@ -111,3 +111,59 @@ test('préfixe /server de l\'Activity : routes et Socket.io joignables avec ou s
     await connected(p);
     assert.ok(p.connected);
 });
+
+test('relier Discord à un compte L\'Carta : progression ajoutée, puis Discord ouvre le compte L\'Carta', async () => {
+    const p = createProgress(memoryStore());
+    const site = await p.register({ name: 'Samira', password: 'motdepasse' });
+    const siteUser = await p.userFromToken(site.token);
+    siteUser.xp = 300; siteUser.binga.balance = 120; siteUser.stats.ronda = { played: 4, wins: 2, losses: 2, streak: 0, best: 2 };
+    siteUser.unlocks = ['back:zellige'];
+    await p.store.save(siteUser);
+
+    const d = await p.discordLogin({ id: '777777777777', username: 'sam', global_name: 'Sam' });
+    const dUser = await p.userFromToken(d.token);
+    assert.equal(d.profile.discord, 'only');
+    dUser.xp = 50; dUser.binga.balance = 40; dUser.stats.ronda = { played: 3, wins: 3, losses: 0, streak: 3, best: 3 };
+    dUser.unlocks = ['emote:rire'];
+    await p.store.save(dUser);
+
+    assert.match((await p.linkDiscord(dUser, { name: 'Samira', password: 'faux' })).error, /incorrect/);
+    const r = await p.linkDiscord(dUser, { name: 'samira', password: 'motdepasse' });
+    assert.ok(r.token && !r.error, r.error);
+    assert.equal(r.profile.name, 'Samira');
+    assert.equal(r.profile.discord, 'linked');
+    assert.equal(r.profile.xp, 350);
+    assert.equal(r.profile.binga.balance, 160);
+    assert.equal(r.profile.stats.ronda.played, 7);
+    assert.equal(r.profile.stats.ronda.best, 3);
+    assert.deepEqual([...r.profile.unlocks].sort(), ['back:zellige', 'emote:rire']);
+    assert.equal(await p.userFromToken(d.token), null, 'l\'ancienne session Discord ne sert plus');
+
+    // Plus tard, depuis Discord : on arrive directement sur le compte L'Carta
+    const again = await p.discordLogin({ id: '777777777777', username: 'sam' });
+    assert.equal(again.profile.name, 'Samira');
+    assert.ok(!again.created);
+    // Le renvoi n'apparaît nulle part comme joueur
+    assert.equal(await p.store.getByName('Sam'), null);
+
+    // Un autre compte Discord ne peut pas prendre ce compte L'Carta ; un compte du site ne peut pas « se relier »
+    const other = await p.discordLogin({ id: '888888888888', username: 'autre' });
+    assert.match((await p.linkDiscord(await p.userFromToken(other.token), { name: 'Samira', password: 'motdepasse' })).error, /autre compte Discord/);
+    assert.match((await p.linkDiscord(await p.userFromToken(again.token), { name: 'Samira', password: 'motdepasse' })).error, /créé dans Discord/);
+});
+
+test('compte L\'Carta relié puis supprimé : Discord recrée un compte neuf', async () => {
+    const p = createProgress(memoryStore());
+    await p.register({ name: 'Hamza', password: 'motdepasse' });
+    const d = await p.discordLogin({ id: '999999999999', username: 'hamza' });
+    const r = await p.linkDiscord(await p.userFromToken(d.token), { name: 'Hamza', password: 'motdepasse' });
+    await p.deleteAccount((await p.userFromToken(r.token)).id);
+    const fresh = await p.discordLogin({ id: '999999999999', username: 'hamza' });
+    assert.ok(fresh.created);
+    assert.equal(fresh.profile.discord, 'only');
+});
+
+test('route /api/discord/link : session exigée', async () => {
+    const res = await post('/api/discord/link', { name: 'x', password: 'y' });
+    assert.equal(res.status, 401);
+});
