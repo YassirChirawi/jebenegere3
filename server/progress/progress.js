@@ -330,6 +330,96 @@ function createProgress(store) {
         return { token, profile: await profileOf(await store.get(target.id), now) };
     }
 
+    // ------------------------------------------------------------------ amis
+    // u.friends : ids des amis (lien dans les deux comptes) ; u.friendIn : demandes reçues [{ id, at }] ;
+    // u.friendOut : ids des demandes envoyées. Seuls les comptes peuvent avoir des amis.
+    const FRIENDS_MAX = 100;
+    const PENDING_MAX = 50;
+    const isPlayer = (u) => u && !u.linkedTo && typeof u.name === 'string' && !u.name.startsWith('#');
+    const ensureFriends = (u) => {
+        u.friends = u.friends || [];
+        u.friendIn = u.friendIn || [];
+        u.friendOut = u.friendOut || [];
+        return u;
+    };
+
+    async function friendsView(user, isOnline = () => false) {
+        const u = ensureFriends(await store.get(user.id) || user);
+        const card = async (id, extra = {}) => {
+            const f = await store.get(id);
+            if (!isPlayer(f)) return null;
+            return { id: f.id, name: f.name, avatar: f.avatar || 0, xp: f.xp || 0, online: !!isOnline(f.id), ...extra };
+        };
+        const friends = (await Promise.all(u.friends.map((id) => card(id)))).filter(Boolean)
+            .sort((a, b) => Number(b.online) - Number(a.online) || a.name.localeCompare(b.name));
+        const incoming = (await Promise.all(u.friendIn.map((r) => card(r.id, { at: r.at })))).filter(Boolean);
+        const outgoing = (await Promise.all(u.friendOut.map((id) => card(id)))).filter(Boolean);
+        return { friends, incoming, outgoing };
+    }
+
+    /** Demande d'ami par pseudo. Si l'autre m'avait déjà demandé, on devient amis tout de suite. */
+    async function requestFriend(user, name, now = Date.now()) {
+        const target = await store.getByName(String(name || '').trim());
+        if (!isPlayer(target)) return { error: 'Aucun joueur avec ce pseudo (il faut un compte).' };
+        if (target.id === user.id) return { error: 'C\'est toi !' };
+        const me = ensureFriends(await store.get(user.id));
+        if (me.friends.includes(target.id)) return { error: `${target.name} est déjà ton ami.` };
+        if (me.friendIn.some((r) => r.id === target.id)) return respondFriend(user, target.id, true, now);
+        if (me.friendOut.includes(target.id)) return { error: 'Demande déjà envoyée.' };
+        if (me.friends.length >= FRIENDS_MAX) return { error: `${FRIENDS_MAX} amis au maximum.` };
+        if (me.friendOut.length >= PENDING_MAX) return { error: 'Trop de demandes en attente.' };
+        const ok = await withUser(target.id, (t) => {
+            ensureFriends(t);
+            if (t.friendIn.length >= PENDING_MAX) return false;
+            t.friendIn = [{ id: user.id, at: now }, ...t.friendIn.filter((r) => r.id !== user.id)];
+            return true;
+        });
+        if (!ok) return { error: `${target.name} a trop de demandes en attente.` };
+        await withUser(user.id, (u) => { ensureFriends(u); u.friendOut = [...new Set([target.id, ...u.friendOut])]; });
+        return { success: true, sent: true, to: { id: target.id, name: target.name } };
+    }
+
+    async function respondFriend(user, otherId, accept, now = Date.now()) {
+        const other = await store.get(String(otherId || ''));
+        const me = ensureFriends(await store.get(user.id));
+        if (!isPlayer(other) || !me.friendIn.some((r) => r.id === other.id)) return { error: 'Demande introuvable.' };
+        if (accept && me.friends.length >= FRIENDS_MAX) return { error: `${FRIENDS_MAX} amis au maximum.` };
+        await withUser(user.id, (u) => {
+            ensureFriends(u);
+            u.friendIn = u.friendIn.filter((r) => r.id !== other.id);
+            u.friendOut = u.friendOut.filter((id) => id !== other.id);
+            if (accept) u.friends = [...new Set([...u.friends, other.id])];
+        });
+        await withUser(other.id, (o) => {
+            ensureFriends(o);
+            o.friendOut = o.friendOut.filter((id) => id !== user.id);
+            o.friendIn = o.friendIn.filter((r) => r.id !== user.id);
+            if (accept) o.friends = [...new Set([...o.friends, user.id])];
+        });
+        return { success: true, accepted: !!accept, other: { id: other.id, name: other.name } };
+    }
+
+    /** Retirer un ami, ou annuler une demande envoyée. */
+    async function removeFriend(user, otherId) {
+        const id = String(otherId || '');
+        await withUser(user.id, (u) => {
+            ensureFriends(u);
+            u.friends = u.friends.filter((x) => x !== id);
+            u.friendOut = u.friendOut.filter((x) => x !== id);
+        });
+        await withUser(id, (o) => {
+            ensureFriends(o);
+            o.friends = o.friends.filter((x) => x !== user.id);
+            o.friendIn = o.friendIn.filter((r) => r.id !== user.id);
+        });
+        return { success: true };
+    }
+
+    async function areFriends(aId, bId) {
+        const a = await store.get(aId);
+        return !!a && (a.friends || []).includes(bId);
+    }
+
     async function userFromToken(token) {
         if (typeof token !== 'string' || !token.includes('.')) return null;
         const id = token.split('.')[0];
@@ -751,7 +841,7 @@ function createProgress(store) {
         return withUser(userId, (u) => { u.blocked = list; return u.blocked; });
     }
 
-    return { register, login, discordLogin, linkDiscord, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
+    return { register, login, discordLogin, linkDiscord, friendsView, requestFriend, respondFriend, removeFriend, areFriends, logout, userFromToken, updateMe, publicInfo, award, awardTournament, recordAbandon, dailyLogin, buy, openChest, spinWheel, chargeStake, settleStake, setRoomAlive, chargeEntry, profile, leaderboard, getBlocked, setBlocked, deleteAccount, store };
 }
 
 module.exports = { createProgress };

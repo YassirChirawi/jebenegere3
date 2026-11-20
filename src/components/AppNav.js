@@ -10,6 +10,7 @@ import { SafeAreaInsetsContext } from 'react-native-safe-area-context';
 import { PressableScale } from './ui';
 import Gradient from './Gradient';
 import { useAccount } from '../network/accountService';
+import { useFriends } from '../network/friendsService';
 
 const GOLD = '#E8B84A';
 
@@ -19,6 +20,7 @@ export const NAV_TABS = [
     { key: 'rewards', route: 'Wheel', label: 'Récompenses', icon: require('../../assets/ui/nav_recompenses.webp') },
     { key: 'missions', route: 'Missions', label: 'Missions', icon: require('../../assets/ui/nav_missions.webp') },
     { key: 'rank', route: 'Leaderboard', label: 'Classement', icon: require('../../assets/ui/tile_classement.webp'), sideOnly: true },
+    { key: 'friends', route: 'Friends', label: 'Amis', icon: require('../../assets/ui/mode_salon.webp'), sideOnly: true },
     { key: 'profile', route: 'Profile', label: 'Profil', icon: require('../../assets/ui/nav_profil.webp') },
 ];
 
@@ -37,7 +39,8 @@ function badges(profile) {
 export default function AppNav({ navigation, current, side = false, style }) {
     const insets = useContext(SafeAreaInsetsContext) || { bottom: 0 }; // (pas d'erreur sans fournisseur)
     const { profile } = useAccount();
-    const dots = badges(profile);
+    const fr = useFriends();
+    const dots = { ...badges(profile), friends: fr.incoming.length > 0 };
     const go = (tab) => {
         if (tab.key === current) return;
         if (tab.route === 'Home') navigation.popToTop();

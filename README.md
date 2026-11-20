@@ -359,6 +359,18 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
 - Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
 
+## Amis et invitations directes
+
+- **Écran Amis** ([src/screens/FriendsScreen.js](src/screens/FriendsScreen.js)), avec un compte :
+  - ajouter un ami par son pseudo (si l'autre avait déjà demandé, vous devenez amis tout de suite) ;
+  - accepter ou refuser les demandes reçues ;
+  - la liste, avec ceux en ligne en premier (pastille verte) et le niveau ;
+  - annuler une demande envoyée, retirer un ami.
+  - Accès : raccourci « Amis » de l'accueil (pastille rouge si une demande attend) et colonne de gauche en paysage.
+- **Inviter dans son salon :** dans un salon privé, « Inviter un ami » liste les amis. Ceux en ligne reçoivent tout de suite une carte « Nadia t'invite à jouer à la Ronda » (Rejoindre / Plus tard), par-dessus n'importe quel écran sauf pendant une partie. Elle reste valable une minute. « Rejoindre » mène au salon comme un lien d'invitation (et quitte l'autre salon si besoin).
+- **Serveur :** `GET /api/friends`, `POST /api/friends/request | respond | remove` ; événements Socket.io `friends_changed` (liste à recharger) et `friend_invite`. Le serveur vérifie que l'invité est bien un ami et que l'invitant est dans le salon. Au plus 100 amis et 50 demandes en attente ; une invitation toutes les 1,5 s.
+- Tests : `server/tests/friends.test.js` et `e2e/friends.e2e.js` (deux navigateurs : demande, acceptation, invitation, arrivée dans le salon).
+
 ## Premier lancement, bilan de fin de partie, sons
 
 - **Premier lancement** (`src/components/Onboarding.js`) : 4 écrans courts (bienvenue, binga, coffres et roue, « À toi de jouer »), avec le pseudo et le choix du jeu, puis une première partie contre l'ordinateur en un geste, à la plus petite taille du jeu. « Passer » ou « Plus tard » ferment la présentation. Elle n'est montrée qu'une fois, et jamais à un joueur qui avait déjà ouvert l'appli (règles déjà vues). Les fenêtres du jour attendent qu'elle soit fermée.

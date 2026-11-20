@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Pressable, Modal } from 'react-native';
 import Animated, { FadeInDown, FadeOut, LinearTransition, ZoomIn, useSharedValue, useAnimatedStyle, withRepeat, withTiming, Easing } from 'react-native-reanimated';
 import socketService from '../network/socketService';
 import audioService from '../network/audioService';
@@ -11,6 +11,7 @@ import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
 import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
 import { inDiscord, discordInvite } from '../utils/discord';
+import friendsService, { useFriends } from '../network/friendsService';
 import { useAccount } from '../network/accountService';
 import { BINGA } from '../../server/progress/defs';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
@@ -36,6 +37,15 @@ function WaitingDots() {
 export default function LobbyScreen({ route, navigation }) {
     const { roomId, playerName, isHost, initialRoom } = route.params;
     const [room, setRoom] = useState(initialRoom || null);
+    const { profile } = useAccount();
+    const fr = useFriends();
+    const [inviteSheet, setInviteSheet] = useState(false);
+    const [invited, setInvited] = useState({}); // id de l'ami -> 'ok' | 'off' | message
+    const inviteFriend = async (f) => {
+        const r = await friendsService.invite(roomId, f.id);
+        audioService.playSound(r.success ? 'pop' : 'error');
+        setInvited((m) => ({ ...m, [f.id]: r.success ? (r.delivered ? 'ok' : 'off') : (r.message || 'Erreur') }));
+    };
     const [picked, setPicked] = useState(null); // place choisie par l'hôte pour un échange
     const [busy, setBusy] = useState(false);
     const prevCount = useRef(initialRoom?.activePlayers?.length || 0);
@@ -173,10 +183,38 @@ ${inviteUrl(roomId)}`);
         <View style={styles.container}>
             <LuxeBackdrop />
             <ScreenHeader title={`Salon privé · ${game.label}`} onBack={handleLeave} />
+            <Modal visible={inviteSheet} transparent animationType="fade" onRequestClose={() => setInviteSheet(false)}>
+                <Pressable style={styles.sheetBg} onPress={() => setInviteSheet(false)}>
+                    <Pressable onPress={() => {}} style={styles.sheet}>
+                        <Text style={styles.sheetTitle}>Inviter un ami</Text>
+                        {fr.friends.length === 0 ? (
+                            <Text style={styles.sheetDim}>Pas encore d'amis. Ajoute-les dans « Amis » avec leur pseudo.</Text>
+                        ) : fr.friends.map((f) => {
+                            const st = invited[f.id];
+                            return (
+                                <View key={f.id} style={styles.sheetRow}>
+                                    <PlayerAvatar name={f.name} variant={f.avatar || 0} size={38} />
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text style={styles.sheetName} numberOfLines={1}>{f.name}</Text>
+                                        <Text style={[styles.sheetDim, { textAlign: 'left' }]}>{st === 'ok' ? '✓ Invitation envoyée' : st === 'off' ? 'Pas connecté en ce moment' : st || (f.online ? '🟢 en ligne' : 'hors ligne')}</Text>
+                                    </View>
+                                    <GameButton small title={st === 'ok' ? 'Renvoyer' : 'Inviter'} variant={f.online ? 'gold' : 'outline'} disabled={!f.online} onPress={() => inviteFriend(f)} />
+                                </View>
+                            );
+                        })}
+                        <GameButton small title="Fermer" variant="outline" onPress={() => setInviteSheet(false)} style={{ alignSelf: 'center', marginTop: 12 }} />
+                    </Pressable>
+                </Pressable>
+            </Modal>
 
             <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
                     <Text style={styles.codeLabel}>INVITE TES AMIS</Text>
+                    {profile && (
+                        <View style={styles.inviteBtns}>
+                            <GameButton small title={`Inviter un ami${fr.friends.some((f) => f.online) ? ` · ${fr.friends.filter((f) => f.online).length} en ligne` : ''}`} icon="🤝" variant="green" onPress={() => { friendsService.refresh(); setInviteSheet(true); }} style={{ flex: 1 }} />
+                        </View>
+                    )}
                     {inDiscord ? (
                         <>
                             <View style={styles.inviteBtns}>
@@ -364,6 +402,12 @@ ${inviteUrl(roomId)}`);
 }
 
 const styles = StyleSheet.create({
+    sheetBg: { flex: 1, backgroundColor: 'rgba(4,8,18,0.82)', justifyContent: 'center', alignItems: 'center', padding: 16 },
+    sheet: { width: '100%', maxWidth: 420, maxHeight: '80%', backgroundColor: theme.panelSolid, borderRadius: 20, borderWidth: 1.5, borderColor: theme.gold, padding: 16 },
+    sheetTitle: { color: theme.goldLight, fontWeight: '900', fontSize: 18, textAlign: 'center', marginBottom: 8 },
+    sheetDim: { color: theme.textDim, fontWeight: '700', fontSize: 11, textAlign: 'center' },
+    sheetRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(232,184,74,0.15)' },
+    sheetName: { color: theme.cream, fontWeight: '900', fontSize: 14 },
     container: { flex: 1, backgroundColor: theme.bg },
     dim: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(6,12,28,0.55)' },
     header: {

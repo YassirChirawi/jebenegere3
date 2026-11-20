@@ -79,6 +79,8 @@ function authSocket() {
 
 const accountService = {
     get state() { return state; },
+    /** Appel au serveur avec la session du compte (utilisé aussi par les amis). */
+    request: (path, opts) => request(path, opts),
 
     /** Portrait du joueur : celui du compte, sinon celui choisi sur l'appareil. */
     myAvatar() {

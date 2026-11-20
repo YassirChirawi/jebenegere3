@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer, DarkTheme } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { AppState, View, StyleSheet, Platform, useWindowDimensions } from 'react-native';
@@ -15,6 +15,8 @@ import ProfileScreen from './src/screens/ProfileScreen';
 import ShopScreen from './src/screens/ShopScreen';
 import WheelScreen from './src/screens/WheelScreen';
 import MissionsScreen from './src/screens/MissionsScreen';
+import FriendsScreen from './src/screens/FriendsScreen';
+import FriendInviteToast from './src/components/FriendInviteToast';
 import LeaderboardScreen from './src/screens/LeaderboardScreen';
 import LegalScreen from './src/screens/LegalScreen';
 import TournamentsScreen from './src/screens/TournamentsScreen';
@@ -35,6 +37,7 @@ import socketService from './src/network/socketService';
 import { useWideFrame } from './src/utils/frame';
 
 const Stack = createNativeStackNavigator();
+export const navigationRef = createNavigationContainerRef();
 
 // Un seul écran "Game" dans la navigation : on choisit le plateau selon le type de jeu
 function GameRouter(props) {
@@ -100,7 +103,7 @@ export default function App() {
     <View style={styles.appContainer}>
       <View style={[styles.mobileContainer, (webLandscapePhone || wideFrame) && styles.fullScreen]}>
         <GestureHandlerRootView style={{ flex: 1 }}>
-          <NavigationContainer theme={navTheme}>
+          <NavigationContainer theme={navTheme} ref={navigationRef}>
             <StatusBar style="light" />
             <Stack.Navigator
               initialRouteName="Home"
@@ -120,6 +123,7 @@ export default function App() {
               <Stack.Screen name="Shop" component={ShopScreen} options={{ title: 'Boutique', headerShown: false }} />
               <Stack.Screen name="Wheel" component={WheelScreen} options={{ title: 'Roue du jour', headerShown: false }} />
               <Stack.Screen name="Missions" component={MissionsScreen} options={{ title: 'Missions', headerShown: false }} />
+              <Stack.Screen name="Friends" component={FriendsScreen} options={{ title: 'Amis', headerShown: false }} />
               <Stack.Screen name="Leaderboard" component={LeaderboardScreen} options={{ title: 'Classement', headerShown: false }} />
               <Stack.Screen name="Legal" component={LegalScreen} options={{ title: 'Confidentialité', headerShown: false }} />
               <Stack.Screen name="Tournaments" component={TournamentsScreen} options={{ title: 'Tournois', headerShown: false }} />
@@ -128,6 +132,7 @@ export default function App() {
           </NavigationContainer>
           <DialogHost />
           <ProgressToaster />
+          <FriendInviteToast navigationRef={navigationRef} />
         </GestureHandlerRootView>
       </View>
     </View>

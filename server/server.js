@@ -73,6 +73,47 @@ app.post('/api/discord/link', api(async (req, res) => {
     for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === user.id) s.data.user = null;
     res.json(r);
 }));
+// === AMIS ===
+const onlineUsers = () => {
+    const set = new Set();
+    for (const s of io.sockets.sockets.values()) if (s.data.user?.userId) set.add(s.data.user.userId);
+    return set;
+};
+// Prévient les appareils connectés d'un joueur (liste d'amis à recharger, notification…)
+const tellUser = (userId, event, data) => {
+    for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === userId) s.emit(event, data);
+};
+app.get('/api/friends', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const online = onlineUsers();
+    res.json(await progress.friendsView(user, (id) => online.has(id)));
+}));
+app.post('/api/friends/request', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.requestFriend(user, req.body?.name);
+    if (r.error) return res.status(400).json(r);
+    const other = r.to || r.other;
+    if (other) tellUser(other.id, 'friends_changed', r.sent ? { type: 'request', from: { id: user.id, name: user.name } } : { type: 'accepted', from: { id: user.id, name: user.name } });
+    res.json(r);
+}));
+app.post('/api/friends/respond', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.respondFriend(user, req.body?.id, !!req.body?.accept);
+    if (r.error) return res.status(400).json(r);
+    tellUser(r.other.id, 'friends_changed', { type: r.accepted ? 'accepted' : 'declined', from: { id: user.id, name: user.name } });
+    res.json(r);
+}));
+app.post('/api/friends/remove', api(async (req, res) => {
+    const user = await requireUser(req, res);
+    if (!user) return;
+    const r = await progress.removeFriend(user, req.body?.id);
+    tellUser(String(req.body?.id || ''), 'friends_changed', { type: 'removed' });
+    res.json(r);
+}));
+
 app.post('/api/logout', api(async (req, res) => {
     await progress.logout(bearer(req));
     res.json({ success: true });
@@ -195,7 +236,7 @@ const START_COUNTDOWN_MS = process.env.START_COUNTDOWN_MS !== undefined
     : (process.env.NODE_TEST_CONTEXT ? 0 : 6000);
 
 function serverInfo() {
-    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord'] };
+    return { version: SERVER_VERSION, games: Object.keys(engines), features: ['matchmaking', 'play_again_ack', 'leave_room', 'forfeit', 'accounts', 'lobby_bots', 'start_countdown', 'lobby_games', 'chat_moderation', 'account_delete', 'invite_links', 'spectators', 'tournaments', 'online_count', 'room_check', 'binga', 'shop', 'chests', 'stakes', 'wheel', 'discord', 'friends'] };
 }
 
 // === MODÉRATION DU CHAT ===
@@ -861,6 +902,28 @@ io.on('connection', (socket) => {
             gameState: spectator && inGame ? stateFor(room, -1) : undefined,
         };
     }
+    // --- AMIS : inviter un ami (connecté) dans le salon où je suis ---
+    let lastInvite = 0;
+    socket.on('friend_invite', async (data, callback) => {
+        const reply = (r) => callback && callback(r);
+        try {
+            const me = socket.data.user;
+            const room = rooms[data?.roomId];
+            const friendId = String(data?.userId || '');
+            if (!me) return reply({ success: false, message: 'Il faut un compte pour inviter un ami.' });
+            if (!room || !room.activePlayers.some((p) => p.id === socket.id)) return reply({ success: false, message: 'Salon introuvable.' });
+            if (Date.now() - lastInvite < 1500) return reply({ success: false, message: 'Doucement 🙂' });
+            if (!(await progress.areFriends(me.userId, friendId))) return reply({ success: false, message: 'Ce joueur n\'est pas dans tes amis.' });
+            lastInvite = Date.now();
+            const invite = { id: crypto.randomUUID(), roomId: room.id, gameType: room.gameType, from: { id: me.userId, name: me.name, avatar: me.avatar || 0 }, at: Date.now() };
+            let delivered = 0;
+            for (const s of io.sockets.sockets.values()) if (s.data.user?.userId === friendId) { s.emit('friend_invite', invite); delivered += 1; }
+            reply({ success: true, delivered: delivered > 0 });
+        } catch (e) {
+            reply({ success: false, message: 'Erreur serveur, réessaie.' });
+        }
+    });
+
     socket.on('join_room', async (data, callback) => {
         const r = await joinPrivateRoom(data);
         callback && callback(r);

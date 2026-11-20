@@ -27,6 +27,7 @@ import DailyPopups from '../components/DailyPopups';
 import Onboarding from '../components/Onboarding';
 import { inDiscord, discordInstanceId } from '../utils/discord';
 import AppNav, { useLandscape } from '../components/AppNav';
+import { useFriends } from '../network/friendsService';
 import { setWideFrame } from '../utils/frame';
 import { ChestArt } from '../components/ChestOpening';
 import { SEASON_MS } from '../../server/progress/defs';
@@ -36,7 +37,6 @@ const UI = {
     collection: require('../../assets/ui/tile_collection.webp'),
     rewards: require('../../assets/ui/tile_recompenses.webp'),
     rank: require('../../assets/ui/tile_classement.webp'),
-    profile: require('../../assets/ui/tile_profil.webp'),
     online: require('../../assets/ui/mode_enligne.webp'),
     solo: require('../../assets/ui/mode_ordi.webp'),
     tournament: require('../../assets/ui/mode_tournoi.webp'),
@@ -82,7 +82,7 @@ function ServerLoader() {
     );
 }
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
     const [name, setName] = useState('');
     const [nameReady, setNameReady] = useState(false); // pseudo enregistré relu
     // Invitation : code reçu par un lien, fenêtre « rejoindre » (pseudo / lien collé)
@@ -115,6 +115,11 @@ export default function HomeScreen({ navigation }) {
     }, [landscape, navigation]);
     const account = useAccount();
     const profile = account.profile;
+    const friends = useFriends();
+    // Invitation d'un ami acceptée (carte « X t'invite ») : on rejoint son salon
+    useEffect(() => {
+        if (route?.params?.invite) setInviteCode(route.params.invite);
+    }, [route?.params?.inviteAt]);
     // Connecté : le pseudo est celui du compte
     useEffect(() => { if (profile?.name) setName(profile.name); }, [profile?.name]);
     useEffect(() => { if (profile) setRankInfo(getRankInfo(profile.xp)); }, [profile?.xp]);
@@ -779,7 +784,7 @@ export default function HomeScreen({ navigation }) {
                             <QuickTile compact={pageW < 380} icon={UI.collection} label="Collection" onPress={() => navigation.navigate('Shop')} />
                             <QuickTile compact={pageW < 380} icon={UI.rewards} label="Cadeaux" badge={wheelReady} onPress={() => navigation.navigate('Wheel')} />
                             <QuickTile compact={pageW < 380} icon={UI.rank} label="Classement" onPress={() => navigation.navigate('Leaderboard')} />
-                            <QuickTile compact={pageW < 380} icon={UI.profile} label="Profil" onPress={() => navigation.navigate('Profile')} />
+                            <QuickTile compact={pageW < 380} icon={UI.friends} label="Amis" badge={friends.incoming.length > 0} onPress={() => navigation.navigate('Friends')} />
                         </Animated.View>
 
                         {/* Modes de jeu */}
