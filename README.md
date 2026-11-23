@@ -345,7 +345,7 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 
 ## Navigation et missions
 
-- **Barre du bas** ([src/components/AppNav.js](src/components/AppNav.js)) sur l'accueil (en portrait), la Collection (Boutique), les Récompenses (Roue du jour), les Missions et le Profil. L'onglet ouvert est en relief rouge. Pastilles rouges : tour de roue gratuit, mission ou défi du jour pas fini. En paysage, elle devient la colonne de gauche de l'accueil.
+- **Barre du bas** ([src/components/AppNav.js](src/components/AppNav.js)) sur l'accueil (en portrait), la Collection (Boutique), les Récompenses (Roue du jour), les Missions et le Profil. L'onglet ouvert est en relief rouge. Pastilles rouges : tour de roue gratuit, mission ou défi du jour pas fini. En paysage (ordinateur, tablette), elle devient la colonne de gauche de tous les menus.
 - **Missions** ([src/screens/MissionsScreen.js](src/screens/MissionsScreen.js)) :
   - **Récompense quotidienne :** les 7 jours de connexion (jours reçus cochés en vert, jour du jour en or, jour 7 en rouge).
   - **Missions :** les 3 missions binga, avec leur barre et leur gain. Elles sont créditées automatiquement par le serveur dès qu'elles sont finies : la case affiche alors « ✓ Reçu », il n'y a rien à récupérer. En dessous, les binga gagnés en jouant aujourd'hui (plafond du jour).
@@ -358,6 +358,26 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - **Profil** : carte du joueur sur velours (lauriers, pseudo ✏️, badge de niveau, barre d'XP, rang, saison), puis 4 cases : victoires, meilleure série, taux de victoire, parties jouées.
 - Le Profil garde le compte, le solde et l'historique des binga, les coffres ouverts, les statistiques, l'historique des parties, les joueurs bloqués et les pages légales. Un bouton mène aux Missions.
 - Icônes découpées dans la 2ᵉ maquette de Yassir par [scripts/build-nav-ui.py](scripts/build-nav-ui.py) (`assets/ui/nav_*`, `daily_*`, `mission_*`, `badge_*`).
+
+## Ordinateur et tablette : mise en page large
+
+- **Tous les écrans de menu** (Ma Collection, Roue du jour, Missions, Classement, Amis, Profil, Tournois, un tournoi, pages légales) utilisent le cadre commun [src/components/MenuShell.js](src/components/MenuShell.js), comme l'accueil.
+- **Sur téléphone** (portrait) : rien ne change. En-tête doré, contenu, barre du bas.
+- **Sur ordinateur, tablette ou téléphone tenu en paysage** (fenêtre plus large que haute, au moins 700 px) :
+  - l'écran prend toute la fenêtre au lieu du « téléphone » de 500 px ;
+  - barre du haut : ‹ retour, titre, binga, diamants, cloche (et 🏆 ⚙️ sur le Profil) ;
+  - navigation dans la colonne de gauche (Accueil, Collection, Récompenses, Missions, Classement, Amis, Profil) ;
+  - contenu sur 1 180 px au plus, en colonnes :
+    - Missions : missions et défis côte à côte, badges sur une ligne ;
+    - Ma Collection : onglets en colonne à gauche, objets en grille (5 ou plus par ligne), coffres et packs de diamants côte à côte ;
+    - Roue du jour : la roue à gauche, les chances à droite ;
+    - Profil : carte du joueur, statistiques et compte à gauche ; binga, diamants, coffres, statistiques par jeu et historique à droite ;
+    - Amis : ajout et demandes à gauche, liste d'amis à droite ;
+    - Tournois : création à gauche, mes tournois et palmarès à droite.
+- **Tablette en portrait** (site) : l'appli prend toute la largeur, le contenu des menus reste centré.
+- Les parties et le salon privé gardent pour l'instant leur mise en page actuelle (prochain lot).
+- Pour un écran : `useMenuLayout()` donne `wide` et la largeur utile ; `Cols` met des blocs côte à côte en large et les laisse à la suite sur téléphone ; `gridItem()` calcule une grille.
+- Test : `e2e/wide.e2e.js` (ordinateur 1440 × 900, tablette en paysage et en portrait, captures `large-*.png` et `tablette-*.png`).
 
 ## Langues : français, darija, anglais
 
@@ -635,6 +655,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `onboarding.e2e.js` : premier lancement (4 écrans, pseudo, première partie contre l'ordinateur, pas revu ensuite).
 - `discord.e2e.js` : la page servie comme dans Discord (`…discordsays.com`, serveur par `/server`), SDK chargé seulement là.
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
+- `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.
 
 ## Architecture

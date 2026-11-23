@@ -13,7 +13,7 @@ import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { dialog } from '../components/Dialog';
 import { useChatModeration, unblockPlayer } from '../utils/chatModeration';
-import AppNav from '../components/AppNav';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { LUXE, LuxePanel, LevelBadge, XpBar, LaurelPortrait, LuxeBackdrop, ScreenHeader, SectionHead, GoldSquare, LUXE_IMG } from '../components/Luxe';
 
 const STAT_ICONS = {
@@ -205,6 +205,14 @@ export default function ProfileScreen({ navigation }) {
         );
     };
 
+    const { wide } = useMenuLayout(); // grand écran : deux colonnes
+    const headButtons = (
+        <View style={{ flexDirection: 'row', gap: 6 }}>
+            <GoldSquare onPress={() => navigation.navigate('Leaderboard')} label={t("Classement")}><Text style={{ fontSize: 18 }}>🏆</Text></GoldSquare>
+            <GoldSquare onPress={() => setCustomize(true)} label={t("Style et réglages")}><Text style={{ fontSize: 18 }}>⚙️</Text></GoldSquare>
+        </View>
+    );
+
     const logout = () => {
         dialog.alert(t('Se déconnecter ?'), t('Ta progression reste sauvegardée sur le serveur.'), [
             { text: t('Annuler'), style: 'cancel' },
@@ -213,20 +221,17 @@ export default function ProfileScreen({ navigation }) {
     };
 
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader
-                title={t("Mon Profil")}
-                onBack={() => navigation.goBack()}
-                right={(
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                        <GoldSquare onPress={() => navigation.navigate('Leaderboard')} label={t("Classement")}><Text style={{ fontSize: 18 }}>🏆</Text></GoldSquare>
-                        <GoldSquare onPress={() => setCustomize(true)} label={t("Style et réglages")}><Text style={{ fontSize: 18 }}>⚙️</Text></GoldSquare>
-                    </View>
-                )}
-            />
-
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <MenuShell
+            navigation={navigation}
+            current="profile"
+            title={t("Mon Profil")}
+            right={headButtons}
+            wideRight={headButtons}
+        >
+            <ScrollView contentContainerStyle={[styles.scroll, wide && { maxWidth: 1180, paddingTop: 6 }]} showsVerticalScrollIndicator={false}>
+                <Cols flex={[1, 1.15]} gap={0} style={{ columnGap: 14 }}>
+                {/* Gauche (grand écran) : carte joueur, statistiques, compte */}
+                <>
                 {/* Carte joueur : lauriers, pseudo, niveau, XP, rang, puis 4 statistiques */}
                 <Animated.View entering={FadeIn.duration(250)}>
                     <LuxePanel style={styles.card} colors={['#6A1222', '#2A0710']}>
@@ -327,6 +332,9 @@ export default function ProfileScreen({ navigation }) {
                     )}
                 </Section>
 
+                </>
+                {/* Droite (grand écran) : binga, diamants, coffres, missions, statistiques, historique */}
+                <>
                 {/* Binga : solde, connexion du jour, missions, derniers gains */}
                 {profile?.binga ? (
                     <Section title={t("💰 Binga")} right={<Text style={styles.dim}>{t("Missions nouvelles dans")} {untilTomorrow()}</Text>} delay={90}>
@@ -475,14 +483,15 @@ export default function ProfileScreen({ navigation }) {
                         <GameButton small title={t("Conditions")} variant="outline" onPress={() => navigation.navigate('Legal', { doc: 'terms' })} style={{ flex: 1 }} />
                     </View>
                 </Section>
+                </>
+                </Cols>
             </ScrollView>
-            <AppNav navigation={navigation} current="profile" />
             <CustomizeSheet
                 visible={customize}
                 onClose={() => setCustomize(false)}
                 onOpenLegal={(doc) => { setCustomize(false); navigation.navigate('Legal', { doc }); }}
             />
-        </View>
+        </MenuShell>
     );
 }
 

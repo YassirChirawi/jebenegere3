@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, ScrollView, Linking, Pressable } from 'react-na
 import { PressableScale, theme } from '../components/ui';
 import legal from '../legal/legal.json';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { t } from '../i18n';
 
 /**
@@ -13,12 +14,11 @@ export default function LegalScreen({ route, navigation }) {
     const key = route?.params?.doc === 'terms' ? 'terms' : 'privacy';
     const doc = legal[key];
     const otherKey = key === 'privacy' ? 'terms' : 'privacy';
+    const { wide } = useMenuLayout(); // grand écran : colonne de lecture de 820 px
 
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader title={doc.title} onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate('Home'))} />
-            <ScrollView contentContainerStyle={styles.scroll}>
+        <MenuShell navigation={navigation} title={doc.title}>
+            <ScrollView contentContainerStyle={[styles.scroll, wide && styles.scrollWide]}>
                 <Text style={styles.updated}>{t("Mise à jour :")} {doc.updated}</Text>
                 <Text style={styles.p}>{doc.intro}</Text>
                 {doc.sections.map((s) => (
@@ -46,7 +46,7 @@ export default function LegalScreen({ route, navigation }) {
                 </Pressable>
                 <Text style={styles.web}>{t("Aussi en ligne : jebengere3.fun")}{doc.path}</Text>
             </ScrollView>
-        </View>
+        </MenuShell>
     );
 }
 
@@ -57,6 +57,7 @@ const styles = StyleSheet.create({
     backText: { fontSize: 18 },
     headerTitle: { flex: 1, textAlign: 'center', color: theme.goldLight, fontWeight: '900', fontSize: 17 },
     scroll: { paddingHorizontal: 18, paddingBottom: 40 },
+    scrollWide: { maxWidth: 820, width: '100%', alignSelf: 'center' },
     updated: { color: theme.textDim, fontSize: 12, marginBottom: 10 },
     p: { color: theme.text, fontSize: 15, lineHeight: 22 },
     h2: { color: theme.gold, fontWeight: '900', fontSize: 16, marginTop: 20, marginBottom: 6 },

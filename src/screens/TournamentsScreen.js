@@ -8,6 +8,7 @@ import socketService from '../network/socketService';
 import { BINGA } from '../../server/progress/defs';
 import { myTournaments, remember, GAME_LABEL, formatWhen } from '../utils/tournaments';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { t } from '../i18n';
 
 const DAY_MS = 86400000;
@@ -42,6 +43,7 @@ function Chips({ options, value, onChange }) {
 
 /** Tournois : en créer un, retrouver les siens, palmarès des champions. */
 export default function TournamentsScreen({ navigation }) {
+    const { wide } = useMenuLayout(); // grand écran : création à gauche, mes tournois et palmarès à droite
     const supported = socketService.supports('tournaments');
     const [showForm, setShowForm] = useState(false);
     const [name, setName] = useState('');
@@ -78,14 +80,12 @@ export default function TournamentsScreen({ navigation }) {
     };
 
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader title={t("Tournois")} onBack={() => navigation.goBack()} />
-
-            <ScrollView contentContainerStyle={styles.list} keyboardShouldPersistTaps="handled">
+        <MenuShell navigation={navigation} title={t("Tournois")}>
+            <ScrollView contentContainerStyle={[styles.list, wide && styles.listWide]} keyboardShouldPersistTaps="handled">
                 {!supported ? (
                     <Text style={styles.empty}>{t("⚠️ Le serveur en ligne n'est pas à jour : les tournois seront disponibles après son redéploiement.")}</Text>
                 ) : (
+                    <Cols>
                     <>
                         <Text style={styles.intro}>{t("Élimination directe à 4 ou 8 joueurs, en Hezz2 ou en Ronda. Le champion gagne le dos de cartes « Champion » 👑 et le titre « Moul chi ».")}</Text>
 
@@ -147,8 +147,9 @@ export default function TournamentsScreen({ navigation }) {
                                 </View>
                             </Animated.View>
                         )}
-
-                        <Text style={styles.section}>{t("MES TOURNOIS")}</Text>
+                    </>
+                    <>
+                        <Text style={[styles.section, wide && { marginTop: 0 }]}>{t("MES TOURNOIS")}</Text>
                         {mine.length === 0 && <Text style={styles.emptySmall}>{t("Aucun pour l'instant. Crée un tournoi ou ouvre un lien d'inscription reçu d'un ami.")}</Text>}
                         {mine.map((ti) => (
                             <PressableScale key={ti.id} onPress={() => navigation.navigate('Tournament', { id: ti.id })} style={styles.row}>
@@ -175,9 +176,10 @@ export default function TournamentsScreen({ navigation }) {
                             </PressableScale>
                         ))}
                     </>
+                    </Cols>
                 )}
             </ScrollView>
-        </View>
+        </MenuShell>
     );
 }
 
@@ -188,6 +190,7 @@ export const tournamentStyles = StyleSheet.create({
     headBtnText: { color: theme.goldLight, fontWeight: '800', fontSize: 13 },
     headTitle: { color: theme.goldLight, fontSize: 20, fontWeight: '900', flexShrink: 1, textAlign: 'center' },
     list: { padding: 16, paddingBottom: 48, maxWidth: 560, width: '100%', alignSelf: 'center' },
+    listWide: { maxWidth: 1180, paddingTop: 6 },
     intro: { color: theme.cream, fontSize: 13, textAlign: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 10, borderRadius: 12, lineHeight: 19 },
     card: { backgroundColor: 'rgba(14,26,56,0.95)', borderRadius: 16, padding: 14, marginTop: 12, borderWidth: 1, borderColor: 'rgba(212,175,55,0.35)' },
     cardTitle: { color: theme.goldLight, fontWeight: '900', fontSize: 16, marginBottom: 4 },

@@ -79,6 +79,8 @@ export default function App() {
   const { width, height } = useWindowDimensions();
   // Web sur téléphone tenu en paysage : on utilise tout l'écran au lieu du cadre portrait
   const webLandscapePhone = Platform.OS === 'web' && width > height && height < 600;
+  // Web sur tablette tenue en portrait : toute la largeur (le contenu des menus reste centré)
+  const webTabletPortrait = Platform.OS === 'web' && width >= 700 && height > width;
   const wideFrame = useWideFrame(); // accueil en paysage : toute la largeur de l'écran
   const lang = useLang(); // changer de langue redessine toute l'appli (key)
 
@@ -104,7 +106,7 @@ export default function App() {
 
   return (
     <View style={styles.appContainer}>
-      <View key={lang} style={[styles.mobileContainer, (webLandscapePhone || wideFrame) && styles.fullScreen]}>
+      <View key={lang} style={[styles.mobileContainer, (webLandscapePhone || webTabletPortrait || wideFrame) && styles.fullScreen]}>
         <GestureHandlerRootView style={{ flex: 1 }}>
           <NavigationContainer theme={navTheme} ref={navigationRef}>
             <StatusBar style="light" />

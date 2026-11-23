@@ -6,6 +6,7 @@ import { PressableScale, theme } from '../components/ui';
 import { GAMES, GAME_ORDER } from '../games';
 import accountService, { useAccount } from '../network/accountService';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { t } from '../i18n';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
@@ -46,14 +47,12 @@ export default function LeaderboardScreen({ navigation }) {
         </Animated.View>
     );
 
+    const { wide } = useMenuLayout();
     const meInTop = data?.me && data.top.some((r) => r.rank === data.me.rank);
 
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader title={t("Classement")} onBack={() => navigation.goBack()} />
-
-            <View style={styles.tabs}>
+        <MenuShell navigation={navigation} current="rank" bottomNav={false} title={t("Classement")}>
+            <View style={[styles.tabs, wide && styles.wide]}>
                 {[['all', 'Général'], ...GAME_ORDER.map((g) => [g, GAMES[g].label])].map(([k, l]) => (
                     <Pressable key={k} onPress={() => setGame(k)} style={[styles.tab, game === k && styles.tabOn]}>
                         <Text style={[styles.tabText, game === k && { color: theme.bg }]} numberOfLines={1}>{l}</Text>
@@ -72,7 +71,7 @@ export default function LeaderboardScreen({ navigation }) {
             {error && <Text style={styles.error}>{error}</Text>}
 
             {data && (
-                <ScrollView contentContainerStyle={styles.list}>
+                <ScrollView contentContainerStyle={[styles.list, wide && styles.wide]}>
                     {data.top.length === 0 && <Text style={styles.empty}>{t("Personne n'est encore classé cette saison. À toi de jouer !")}</Text>}
                     {data.top.map((r, i) => <Row key={`${r.rank}-${r.name}`} r={r} i={i} me={data.me?.rank === r.rank && data.me?.name === r.name} />)}
                     {data.me && !meInTop && (
@@ -86,7 +85,7 @@ export default function LeaderboardScreen({ navigation }) {
                     )}
                 </ScrollView>
             )}
-        </View>
+        </MenuShell>
     );
 }
 
@@ -102,6 +101,7 @@ const styles = StyleSheet.create({
     tabText: { color: theme.textDim, fontWeight: '800', fontSize: 11 },
     season: { color: theme.cream, textAlign: 'center', fontWeight: '800', fontSize: 12, backgroundColor: 'rgba(0,0,0,0.45)', alignSelf: 'center', paddingHorizontal: 10, paddingVertical: 3, borderRadius: 10 },
     reward: { color: theme.goldLight, textAlign: 'center', fontSize: 11, marginTop: 4 },
+    wide: { maxWidth: 820 },
     list: { padding: 12, paddingBottom: 40, maxWidth: 560, width: '100%', alignSelf: 'center' },
     row: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(14,26,56,0.92)', borderRadius: 14, paddingVertical: 8, paddingHorizontal: 10, marginBottom: 6, borderWidth: 1, borderColor: 'rgba(212,175,55,0.2)' },
     rowMe: { borderColor: theme.gold, backgroundColor: 'rgba(60,40,10,0.95)' },

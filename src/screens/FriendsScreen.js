@@ -6,7 +6,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, ActivityIndicator } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import PlayerAvatar from '../components/PlayerAvatar';
-import AppNav from '../components/AppNav';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { GameButton, PressableScale } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { LUXE, LuxePanel, LuxeBackdrop, ScreenHeader, SectionHead } from '../components/Luxe';
@@ -40,6 +40,7 @@ export default function FriendsScreen({ navigation }) {
     const [name, setName] = useState('');
     const [busy, setBusy] = useState(false);
     const [msg, setMsg] = useState(null);
+    const { wide } = useMenuLayout(); // grand écran : liste d'amis à droite
 
     const add = async () => {
         if (!name.trim()) return;
@@ -57,11 +58,30 @@ export default function FriendsScreen({ navigation }) {
         { text: t('Retirer'), style: 'destructive', onPress: () => friendsService.remove(f.id) },
     ]);
 
+    const friendsList = (
+                        <Animated.View entering={FadeInDown.delay(120).springify().damping(16)}>
+                            <LuxePanel inner={false}>
+                                <SectionHead emoji="🤝" title={t("Mes amis")} right={t("{p0} en ligne · {p1}", { p0: fr.friends.filter((f) => f.online).length, p1: fr.friends.length })} />
+                                {!fr.loaded ? <ActivityIndicator color={LUXE.gold} style={{ margin: 16 }} /> : fr.friends.length === 0 ? (
+                                    <Text style={[styles.dim, { padding: 14 }]}>{t("Pas encore d'amis. Ajoute-les avec leur pseudo, puis invite-les depuis ton salon privé.")}</Text>
+                                ) : fr.friends.map((f) => (
+                                    <FriendRow key={f.id} f={f}>
+                                        <PressableScale onPress={() => remove(f)} style={styles.remove} accessibilityLabel={`Retirer ${f.name}`}><Text style={styles.removeText}>✕</Text></PressableScale>
+                                    </FriendRow>
+                                ))}
+                                {fr.friends.some((f) => f.online) && (
+                                    <View style={{ padding: 12 }}>
+                                        <GameButton small title={t("Créer un salon et les inviter")} icon="🎮" variant="green" onPress={() => navigation.popToTop()} />
+                                        <Text style={[styles.dim, { marginTop: 6 }]}>{t("Sur l'accueil : « Entre amis », puis « Inviter un ami » dans le salon.")}</Text>
+                                    </View>
+                                )}
+                            </LuxePanel>
+                        </Animated.View>
+    );
+
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader title={t("Amis")} onBack={() => navigation.goBack()} />
-            <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <MenuShell navigation={navigation} current="friends" title={t("Amis")}>
+            <ScrollView contentContainerStyle={[styles.scroll, wide && styles.scrollWide]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
                 {!account.profile ? (
                     <LuxePanel style={{ padding: 16 }}>
                         <Text style={styles.title}>{t("Joue avec tes amis")}</Text>
@@ -69,6 +89,7 @@ export default function FriendsScreen({ navigation }) {
                         <GameButton small title={t("Créer mon compte")} icon="🔐" onPress={() => navigation.navigate('Profile')} style={{ marginTop: 12, alignSelf: 'center' }} />
                     </LuxePanel>
                 ) : (
+                    <Cols flex={[2, 3]}>
                     <>
                         <Animated.View entering={FadeInDown.springify().damping(16)}>
                             <LuxePanel inner={false}>
@@ -98,25 +119,6 @@ export default function FriendsScreen({ navigation }) {
                             </Animated.View>
                         )}
 
-                        <Animated.View entering={FadeInDown.delay(120).springify().damping(16)}>
-                            <LuxePanel inner={false}>
-                                <SectionHead emoji="🤝" title={t("Mes amis")} right={t("{p0} en ligne · {p1}", { p0: fr.friends.filter((f) => f.online).length, p1: fr.friends.length })} />
-                                {!fr.loaded ? <ActivityIndicator color={LUXE.gold} style={{ margin: 16 }} /> : fr.friends.length === 0 ? (
-                                    <Text style={[styles.dim, { padding: 14 }]}>{t("Pas encore d'amis. Ajoute-les avec leur pseudo, puis invite-les depuis ton salon privé.")}</Text>
-                                ) : fr.friends.map((f) => (
-                                    <FriendRow key={f.id} f={f}>
-                                        <PressableScale onPress={() => remove(f)} style={styles.remove} accessibilityLabel={`Retirer ${f.name}`}><Text style={styles.removeText}>✕</Text></PressableScale>
-                                    </FriendRow>
-                                ))}
-                                {fr.friends.some((f) => f.online) && (
-                                    <View style={{ padding: 12 }}>
-                                        <GameButton small title={t("Créer un salon et les inviter")} icon="🎮" variant="green" onPress={() => navigation.popToTop()} />
-                                        <Text style={[styles.dim, { marginTop: 6 }]}>{t("Sur l'accueil : « Entre amis », puis « Inviter un ami » dans le salon.")}</Text>
-                                    </View>
-                                )}
-                            </LuxePanel>
-                        </Animated.View>
-
                         {fr.outgoing.length > 0 && (
                             <LuxePanel inner={false}>
                                 <SectionHead emoji="⏳" title={t("Demandes envoyées")} />
@@ -127,17 +129,20 @@ export default function FriendsScreen({ navigation }) {
                                 ))}
                             </LuxePanel>
                         )}
+                        {!wide && friendsList}
                     </>
+                    {wide && friendsList}
+                    </Cols>
                 )}
             </ScrollView>
-            <AppNav navigation={navigation} current="friends" />
-        </View>
+        </MenuShell>
     );
 }
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: LUXE.night },
     scroll: { padding: 14, paddingBottom: 24, gap: 14, width: '100%', maxWidth: 560, alignSelf: 'center' },
+    scrollWide: { maxWidth: 1180, paddingTop: 6 },
     title: { color: LUXE.goldLight, fontWeight: '900', fontSize: 17, textAlign: 'center', marginBottom: 6 },
     dim: { color: LUXE.dim, fontWeight: '700', fontSize: 12, textAlign: 'center', lineHeight: 18 },
     input: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', borderWidth: 1.5, borderColor: LUXE.gold, borderRadius: 12, color: LUXE.cream, paddingHorizontal: 12, paddingVertical: 9, fontWeight: '800', fontSize: 15 },

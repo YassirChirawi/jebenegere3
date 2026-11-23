@@ -11,7 +11,7 @@ import accountService, { useAccount } from '../network/accountService';
 import audioService from '../network/audioService';
 import { GameButton, PressableScale } from '../components/ui';
 import { BingaIcon } from '../components/Decor';
-import AppNav from '../components/AppNav';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
 import { BINGA } from '../../server/progress/defs';
 import { t } from '../i18n';
@@ -86,16 +86,15 @@ export default function MissionsScreen({ navigation }) {
     };
 
     const login = profile?.binga?.login;
+    const { wide } = useMenuLayout();
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader
-                title={t("Missions")}
-                onBack={() => navigation.goBack()}
-                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'} />}
-            />
-
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+        <MenuShell
+            navigation={navigation}
+            current="missions"
+            title={t("Missions")}
+            right={<BingaPill icon={<BingaIcon size={20} />} amount={profile?.binga ? profile.binga.balance.toLocaleString('fr-FR') : '—'} />}
+        >
+            <ScrollView contentContainerStyle={[styles.scroll, wide && styles.scrollWide]} showsVerticalScrollIndicator={false}>
                 {!profile ? (
                     <LuxePanel style={styles.panel}>
                         <Text style={styles.guestTitle}>{t("Missions, bonus de connexion et badges")}</Text>
@@ -134,7 +133,8 @@ export default function MissionsScreen({ navigation }) {
                             </Animated.View>
                         )}
 
-                        {/* Missions binga */}
+                        {/* Missions binga et défis du jour : côte à côte sur grand écran */}
+                        <Cols>
                         {profile.binga && (
                             <Animated.View entering={FadeInDown.delay(80).springify().damping(16)}>
                                 <LuxePanel style={styles.panel} inner={false}>
@@ -176,6 +176,7 @@ export default function MissionsScreen({ navigation }) {
                                 <View style={{ height: 8 }} />
                             </LuxePanel>
                         </Animated.View>
+                        </Cols>
 
                         {/* Succès et badges : les titres */}
                         <Animated.View entering={FadeInDown.delay(200).springify().damping(16)}>
@@ -186,7 +187,7 @@ export default function MissionsScreen({ navigation }) {
                                     {profile.titles.map((ti) => {
                                         const on = profile.title === ti.id;
                                         return (
-                                            <Pressable key={ti.id} onPress={() => chooseTitle(ti)} style={[styles.badge, on && styles.badgeOn]} accessibilityLabel={`${t(ti.label)} : ${t(ti.desc)}`}>
+                                            <Pressable key={ti.id} onPress={() => chooseTitle(ti)} style={[styles.badge, wide && styles.badgeWide, on && styles.badgeOn]} accessibilityLabel={`${t(ti.label)} : ${t(ti.desc)}`}>
                                                 <Image source={BADGES[TITLE_BADGE[ti.id]] || BADGES.collection} style={[styles.badgeImg, !ti.unlocked && styles.badgeLocked]} resizeMode="contain" />
                                                 <Text style={[styles.badgeLabel, !ti.unlocked && { color: LUXE.dim }]} numberOfLines={1}>{t(ti.label)}</Text>
                                                 <Text style={styles.badgeDesc} numberOfLines={2}>{ti.unlocked ? (on ? t('✓ affiché') : t(ti.desc)) : `${ti.progress}/${ti.target} · ${t(ti.desc)}`}</Text>
@@ -199,8 +200,7 @@ export default function MissionsScreen({ navigation }) {
                     </>
                 )}
             </ScrollView>
-            <AppNav navigation={navigation} current="missions" />
-        </View>
+        </MenuShell>
     );
 }
 
@@ -232,7 +232,9 @@ const styles = StyleSheet.create({
     chipDoneText: { color: '#fff', fontWeight: '900', fontSize: 13, textShadowColor: 'rgba(0,0,0,0.5)', textShadowRadius: 2 },
     small: { color: LUXE.dim, fontWeight: '700', fontSize: 11, marginTop: 10 },
     badges: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', gap: 8, paddingHorizontal: 8, paddingBottom: 12 },
+    scrollWide: { maxWidth: 1180, paddingTop: 6 },
     badge: { width: '22.5%', minWidth: 74, alignItems: 'center', padding: 4, borderRadius: 12, borderWidth: 1.5, borderColor: 'transparent' },
+    badgeWide: { width: '11.5%', minWidth: 96 },
     badgeOn: { borderColor: LUXE.goldLight, backgroundColor: 'rgba(232,184,74,0.15)' },
     badgeImg: { width: 58, height: 58 },
     badgeLocked: { opacity: 0.32 },

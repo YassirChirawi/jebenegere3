@@ -9,7 +9,7 @@ import Svg, { Path, Circle, G } from 'react-native-svg';
 import { GameButton, PressableScale, theme, haptic } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { DECOR, BingaIcon, Chip } from '../components/Decor';
-import AppNav from '../components/AppNav';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { ChestArt } from '../components/ChestOpening';
 import accountService, { useAccount } from '../network/accountService';
 import socketService from '../network/socketService';
@@ -129,7 +129,9 @@ export default function WheelScreen({ navigation }) {
     const { width, height } = useWindowDimensions();
     // Fond « cover » calculé ici (l'image fait 800 x 450)
     const k = Math.max(width / 800, height / 450);
-    const size = Math.min(width - 48, 340);
+    const { wide, contentW } = useMenuLayout();
+    // Grand écran : la roue à gauche, les chances à droite
+    const size = wide ? Math.max(240, Math.min(contentW / 2 - 40, height - 300, 440)) : Math.min(width - 48, 340);
     const rotation = useSharedValue(0);
     const [spinning, setSpinning] = useState(false);
     const [result, setResult] = useState(null);
@@ -194,17 +196,23 @@ export default function WheelScreen({ navigation }) {
     };
 
     return (
-        <View style={styles.container}>
-            <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
-                <Image source={DECOR.fondRoue} style={{ position: 'absolute', width: 800 * k, height: 450 * k, left: (width - 800 * k) / 2, top: (height - 450 * k) / 2 }} />
-            </View>
-            <View style={styles.dim} />
-            <ScreenHeader
-                title={t("Roue du jour")}
-                onBack={() => navigation.goBack()}
-                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? (profile.binga?.balance ?? 0).toLocaleString('fr-FR') : '—'} />}
-            />
-            <ScrollView contentContainerStyle={styles.scroll}>
+        <MenuShell
+            navigation={navigation}
+            current="rewards"
+            title={t("Roue du jour")}
+            right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? (profile.binga?.balance ?? 0).toLocaleString('fr-FR') : '—'} />}
+            background={(
+                <>
+                    <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
+                        <Image source={DECOR.fondRoue} style={{ position: 'absolute', width: 800 * k, height: 450 * k, left: (width - 800 * k) / 2, top: (height - 450 * k) / 2 }} />
+                    </View>
+                    <View style={styles.dim} />
+                </>
+            )}
+        >
+            <ScrollView contentContainerStyle={[styles.scroll, wide && { maxWidth: 1180, paddingTop: 6 }]}>
+                <Cols>
+                <>
                 <Text style={styles.intro}>{t("Un tour gratuit par jour, toujours un lot. La roue ne se paie jamais, ni en binga ni en argent.")}</Text>
                 <View style={{ alignItems: 'center', marginVertical: 12 }}>
                     <Wheel size={size} rotation={rotation} />
@@ -225,8 +233,9 @@ export default function WheelScreen({ navigation }) {
                         {!profile && <Text style={styles.note}>{t("🔐 Crée ton compte pour tourner la roue chaque jour.")}</Text>}
                     </View>
                 )}
+                </>
 
-                <View style={styles.odds}>
+                <View style={[styles.odds, wide && { marginTop: 0 }]}>
                     <Text style={styles.oddsTitle}>{t("Chances de chaque lot")}</Text>
                     {WHEEL.segments.map((s) => (
                         <View key={s.id} style={styles.oddsRow}>
@@ -238,9 +247,9 @@ export default function WheelScreen({ navigation }) {
                     ))}
                     <Text style={styles.note}>{t("Un coffre gagné s'ouvre tout de suite, gratuitement, avec ses propres chances (affichées dans la Boutique). Cosmétique déjà tous possédés : 20 binga.")}</Text>
                 </View>
+                </Cols>
             </ScrollView>
-            <AppNav navigation={navigation} current="rewards" />
-        </View>
+        </MenuShell>
     );
 }
 

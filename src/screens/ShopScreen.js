@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, Pressable, Image, Platform, Linking, ActivityIndicator } from 'react-native';
 import PlayerAvatar from '../components/PlayerAvatar';
-import AppNav from '../components/AppNav';
+import MenuShell, { useMenuLayout, gridItem } from '../components/MenuShell';
 import { LUXE, Gradient, LuxePanel, XpBar, LuxeBackdrop, ScreenHeader, BingaPill, SectionHead } from '../components/Luxe';
 import { BingaIcon, DECOR } from '../components/Decor';
 import Animated, { FadeIn } from 'react-native-reanimated';
@@ -101,6 +101,7 @@ export default function ShopScreen({ navigation, route }) {
     const cos = useCosmetics();
     const profile = account.profile;
     const [tab, setTab] = useState(route?.params?.tab || 'chest');
+    const { wide, contentW } = useMenuLayout();
     const [opening, setOpening] = useState(null);
     const [busy, setBusy] = useState(null);
     const [fx, setFx] = useState(null);
@@ -256,23 +257,27 @@ export default function ShopScreen({ navigation, route }) {
     // Onglet Tables : les tables, puis les couleurs de tapis des défis du jour
     const list = tab === 'chest' || tab === 'diamonds' ? [] : [...(FREE[tab] || []), ...COSMETICS.filter((c) => c.kind === tab || (tab === 'table' && c.kind === 'felt'))];
 
+    // Grand écran : onglets en colonne à gauche, objets en grille sur toute la largeur
+    const TABS_W = 190;
+    const cell = wide ? gridItem(contentW - TABS_W - 14, 150) : null;
+    const cardW = wide ? gridItem(contentW - TABS_W - 14, 300, 12, 3).w : null; // packs et coffres
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader
-                title={t("Ma Collection")}
-                onBack={() => navigation.goBack()}
-                right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? balance.toLocaleString('fr-FR') : '—'} />}
-            />
-            <View style={styles.wallet}>
+        <MenuShell
+            navigation={navigation}
+            current="collection"
+            title={t("Ma Collection")}
+            overlay={fx && <WinEffect key={fx.id} effect={fx.k} />}
+            right={<BingaPill icon={<BingaIcon size={20} />} amount={profile ? balance.toLocaleString('fr-FR') : '—'} />}
+        >
+            {!wide && <View style={styles.wallet}>
                 <PressableScale onPress={() => setTab('diamonds')} style={styles.walletGem} accessibilityLabel={t("Diamants : {p0}", { p0: diamonds })}>
                     <GemIcon size={20} />
                     <Text style={styles.walletText}>{profile ? diamonds.toLocaleString('fr-FR') : '—'}</Text>
                     <View style={styles.walletPlus}><Text style={styles.walletPlusText}>+</Text></View>
                 </PressableScale>
-            </View>
+            </View>}
 
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.scroll, wide && { maxWidth: 1180, paddingTop: 6 }]} showsVerticalScrollIndicator={false}>
                 <Text style={styles.info}>
                     Les objets s'achètent avec des binga gagnés en jouant, ou avec des diamants. Ce sont des visuels : aucun avantage en partie. Un objet acheté est à toi pour toujours.
                 </Text>
@@ -287,18 +292,20 @@ export default function ShopScreen({ navigation, route }) {
                     ))}
                 </View>
 
-                <View style={styles.tabs}>
+                <View style={wide && styles.wideRow}>
+                <View style={[styles.tabs, wide && styles.tabsWide, wide && { width: TABS_W }]}>
                     {TABS.map(([k, label]) => {
                         const on = tab === k;
                         return (
-                            <PressableScale key={k} onPress={() => setTab(k)} style={[styles.tab, on && styles.tabOn]} accessibilityLabel={label} accessibilityState={{ selected: on }} scaleTo={0.93}>
+                            <PressableScale key={k} onPress={() => setTab(k)} style={[styles.tab, wide && styles.tabWide, on && styles.tabOn]} accessibilityLabel={label} accessibilityState={{ selected: on }} scaleTo={0.93}>
                                 <Gradient colors={on ? ['#C42634', '#5E0B15'] : ['#1D2C55', '#0C1632']} />
                                 <View style={styles.tabIcon}><TabIcon k={k} /></View>
-                                <Text style={[styles.tabText, on && styles.tabTextOn]} numberOfLines={1}>{label}</Text>
+                                <Text style={[styles.tabText, wide && styles.tabTextWide, on && styles.tabTextOn]} numberOfLines={1}>{label}</Text>
                             </PressableScale>
                         );
                     })}
                 </View>
+                <View style={wide && { flex: 1, minWidth: 0 }}>
 
                 {/* Où en est la collection de cet onglet */}
                 {tab !== 'chest' && tab !== 'diamonds' && (() => {
@@ -323,8 +330,9 @@ export default function ShopScreen({ navigation, route }) {
                     <>
                         <Text style={styles.soon}>{t("Les diamants s'achètent en euros et servent seulement à acheter des cosmétiques (communs, rares, épiques), sans hasard. Ils ne donnent aucun avantage en partie et ne s'échangent pas contre des binga. Les coffres s'ouvrent toujours en binga, et les légendaires restent dans le coffre Or.")}</Text>
                         {payBlocked && <Text style={[styles.soon, { color: LUXE.goldLight }]}>{payBlocked}</Text>}
+                        <View style={wide && styles.cards}>
                         {!packs ? <ActivityIndicator color={LUXE.gold} style={{ margin: 20 }} /> : packs.packs.map((p, i) => (
-                            <LuxePanel key={p.id} style={styles.pack} colors={i === packs.packs.length - 1 ? ['#6A1222', '#2A0710'] : undefined}>
+                            <LuxePanel key={p.id} style={[styles.pack, wide && { width: cardW }]} colors={i === packs.packs.length - 1 ? ['#6A1222', '#2A0710'] : undefined}>
                                 <View style={styles.packGems}>
                                     {Array.from({ length: Math.min(5, i + 1) }).map((_, k) => <View key={k} style={{ marginLeft: k ? -10 : 0 }}><GemIcon size={26} /></View>)}
                                 </View>
@@ -335,6 +343,7 @@ export default function ShopScreen({ navigation, route }) {
                                 <GameButton small title={paying === p.id ? '…' : euros(p.cents)} onPress={() => buyPack(p)} disabled={!packs.enabled || !!payBlocked || !!paying} />
                             </LuxePanel>
                         ))}
+                        </View>
                         {packs && !packs.enabled && !payBlocked && <Text style={styles.soon}>{t("Le paiement sera bientôt activé.")}</Text>}
                         <Text style={styles.soon}>{t("Paiement sécurisé par Stripe (carte, Apple Pay, Google Pay). L'Carta ne voit jamais ta carte. Prix TTC.")}</Text>
                     </>
@@ -343,7 +352,7 @@ export default function ShopScreen({ navigation, route }) {
                 {tab === 'chest' && (
                     <>
                         <View style={styles.chestBanner}>
-                            <Image source={DECOR.coffres} style={StyleSheet.absoluteFill} resizeMode="cover" />
+                            <Image source={DECOR.coffres} style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]} resizeMode="cover" />
                             <Gradient colors={['rgba(6,12,24,0)', 'rgba(6,12,24,0.85)']} />
                             <View style={styles.chestBannerShade}>
                                 <Text style={styles.chestBannerTitle}>{t("Coffres et roue du jour")}</Text>
@@ -351,9 +360,10 @@ export default function ShopScreen({ navigation, route }) {
                             </View>
                         </View>
                         <Text style={styles.soon}>{t("Chaque coffre contient 1 cosmétique, tiré au sort par le serveur avec les chances affichées. Si tu l'as déjà, tu récupères 20 % de sa valeur en binga. Les coffres s'ouvrent seulement avec des binga gagnés en jouant : aucun argent réel.")}</Text>
+                        <View style={wide && styles.cards}>
                         {Object.entries(CHESTS).map(([id, c]) => (
-                            <LuxePanel key={id} style={[styles.chestCard, { borderColor: c.color }]}>
-                                <View style={styles.chestLeft}>
+                            <LuxePanel key={id} style={[styles.chestCard, wide && { width: cardW, flexDirection: 'column', alignItems: 'stretch' }, { borderColor: c.color }]}>
+                                <View style={[styles.chestLeft, wide && { alignSelf: 'center' }]}>
                                     <ChestArt chest={id} size={92} />
                                     <Text style={[styles.chestName, { color: c.color }]}>{c.label}</Text>
                                 </View>
@@ -371,14 +381,15 @@ export default function ShopScreen({ navigation, route }) {
                                 </View>
                             </LuxePanel>
                         ))}
+                        </View>
                     </>
                 )}
 
-                <View style={styles.grid}>
+                <View style={[styles.grid, wide && { justifyContent: 'flex-start', gap: 10 }]}>
                     {list.map((item) => {
                         const r = RARITIES[item.rarity];
                         return (
-                            <Animated.View key={item.id} entering={FadeIn.duration(200)} style={[styles.item, { borderColor: owned(item) ? '#5FE08A' : `${r.color}AA` }]}>
+                            <Animated.View key={item.id} entering={FadeIn.duration(200)} style={[styles.item, wide && { width: cell.w, marginBottom: 0 }, { borderColor: owned(item) ? '#5FE08A' : `${r.color}AA` }]}>
                                 <Gradient colors={['#1A2A52', '#0A1430']} />
                                 <View style={[styles.rarityBar, { backgroundColor: r.color }]} />
                                 {owned(item) && <View style={styles.ownedDot}><Text style={styles.ownedDotText}>✓</Text></View>}
@@ -390,9 +401,9 @@ export default function ShopScreen({ navigation, route }) {
                         );
                     })}
                 </View>
+                </View>
+                </View>
             </ScrollView>
-            <AppNav navigation={navigation} current="collection" />
-            {fx && <WinEffect key={fx.id} effect={fx.k} />}
             {opening && (
                 <ChestOpening
                     chest={opening}
@@ -401,7 +412,7 @@ export default function ShopScreen({ navigation, route }) {
                     onUse={(item) => use(item)}
                 />
             )}
-        </View>
+        </MenuShell>
     );
 }
 
@@ -439,6 +450,11 @@ const styles = StyleSheet.create({
     tabText: { color: LUXE.cream, fontWeight: '900', fontSize: 12, marginTop: 3 },
     tabTextOn: { color: '#FFF3D6' },
     soon: { color: LUXE.dim, fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 10, paddingHorizontal: 6 },
+    wideRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 14, marginTop: 14 },
+    tabsWide: { flexDirection: 'column', flexWrap: 'nowrap', marginTop: 0 },
+    tabWide: { width: '100%', flexGrow: 0, flexDirection: 'row', gap: 10, paddingHorizontal: 10, paddingVertical: 8 },
+    tabTextWide: { marginTop: 0, fontSize: 14 },
+    cards: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginBottom: 12 },
     grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
     item: { width: '31.5%', alignItems: 'center', paddingTop: 12, paddingBottom: 10, paddingHorizontal: 4, marginBottom: 10, borderRadius: 16, borderWidth: 1.5, overflow: 'hidden' },
     previewBox: { height: 88, justifyContent: 'center', alignItems: 'center' },

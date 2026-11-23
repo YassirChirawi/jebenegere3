@@ -29,7 +29,7 @@ import { inDiscord, discordInstanceId } from '../utils/discord';
 import AppNav, { useLandscape } from '../components/AppNav';
 import { useFriends } from '../network/friendsService';
 import InboxBell from '../components/InboxBell';
-import { setWideFrame } from '../utils/frame';
+import { useWideFrameWhile } from '../components/MenuShell';
 import { ChestArt } from '../components/ChestOpening';
 import { SEASON_MS } from '../../server/progress/defs';
 import { LUXE, LUXE_IMG, MODE_COLORS, Gradient, Glow, LuxePanel, LevelBadge, XpBar, LaurelPortrait, QuickTile, ModeCard, RibbonTitle, GoldSquare } from '../components/Luxe';
@@ -107,14 +107,7 @@ export default function HomeScreen({ navigation, route }) {
     const [localStats, setLocalStats] = useState({ played: 0, wins: 0 }); // invité : statistiques de l'appareil
     const { width: winW, height: winH } = useWindowDimensions();
     const landscape = useLandscape(); // écran large en paysage : colonnes (navigation, modes, saison et récompenses)
-    // En paysage, l'accueil prend toute la largeur (sur ordinateur, les autres écrans gardent le cadre de téléphone)
-    useEffect(() => {
-        const apply = () => setWideFrame(landscape);
-        apply();
-        const offFocus = navigation.addListener('focus', apply);
-        const offBlur = navigation.addListener('blur', () => setWideFrame(false));
-        return () => { offFocus(); offBlur(); setWideFrame(false); };
-    }, [landscape, navigation]);
+    useWideFrameWhile(navigation, landscape); // en paysage, toute la largeur de la fenêtre (comme les autres menus)
     const account = useAccount();
     const profile = account.profile;
     const friends = useFriends();

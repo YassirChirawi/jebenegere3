@@ -13,6 +13,7 @@ import { getMine, remember, forget, GAME_LABEL, formatWhen, formatCountdown } fr
 import { tournamentUrl, copyInvite, shareInvite } from '../utils/invite';
 import { tournamentStyles as base } from './TournamentsScreen';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { t as tr } from '../i18n';
 
 const STATUS = { open: 'Inscriptions ouvertes', running: 'En cours', done: 'Terminé', cancelled: 'Annulé' };
@@ -40,6 +41,7 @@ export default function TournamentScreen({ route, navigation }) {
     }, []);
     useEffect(() => { if (account.profile?.name) setName(account.profile.name); }, [account.profile?.name]);
     useEffect(() => { const i = setInterval(() => setNow(Date.now()), 1000); return () => clearInterval(i); }, []);
+    const { wide } = useMenuLayout();
 
     const apply = (view) => {
         if (!view) return;
@@ -136,20 +138,16 @@ export default function TournamentScreen({ route, navigation }) {
 
     if (error) {
         return (
-            <View style={base.container}>
-                <LuxeBackdrop />
-                <Header navigation={navigation} title={tr("🏆 Tournoi")} />
+            <MenuShell navigation={navigation} title={tr("🏆 Tournoi")} onBack={backOf(navigation)}>
                 <Text style={base.empty}>{error}</Text>
-            </View>
+            </MenuShell>
         );
     }
     if (!t) {
         return (
-            <View style={base.container}>
-                <LuxeBackdrop />
-                <Header navigation={navigation} title={tr("🏆 Tournoi")} />
+            <MenuShell navigation={navigation} title={tr("🏆 Tournoi")} onBack={backOf(navigation)}>
                 <ActivityIndicator color={theme.gold} style={{ marginTop: 40 }} />
-            </View>
+            </MenuShell>
         );
     }
 
@@ -164,10 +162,8 @@ export default function TournamentScreen({ route, navigation }) {
     const iAmChampion = t.status === 'done' && me && t.champion && t.champion.names.includes(t.entrants.find((e) => e.id === me)?.name);
 
     return (
-        <View style={base.container}>
-                <LuxeBackdrop />
-            <Header navigation={navigation} title={`🏆 ${t.name}`} />
-            <ScrollView contentContainerStyle={base.list} keyboardShouldPersistTaps="handled">
+        <MenuShell navigation={navigation} title={`🏆 ${t.name}`} onBack={backOf(navigation)}>
+            <ScrollView contentContainerStyle={[base.list, wide && { maxWidth: 1000 }]} keyboardShouldPersistTaps="handled">
                 <View style={styles.infoCard}>
                     <Text style={styles.infoGame}>{GAME_LABEL[t.gameType]}{t.mode === 'duo' ? tr(' · 2 contre 2') : tr(' · 1 contre 1')} · {t.size} {tr("joueurs · élimination directe")}</Text>
                     <Text style={styles.infoWhen}>
@@ -301,15 +297,11 @@ export default function TournamentScreen({ route, navigation }) {
                     <Text style={[base.hint, { textAlign: 'center' }]}>{tr("Le tableau est tiré au sort au début du tournoi.")}</Text>
                 )}
             </ScrollView>
-        </View>
+        </MenuShell>
     );
 }
 
-function Header({ navigation, title }) {
-    return (
-        <ScreenHeader title={title} onBack={() => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Home'))} />
-    );
-}
+const backOf = (navigation) => () => (navigation.canGoBack() ? navigation.goBack() : navigation.replace('Home'));
 
 function MatchCard({ m, me, onPress, expanded }) {
     const status = m.bye
