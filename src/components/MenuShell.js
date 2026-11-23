@@ -79,7 +79,7 @@ function Wallet() {
     );
 }
 
-export default function MenuShell({ navigation, current = null, title, onBack, right, wideRight, background, overlay, bottomNav = !!current, children }) {
+export default function MenuShell({ navigation, current = null, title, onBack, right, wideRight, background, overlay, bottomNav = !!current, sideNav = true, children }) {
     const wide = useLandscape();
     const { width: winW, height: winH } = useWindowDimensions();
     useWideFrameWhile(navigation, wide);
@@ -118,9 +118,12 @@ export default function MenuShell({ navigation, current = null, title, onBack, r
                 </View>
             </View>
             <View style={styles.body}>
-                <ScrollView style={{ width: sideW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
-                    <AppNav navigation={navigation} current={current} side />
-                </ScrollView>
+                {/* sideNav=false : pas de colonne (salon privé : on n'en sort que par Retour) */}
+                {sideNav && (
+                    <ScrollView style={{ width: sideW, flexGrow: 0 }} showsVerticalScrollIndicator={false}>
+                        <AppNav navigation={navigation} current={current} side />
+                    </ScrollView>
+                )}
                 <View style={styles.content}>
                     {children}
                 </View>

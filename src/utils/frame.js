@@ -22,3 +22,14 @@ export function useWideFrame() {
     }, []);
     return v;
 }
+
+/**
+ * Agrandissement des parties sur grand écran (site) : la table est dessinée pour une fenêtre
+ * d'environ 1100 x 720 puis agrandie d'un seul bloc. Les gestes (glisser une carte) divisent par ce facteur.
+ */
+let gameScale = 1;
+export function setGameScale(k) { gameScale = k || 1; }
+export function getGameScale() { return gameScale; }
+export function gameScaleFor(width, height) {
+    return Math.max(1, Math.min(1.6, width / 1100, height / 720));
+}

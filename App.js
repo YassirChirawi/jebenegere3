@@ -34,7 +34,9 @@ import { armFullscreenOnTouch, setGameOrientation } from './src/utils/fullscreen
 import StartCountdown from './src/components/StartCountdown';
 import PlayerLeftBanner from './src/components/PlayerLeftBanner';
 import socketService from './src/network/socketService';
-import { useWideFrame } from './src/utils/frame';
+import { useWideFrame, setGameScale, gameScaleFor } from './src/utils/frame';
+import { useWideFrameWhile } from './src/components/MenuShell';
+import { useLandscape } from './src/components/AppNav';
 import { useLang, loadLang } from './src/i18n';
 
 const Stack = createNativeStackNavigator();
@@ -43,6 +45,9 @@ export const navigationRef = createNavigationContainerRef();
 // Un seul écran "Game" dans la navigation : on choisit le plateau selon le type de jeu
 function GameRouter(props) {
   const type = props.route?.params?.initialGameState?.gameType || 'hezz2';
+  // Ordinateur, tablette (paysage) : la table prend toute la fenêtre
+  const landscape = useLandscape();
+  useWideFrameWhile(props.navigation, landscape);
   useEffect(() => { setCurrentGame(type); }, [type]); // dos de carte "couleurs du jeu"
   // Téléphone (web) : plein écran pendant la partie, la Ronda se joue en paysage
   useEffect(() => {
@@ -59,12 +64,30 @@ function GameRouter(props) {
   }), [roomId]);
   const Screen = type === 'ronda' ? RondaScreen : type === 'kdoub' ? KdoubScreen : type === 'sota' ? SotaScreen : GameScreen;
   return (
-    <View style={{ flex: 1 }}>
+    <ScaledStage on={landscape && Platform.OS === 'web'}>
       <Screen {...props} />
       <StartCountdown initialState={props.route?.params?.initialGameState} gameType={type} />
       <PlayerLeftBanner />
       <TournamentMatchSheet navigation={props.navigation} roomId={roomId} />
       <RoomGuard navigation={props.navigation} roomId={roomId} tournamentId={props.route?.params?.initialGameState?.tournament?.id} />
+    </ScaledStage>
+  );
+}
+
+// Grand écran (site) : la partie est dessinée pour ~1100 x 720 puis agrandie d'un bloc (cartes, avatars, textes)
+function ScaledStage({ on, children }) {
+  const { width, height } = useWindowDimensions();
+  const k = on ? gameScaleFor(width, height) : 1;
+  useEffect(() => { setGameScale(k); return () => setGameScale(1); }, [k]);
+  setGameScale(k); // (avant le rendu des cartes)
+  if (k === 1) return <View style={{ flex: 1 }}>{children}</View>;
+  const w = width / k;
+  const h = height / k;
+  return (
+    <View style={{ flex: 1, overflow: 'hidden' }}>
+      <View style={{ position: 'absolute', width: w, height: h, left: (width - w) / 2, top: (height - h) / 2, transform: [{ scale: k }] }}>
+        {children}
+      </View>
     </View>
   );
 }

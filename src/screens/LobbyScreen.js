@@ -15,6 +15,7 @@ import friendsService, { useFriends } from '../network/friendsService';
 import { useAccount } from '../network/accountService';
 import { BINGA } from '../../server/progress/defs';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
+import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
 import { t } from '../i18n';
 
 
@@ -40,6 +41,7 @@ export default function LobbyScreen({ route, navigation }) {
     const [room, setRoom] = useState(initialRoom || null);
     const { profile } = useAccount();
     const fr = useFriends();
+    const { wide } = useMenuLayout(); // grand écran : invitation et réglages à gauche, joueurs à droite
     const [inviteSheet, setInviteSheet] = useState(false);
     const [invited, setInvited] = useState({}); // id de l'ami -> 'ok' | 'off' | message
     const inviteFriend = async (f) => {
@@ -181,9 +183,7 @@ ${inviteUrl(roomId)}`);
     };
 
     return (
-        <View style={styles.container}>
-            <LuxeBackdrop />
-            <ScreenHeader title={t("Salon privé · {p0}", { p0: game.label })} onBack={handleLeave} />
+        <MenuShell navigation={navigation} title={t("Salon privé · {p0}", { p0: game.label })} onBack={handleLeave} sideNav={false}>
             <Modal visible={inviteSheet} transparent animationType="fade" onRequestClose={() => setInviteSheet(false)}>
                 <Pressable style={styles.sheetBg} onPress={() => setInviteSheet(false)}>
                     <Pressable onPress={() => {}} style={styles.sheet}>
@@ -208,7 +208,10 @@ ${inviteUrl(roomId)}`);
                 </Pressable>
             </Modal>
 
-            <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+            <ScrollView contentContainerStyle={[styles.scroll, wide && { maxWidth: 1100, paddingTop: 6 }]} showsVerticalScrollIndicator={false}>
+                <Cols flex={[1, 1.1]} gap={0} style={{ columnGap: 16 }}>
+                {/* Gauche (grand écran) : invitation, jeu du salon, mise */}
+                <>
                 <Animated.View entering={ZoomIn.springify().damping(13)} style={styles.codeBox}>
                     <Text style={styles.codeLabel}>{t("INVITE TES AMIS")}</Text>
                     {profile && (
@@ -302,6 +305,8 @@ ${inviteUrl(roomId)}`);
                     </View>
                 )}
 
+                </>
+                {/* Droite (grand écran) : joueurs et spectateurs */}
                 <View style={styles.panel}>
                     <Text style={styles.sectionTitle}>{t("JOUEURS ·")} {players.length}/{MAX_PLAYERS}</Text>
                     {lobbyBots && players.length >= 2 && (
@@ -374,9 +379,10 @@ ${inviteUrl(roomId)}`);
                         </>
                     )}
                 </View>
+                </Cols>
             </ScrollView>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, wide && { width: '100%', maxWidth: 560, alignSelf: 'center' }]}>
                 {amHost ? (
                     <GameButton
                         title={!canStart ? game.startHint.toUpperCase()
@@ -398,7 +404,7 @@ ${inviteUrl(roomId)}`);
                     </View>
                 )}
             </View>
-        </View>
+        </MenuShell>
     );
 }
 

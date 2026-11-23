@@ -534,7 +534,7 @@ export default function KdoubScreen({ route, navigation }) {
                         <View style={styles.spectatorBox}><Text style={styles.spectatorText}>{tr("👀 Tu es spectateur")}</Text></View>
                     ) : (
                         <>
-                            <View style={[styles.actionRow, land && styles.actionRowLand]} pointerEvents="box-none">
+                            <View style={[styles.actionRow, land && styles.actionRowLand, land && stageH >= 560 && styles.actionRowAbove]} pointerEvents="box-none">
                                 {canAccuse && <KdoubButton onPress={accuse} />}
                                 {isMyTurn && choosing && !land && picker}
                                 {isMyTurn && (
@@ -736,6 +736,8 @@ const styles = StyleSheet.create({
     pickerChipOn: { backgroundColor: theme.gold, borderColor: theme.goldLight },
     pickerText: { color: theme.goldLight, fontSize: 15, fontWeight: '900' },
     actionRow: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8, paddingHorizontal: 12, marginBottom: 6, zIndex: 700 },
+    // Grand écran : au-dessus de la main, au centre (une main de 14 cartes ne le recouvre plus)
+    actionRowAbove: { left: 0, right: 0, bottom: 138, alignItems: 'center' },
     actionRowLand: { position: 'absolute', left: 10, bottom: 60, justifyContent: 'flex-start', flexDirection: 'column', alignItems: 'flex-start', zIndex: 3000, elevation: 3000 },
     kdoubBtn: {
         backgroundColor: '#DC2626',

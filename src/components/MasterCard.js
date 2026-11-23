@@ -16,6 +16,7 @@ import Animated, {
 import { GestureDetector, Gesture } from 'react-native-gesture-handler';
 import { CardFace, CardBack } from './Card';
 import audioService from '../network/audioService';
+import { getGameScale } from '../utils/frame';
 import { haptic } from './ui';
 
 export const HAND_CARD_W = 72;
@@ -183,17 +184,18 @@ export default function MasterCard({
             }
         });
 
+    const k = getGameScale(); // table agrandie sur grand écran : la carte suit le pointeur
     const pan = Gesture.Pan()
         .enabled(!!isPlayable && !toggleMode)
         .minDistance(8)
         .onUpdate((e) => {
             'worklet';
-            dragX.value = e.translationX;
-            dragY.value = Math.min(20, e.translationY);
+            dragX.value = e.translationX / k;
+            dragY.value = Math.min(20, e.translationY / k);
         })
         .onEnd((e) => {
             'worklet';
-            if (e.translationY < PLAY_DRAG_THRESHOLD || e.velocityY < -900) {
+            if (e.translationY / k < PLAY_DRAG_THRESHOLD || e.velocityY < -900) {
                 flying.value = withTiming(1, { duration: 220, easing: Easing.out(Easing.cubic) });
                 runOnJS(play)();
             } else {

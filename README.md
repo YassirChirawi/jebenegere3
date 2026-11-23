@@ -361,7 +361,7 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 
 ## Ordinateur et tablette : mise en page large
 
-- **Tous les écrans de menu** (Ma Collection, Roue du jour, Missions, Classement, Amis, Profil, Tournois, un tournoi, pages légales) utilisent le cadre commun [src/components/MenuShell.js](src/components/MenuShell.js), comme l'accueil.
+- **Tous les écrans de menu** (Ma Collection, Roue du jour, Missions, Classement, Amis, Profil, Tournois, un tournoi, pages légales, salon privé) utilisent le cadre commun [src/components/MenuShell.js](src/components/MenuShell.js), comme l'accueil.
 - **Sur téléphone** (portrait) : rien ne change. En-tête doré, contenu, barre du bas.
 - **Sur ordinateur, tablette ou téléphone tenu en paysage** (fenêtre plus large que haute, au moins 700 px) :
   - l'écran prend toute la fenêtre au lieu du « téléphone » de 500 px ;
@@ -375,9 +375,10 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
     - Amis : ajout et demandes à gauche, liste d'amis à droite ;
     - Tournois : création à gauche, mes tournois et palmarès à droite.
 - **Tablette en portrait** (site) : l'appli prend toute la largeur, le contenu des menus reste centré.
-- Les parties et le salon privé gardent pour l'instant leur mise en page actuelle (prochain lot).
+- **Parties** (les 4 jeux) : en paysage, la table prend toute la fenêtre. Sur le site, sur un grand écran, la partie est dessinée pour environ 1 100 × 720 puis agrandie d'un seul bloc (× 1,25 en 1440 × 900, jusqu'à × 1,6) : cartes, avatars et textes à la bonne taille ([App.js](App.js), `ScaledStage` ; facteur dans [src/utils/frame.js](src/utils/frame.js)). Glisser une carte tient compte de l'agrandissement ([src/components/MasterCard.js](src/components/MasterCard.js)). Kdoub : sur une table assez haute, le bouton « Poser » passe au-dessus de la main, au centre.
+- **Salon privé** : toute la largeur, sans colonne de navigation (on en sort par ‹ Retour, pour quitter le salon proprement) : invitation, jeu du salon et mise à gauche, joueurs à droite, bouton Démarrer centré.
 - Pour un écran : `useMenuLayout()` donne `wide` et la largeur utile ; `Cols` met des blocs côte à côte en large et les laisse à la suite sur téléphone ; `gridItem()` calcule une grille.
-- Test : `e2e/wide.e2e.js` (ordinateur 1440 × 900, tablette en paysage et en portrait, captures `large-*.png` et `tablette-*.png`).
+- Tests : `e2e/wide.e2e.js` (menus sur ordinateur 1440 × 900, tablette en paysage et en portrait, captures `large-*.png` et `tablette-*.png`) et `e2e/wide-games.e2e.js` (une partie de chaque jeu sur ordinateur et tablette, clic sur la pioche, salon privé ; captures `partie-large-*.png`, `salon-large.png`).
 
 ## Langues : français, darija, anglais
 
@@ -656,6 +657,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `discord.e2e.js` : la page servie comme dans Discord (`…discordsays.com`, serveur par `/server`), SDK chargé seulement là.
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
+- `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.
 
 ## Architecture
