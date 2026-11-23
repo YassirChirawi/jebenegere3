@@ -380,15 +380,16 @@ Un seul écran, dans le style des grands jeux mobiles : bleu nuit, or et velours
 - Pour un écran : `useMenuLayout()` donne `wide` et la largeur utile ; `Cols` met des blocs côte à côte en large et les laisse à la suite sur téléphone ; `gridItem()` calcule une grille.
 - Tests : `e2e/wide.e2e.js` (menus sur ordinateur 1440 × 900, tablette en paysage et en portrait, captures `large-*.png` et `tablette-*.png`) et `e2e/wide-games.e2e.js` (une partie de chaque jeu sur ordinateur et tablette, clic sur la pioche, salon privé ; captures `partie-large-*.png`, `salon-large.png`).
 
-## Langues : français, darija, anglais
+## Langues : français et anglais
 
-Décision de Yassir (20 nov 2026) : darija **en lettres latines** (comme « Zid jouj », « Khasser » : 3 = ع, 7 = ح, 9 = ق) et anglais, en plus du français.
+Décision de Yassir (23 nov 2026) : l'appli existe en **français** et en **anglais** (la darija comme langue d'interface a été retirée). Les **mots du jeu restent en darija** dans les deux langues : Hezz2, Ronda, Kdoub, Sota Ghamla, Missa, Derba, Tringa, Hbel, Boug, Khasser, Zid jouj, 9A3A REY, binga, titres (Moul chi, Se7ar…), rangs (bida2i…). Les messages rapides du chat restent en darija.
 - **Choisir :** premier écran de la présentation (premier lancement), ou Profil → ⚙️ → Réglages → 🌐 Langue. Le choix est gardé sur l'appareil (clé `lang`). Au tout premier lancement, un appareil réglé en anglais démarre en anglais, sinon en français.
-- **Comment ça marche** ([src/i18n/index.js](src/i18n/index.js)) : le texte français sert de clé, `t('Modes de jeu')` donne « Game modes » ou « Anwa3 l-l3ib ». Paramètres : `t('{n} en ligne', { n })`. Un texte absent du dictionnaire reste en français, jamais de clé brute à l'écran. Changer de langue redessine toute l'appli.
-- **Dictionnaires :** [src/i18n/en.json](src/i18n/en.json) et [src/i18n/dar.json](src/i18n/dar.json). Ils couvrent aussi les noms envoyés par le serveur (rangs, titres, missions, défis, objets, coffres, raretés, packs de diamants), traduits à l'affichage.
-- **Ajouter des textes :** `python scripts/i18n-wrap.py [--literals] [--fn tr] src/…` entoure les textes d'un écran avec `t(…)` (relire le diff), puis `python scripts/i18n-wrap.py --keys` liste tous les textes dans `src/i18n/keys.txt`, à ajouter aux deux dictionnaires.
+- **Comment ça marche** ([src/i18n/index.js](src/i18n/index.js)) : le texte français sert de clé, `t('Modes de jeu')` donne « Game modes » en anglais. Paramètres : `t('{n} en ligne', { n })`. Un texte absent du dictionnaire reste en français, jamais de clé brute à l'écran. Changer de langue redessine toute l'appli.
+- **Dictionnaire :** [src/i18n/en.json](src/i18n/en.json). Il couvre aussi les noms envoyés par le serveur (rangs, titres, missions, défis, objets, coffres, raretés, packs de diamants), traduits à l'affichage.
+- **Ajouter des textes :** `python scripts/i18n-wrap.py [--literals] [--fn tr] src/…` entoure les textes d'un écran avec `t(…)` (relire le diff), puis `python scripts/i18n-wrap.py --keys` liste tous les textes dans `src/i18n/keys.txt`, à ajouter au dictionnaire anglais (en gardant les mots du jeu en darija).
 - **Traduit :** tous les écrans, menus et parties : accueil (portrait et paysage), barre du bas, Missions, Ma Collection et diamants, Profil, Amis, cloche, salon, roue, classement, tournois, présentation, fenêtres du jour, coffres, règles, réglages ; dans les 4 jeux : plateaux, tours, annonces, coups spéciaux, bilans de manche et de partie, binga et XP gagnés, chat (≈ 950 textes). Dans les fichiers de partie, la fonction s'appelle `tr` (import `{ t as tr }`), car `t` y sert déjà de variable. **Restent en français :** les messages d'erreur envoyés par le serveur, les messages rapides du chat (déjà en darija) et les pages légales.
-- Test : `e2e/langs.e2e.js` (anglais puis darija depuis les réglages, accueil et missions traduits, retour au français). Les autres tests tournent en français (`locale: 'fr-FR'`).
+- Un appareil qui avait choisi la darija repart en français ou en anglais (selon sa langue).
+- Test : `e2e/langs.e2e.js` (anglais depuis les réglages, accueil, missions et partie traduits, mots du jeu gardés, pas de choix « Darija », retour au français). Les autres tests tournent en français (`locale: 'fr-FR'`).
 
 ## Diamants : achats en euros (Stripe)
 

@@ -1,5 +1,6 @@
 /**
- * Langues de l'appli : français (texte d'origine), darija en lettres latines, anglais.
+ * Langues de l'appli : français (texte d'origine) et anglais.
+ * Les mots du jeu restent en darija dans les deux langues (Missa, Derba, Tringa, Hbel, Khasser, binga…).
  *
  * Le texte français sert de clé : t('Modes de jeu') → « Game modes » en anglais.
  * Un texte absent du dictionnaire reste en français (jamais de clé brute affichée).
@@ -12,14 +13,12 @@ import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import en from './en.json';
-import dar from './dar.json';
 
 export const LANGS = [
     { id: 'fr', label: 'Français', short: 'FR' },
-    { id: 'dar', label: 'Darija', short: 'DR' },
     { id: 'en', label: 'English', short: 'EN' },
 ];
-const DICTS = { en, dar };
+const DICTS = { en };
 
 // Langue de l'appareil au premier lancement : anglais si l'appareil est en anglais, sinon français
 function deviceLang() {
@@ -46,7 +45,7 @@ export async function setLang(l) {
     if (!LANGS.some((x) => x.id === l) || l === lang) return;
     lang = l;
     try { await AsyncStorage.setItem('lang', l); } catch (e) { /* ignore */ }
-    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = l === 'dar' ? 'ar-MA' : l;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') document.documentElement.lang = l;
     listeners.forEach((fn) => fn(l));
 }
 

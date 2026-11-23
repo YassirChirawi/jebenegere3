@@ -1,4 +1,4 @@
-/** Choix de la langue : Français, Darija (lettres latines), English. */
+/** Choix de la langue : Français, English (les mots du jeu restent en darija). */
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { PressableScale } from './ui';

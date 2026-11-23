@@ -1,4 +1,4 @@
-// Langues : choix dans les réglages (Profil → ⚙️), accueil en anglais puis en darija, choix gardé au rechargement
+// Langues : choix dans les réglages (Profil → ⚙️), accueil et partie en anglais, mots du jeu gardés, retour au français
 const path = require('path');
 const { setup, createChecker } = require('./helpers');
 
@@ -9,11 +9,11 @@ const { setup, createChecker } = require('./helpers');
     const p = await t.page(await t.context({ token: reg.token }));
     const home = async () => { await p.goto(t.url); await t.sleep(4000); };
     const pick = async (label) => {
-        await p.locator('[aria-label="Profil"], [aria-label="Profile"], [aria-label="Profil dyali"]').last().click({ force: true });
+        await p.locator('[aria-label="Profil"], [aria-label="Profile"]').last().click({ force: true });
         await t.sleep(1500);
-        await p.locator('[aria-label="Style et réglages"], [aria-label="Style and settings"], [aria-label="Style w réglages"]').first().click({ force: true });
+        await p.locator('[aria-label="Style et réglages"], [aria-label="Style and settings"]').first().click({ force: true });
         await t.sleep(800);
-        await p.locator('text=/Réglages|Settings|Réglages/').last().click().catch(() => {});
+        await p.locator('text=/Réglages|Settings/').last().click().catch(() => {});
         await t.sleep(500);
         await p.locator(`[aria-label="${label}"]`).first().click({ force: true });
         await t.sleep(2500);
@@ -34,16 +34,22 @@ const { setup, createChecker } = require('./helpers');
     const g = await t.text(p);
     c.check('anglais : partie traduite', /YOUR TURN|DRAW|Your turn|You ·|Draw/.test(g) && !/PIOCHER|À TOI DE JOUER/.test(g));
     await p.screenshot({ path: path.join(t.OUT, 'partie-en.png') });
+    // Missions en anglais : les mots du jeu restent en darija (Ronda, Kdoub, Sota, binga)
     await home();
-    await pick('Darija');
-    await home();
-    txt = await t.text(p);
-    c.check('darija : accueil traduit', /Anwa3 l-l3ib/.test(txt) && /M3a s7ab/.test(txt));
-    await p.screenshot({ path: path.join(t.OUT, 'accueil-dar.png') });
-    await p.locator('[aria-label="Missions"]').last().click({ force: true });
+    await p.locator('[aria-label="Missions"] >> visible=true').last().click({ force: true });
     await t.sleep(1800);
-    c.check('darija : missions traduites (y compris celles du serveur)', /Hdiya dyal kol nhar/.test(await t.text(p)) && /L3eb 3 parties/.test(await t.text(p)));
-    await p.screenshot({ path: path.join(t.OUT, 'missions-dar.png') });
+    txt = await t.text(p);
+    c.check('anglais : missions traduites, mots du jeu gardés', /Daily reward|Missions/.test(txt) && /Ronda|Kdoub|Sota/.test(txt) && !/Récompense quotidienne/.test(txt));
+    await p.screenshot({ path: path.join(t.OUT, 'missions-en.png') });
+    // Plus de darija dans le choix des langues
+    await p.locator('[aria-label="Profile"] >> visible=true').last().click({ force: true });
+    await t.sleep(1500);
+    await p.locator('[aria-label="Style and settings"] >> visible=true').first().click({ force: true });
+    await t.sleep(800);
+    await p.locator('text=/Settings/').last().click().catch(() => {});
+    await t.sleep(500);
+    c.check('pas de choix « Darija »', (await p.locator('[aria-label="Darija"]').count()) === 0 && (await p.locator('[aria-label="Français"]').count()) > 0);
+    await home();
     await pick('Français');
     await home();
     c.check('retour au français', /Modes de jeu/.test(await t.text(p)));
