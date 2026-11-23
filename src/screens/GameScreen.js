@@ -463,7 +463,7 @@ export default function GameScreen({ route, navigation }) {
         );
     };
 
-    const turnName = gameState.turn === localPlayerIndex ? tr('VOUS') : gameState.players?.[gameState.turn]?.name;
+    const turnName = gameState.turn === localPlayerIndex ? tr('À TOI') : gameState.players?.[gameState.turn]?.name;
     const underAttack = gameState.pendingAction?.type === 'skip_response';
     const myId = socketService.socket?.id;
     const canReplay = gameState.hostId ? gameState.hostId === myId : (isHost || gameState.players?.[0]?.id === myId);
@@ -516,7 +516,7 @@ export default function GameScreen({ route, navigation }) {
                                 <CircularTimer timeLeft={timeLeft} maxTime={gameState.pendingAction ? 5 : (gameState.afk?.[gameState.turn] || 0) >= 2 ? 8 : 15} size={40} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                                     <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>
-                                        {underAttack ? tr('ATTAQUE !') : tr('TOUR DE')}
+                                        {underAttack ? tr('ATTAQUE !') : isMyTurn ? tr("C'EST") : tr('TOUR DE')}
                                     </Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
                                         {underAttack && isMyTurn ? tr('Joue un 1 !') : turnName}

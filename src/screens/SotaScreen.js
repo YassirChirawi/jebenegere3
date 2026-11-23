@@ -404,9 +404,9 @@ export default function SotaScreen({ route, navigation }) {
                             <View style={[styles.turnChip, isMyTurn && styles.turnChipMine]}>
                                 <CircularTimer timeLeft={timeLeft} maxTime={30} size={36} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
-                                    <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>{tr("TOUR DE")}</Text>
+                                    <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>{isMyTurn ? tr("C'EST") : tr('TOUR DE')}</Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? tr('TOI') : nameOf(state.turn)}
+                                        {isMyTurn ? tr('À TOI') : nameOf(state.turn)}
                                     </Text>
                                 </View>
                             </View>

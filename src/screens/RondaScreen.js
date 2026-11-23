@@ -816,10 +816,10 @@ export default function RondaScreen({ route, navigation }) {
                                 <CircularTimer timeLeft={timeLeft} maxTime={15} size={36} />
                                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                                     <Text style={[styles.turnLabel, isMyTurn && { color: theme.bg }]}>
-                                        DISTRIB. {state.dealIndex}/{state.totalDeals}{land ? tr(" · PAQUET {p0}", { p0: state.deckCount ?? 0 }) : ''} · TOUR DE
+                                        {tr('DISTRIB.')} {state.dealIndex}/{state.totalDeals}{land ? tr(" · PAQUET {p0}", { p0: state.deckCount ?? 0 }) : ''} · {isMyTurn ? tr("C'EST") : tr('TOUR DE')}
                                     </Text>
                                     <Text style={[styles.turnName, isMyTurn && { color: theme.bg }]} numberOfLines={1}>
-                                        {isMyTurn ? tr('TOI') : nameOf(state.turn)}
+                                        {isMyTurn ? tr('À TOI') : nameOf(state.turn)}
                                     </Text>
                                 </View>
                             </View>

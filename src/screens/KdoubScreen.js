@@ -451,10 +451,10 @@ export default function KdoubScreen({ route, navigation }) {
                 <CircularTimer timeLeft={timeLeft} maxTime={inWindow ? 5 : 40} size={36} />
                 <View style={{ marginLeft: 8, flexShrink: 1 }}>
                     <Text style={[styles.turnLabel, (isMyTurn || canAccuse) && { color: theme.bg }]}>
-                        {inWindow ? tr('FENÊTRE KDOUB') : tr('TOUR DE')}
+                        {inWindow ? tr('FENÊTRE KDOUB') : isMyTurn ? tr("C'EST") : tr('TOUR DE')}
                     </Text>
                     <Text style={[styles.turnName, (isMyTurn || canAccuse) && { color: theme.bg }]} numberOfLines={1}>
-                        {inWindow ? (lp?.player === me ? tr('On te croit ?') : tr('Il ment ?')) : isMyTurn ? tr('TOI') : nameOf(state.turn)}
+                        {inWindow ? (lp?.player === me ? tr('On te croit ?') : tr('Il ment ?')) : isMyTurn ? tr('À TOI') : nameOf(state.turn)}
                     </Text>
                 </View>
             </View>
