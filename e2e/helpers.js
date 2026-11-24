@@ -69,9 +69,10 @@ async function setup() {
         app, browser, stats, sleep, OUT,
         url: 'http://localhost:8099',
         discordUrl: `http://${DISCORD_HOST}:8099`,
-        /** Contexte de navigateur ; opts.account : jeton à mettre dans le stockage ; opts.fresh : premier lancement. */
-        async context({ width = 390, height = 844, token = null, fresh = false } = {}) {
-            const ctx = await browser.newContext({ viewport: { width, height }, locale: 'fr-FR' });
+        /** Contexte de navigateur ; opts.account : jeton à mettre dans le stockage ; opts.fresh : premier lancement ;
+         *  opts.userAgent : se faire passer pour un autre appareil (iPhone…). */
+        async context({ width = 390, height = 844, token = null, fresh = false, userAgent } = {}) {
+            const ctx = await browser.newContext({ viewport: { width, height }, locale: 'fr-FR', ...(userAgent ? { userAgent } : {}) });
             if (!fresh) {
                 await ctx.addInitScript((t) => {
                     const d = new Date(); const day = `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;

@@ -17,6 +17,8 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import RulesModal from '../components/RulesModal';
 import InstallAppButton from '../components/InstallAppButton';
+import InstallPrompt from '../components/InstallPrompt';
+import { useIsFocused } from '@react-navigation/native';
 import InviteJoinSheet from '../components/InviteJoinSheet';
 import { initialInvite, clearInviteFromUrl, onInviteLink, initialTournament, onTournamentLink } from '../utils/invite';
 import { remember as rememberTournament, claimPendingRewards, GAME_LABEL } from '../utils/tournaments';
@@ -94,6 +96,8 @@ export default function HomeScreen({ navigation, route }) {
     const [lastChampion, setLastChampion] = useState(null); // palmarès : dernier tournoi gagné
     const [showRules, setShowRules] = useState(false);
     const [showOnboarding, setShowOnboarding] = useState(false); // premier lancement
+    const [installOpen, setInstallOpen] = useState(false); // grande fenêtre « Installe L'Carta » (site seulement)
+    const focused = useIsFocused();
     const [menu, setMenu] = useState(null); // 'online' | 'bot' | null
     const view = 'home'; // accueil sur un seul écran (carte du joueur, raccourcis, modes de jeu)
     const [game, setGame] = useState('hezz2');
@@ -865,10 +869,15 @@ export default function HomeScreen({ navigation, route }) {
                 onPlay={startFirstGame}
                 onClose={finishOnboarding}
             />
+            <InstallPrompt
+                ready={nameReady && focused && view === 'home' && !showRules && !showOnboarding && !showInvite && !inviteCode && !isSearching}
+                onOpenChange={setInstallOpen}
+                onLegal={(doc) => navigation.navigate('Legal', { doc })}
+            />
             <DailyPopups
                 profile={profile}
                 isGuest={!account.token && !account.loading}
-                ready={hasConnected && view === 'home' && !showRules && !showOnboarding && !showInvite && !inviteCode && !isSearching}
+                ready={hasConnected && view === 'home' && !showRules && !showOnboarding && !showInvite && !inviteCode && !isSearching && !installOpen}
                 navigation={navigation}
             />
             <InviteJoinSheet

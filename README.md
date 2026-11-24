@@ -180,6 +180,7 @@ Le site est une **appli installable** : icône sur l'écran d'accueil, plein éc
 - **Android (Chrome)** : bouton **« 📲 Installer l'appli »** sur l'accueil, ou menu ⋮ → « Installer l'application ».
 - **Ordinateur (Chrome, Edge)** : le même bouton, dans la colonne de gauche de l'accueil (sous « Règles » et « Lien d'invitation »). Le jeu s'ouvre ensuite dans sa propre fenêtre, sans barre du navigateur.
 - Le bouton n'apparaît que si le navigateur accepte l'installation, et disparaît une fois le jeu installé.
+- **Grande fenêtre « Installe L'Carta »** ([src/components/InstallPrompt.js](src/components/InstallPrompt.js)) : sur le site seulement (jamais dans l'appli installée ni dans Discord), au plus **une fois tous les 3 jours** (date gardée dans `installPromptAt`). Elle montre les avantages, des captures (cachées sur les petits écrans) et un lien vers les Conditions d'utilisation et la Politique de confidentialité, sans case à cocher. « Installer » ouvre la fenêtre du navigateur : le joueur confirme une fois (aucun site ne peut s'installer sans geste du joueur). Sur iPhone, elle montre les 3 gestes de Safari. Elle passe avant les fenêtres du jour (bonus, roue), qui attendent qu'elle soit fermée. Logique partagée avec le bouton : [src/utils/install.js](src/utils/install.js).
 - **Fenêtre d'installation avec images** : `manifest.webmanifest` liste 4 captures (`public/screenshots/`, en WebP, 2 en large et 2 au format téléphone). Chrome les montre dans sa fenêtre d'installation. Pour les changer : refaire les captures (`npm run e2e`, dossier `e2e/.shots`), les convertir en WebP et garder la taille exacte annoncée dans `sizes`. Pas de capture avec un vrai pseudo.
 - **iPhone (Safari)** : Partager ⬆️ → « Sur l'écran d'accueil ». Le bouton de l'accueil l'explique.
 - Fichiers dans [public/](public/), copiés tels quels par `expo export` :
@@ -670,7 +671,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
 - `end.e2e.js` : écran de fin de Hezz2 (téléphone et ordinateur) et de Ronda (temps forts, « Rejouer » en grand, Rejouer remet les temps forts à zéro).
-- `install.e2e.js` : bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
+- `install.e2e.js` : grande fenêtre « Installe L'Carta » (1re visite, « Plus tard », pas avant 3 jours, de retour après 3 jours, « Installer »), version iPhone avec les 3 gestes, jamais dans Discord ; bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.
 
