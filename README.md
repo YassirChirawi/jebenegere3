@@ -291,7 +291,7 @@ Accueil → **🏆 TOURNOIS** : créer un tournoi, retrouver ses tournois, voir 
 5. **Matchs, tour par tour** : il faut **garder la page du tournoi ouverte**. Le match se lance tout seul dès que les deux adversaires sont là. Un joueur absent au bout de **3 minutes** perd par **forfait** (personne : vainqueur tiré au sort). Quitter la partie en cours = forfait. Le tour suivant commence quand tous les matchs du tour sont finis.
    - Hezz2 : une manche en 1 contre 1, le Khasser est éliminé.
    - Ronda : la partie se joue jusqu'au score final, les manches s'enchaînent toutes seules. En 2 contre 2, les coéquipiers sont assis en face l'un de l'autre.
-6. **Fin d'un match** : une fenêtre affiche le vainqueur, le score (Ronda) et les **coups clés** (Ronda : Darba, Hbel, B'achra, Missa ; Hezz2 : grosses pioches, dernière carte ; abandons et forfaits), puis **Retour au tournoi**.
+6. **Fin d'un match** : une fenêtre affiche le vainqueur, le score (Ronda) et les **coups clés** (les temps forts de la partie, voir « Écran de fin de partie » : Ronda sur toutes les manches, Hezz2 avec la plus grosse pioche, les 2 et 1 joués et la dernière carte ; abandons et forfaits), puis **Retour au tournoi**.
 7. **Champion** : dos de cartes exclusif **« Champion »** (rouge et or, couronne au centre, à choisir dans Profil → Style), titre **« Moul chi »** et 150 XP. Il faut un compte pour garder la récompense : un champion sans compte la reçoit automatiquement dès qu'il se connecte à un compte **depuis le même appareil**.
 
 **Côté serveur** (`server/tournaments.js`) : un tournoi est un tableau de matchs, chaque match se joue dans une salle normale (sans Rejouer ni hôte). On ne garde que les pseudos, le tableau et les coups clés ; chaque inscrit reçoit un ticket secret gardé sur son appareil (le serveur n'en garde que l'empreinte). Les tournois sont sauvegardés (table `tournaments` en PostgreSQL, sinon `server/data/tournaments.json`) et reprennent après un redémarrage de Render : un match coupé par le redémarrage est relancé. Le serveur gratuit s'endort sans visite : à l'heure du tournoi, la première personne qui ouvre la page le réveille, et le tournoi démarre alors.
@@ -440,6 +440,14 @@ Décision de Yassir (20 nov 2026) : la seule chose vendue en argent réel, ce so
   - binga qui défilent, avec le détail (partie, missions, nouveau rang) ;
   - défis réussis, nouveau titre, récompense de tournoi.
   Il remplace les petites notifications de fin de partie. Celles-ci restent pour les manches de Ronda et pour les mises.
+- **Écran de fin de partie** (`src/components/GameEndParts.js`, pour les 4 jeux) :
+  - **Temps forts de la partie**, calculés par le serveur (`server/progress/highlights.js`) et envoyés avec l'état de fin (`highlights`). C'est de l'affichage seulement : aucune règle ni aucun point ne change.
+    - Hezz2 : plus grosse pioche, le plus de 2 joués, le plus de 1 joués.
+    - Ronda : Boug, Hbel, Tringa, Ronda, 9A3A REY, Missa, Darba, sur **toutes les manches** de la partie, en pastilles au-dessus du tableau des points (seulement en fin de partie, pas entre deux manches).
+    - Kdoub : menteurs démasqués, plus gros tas ramassé.
+    - Sota Ghamla : le plus de paires.
+  - La ligne du joueur est surlignée en or.
+  - **« Rejouer »** (ou « Continuer » entre deux manches de Ronda) est un grand bouton sur toute la largeur. « Quitter » et « Changer de jeu » sont plus petits, en dessous.
 - **Sons dédiés** (`scripts/generate-sfx.js`, par exemple `node scripts/generate-sfx.js coins` pour un seul son) : pluie de pièces, cliquetis de la roue qui ralentit, arpège à l'arrêt de la roue, coffre qui s'ouvre, fanfare de nouveau rang, « ding » des fenêtres du jour.
 
 ## Binga : la monnaie du jeu
@@ -661,6 +669,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `discord.e2e.js` : la page servie comme dans Discord (`…discordsays.com`, serveur par `/server`), SDK chargé seulement là.
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
+- `end.e2e.js` : écran de fin de Hezz2 (téléphone et ordinateur) et de Ronda (temps forts, « Rejouer » en grand, Rejouer remet les temps forts à zéro).
 - `install.e2e.js` : bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.

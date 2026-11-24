@@ -7,6 +7,7 @@ const { getEngine, normalizeType, engines } = require('./engines');
 const { createStore } = require('./progress/store');
 const { createProgress } = require('./progress/progress');
 const { tallyEvents, gameResults } = require('./progress/results');
+const { resetHighlights, trackHighlights, highlightsFor } = require('./progress/highlights');
 const { createTournaments } = require('./tournaments');
 const { createStakes } = require('./stakes');
 const { corsOptions, isAllowedOrigin, securityHeaders, socketRateLimit } = require('./security');
@@ -395,7 +396,9 @@ function stateFor(room, viewerIndex) {
     const base = engine.viewFor ? engine.viewFor(room.gameState, viewerIndex) : room.gameState;
     const startIn = room.startsAt ? Math.max(0, room.startsAt - Date.now()) : 0;
     const tournament = room.tournament ? { id: room.tournament.id, name: room.tournament.name, label: room.tournament.label } : undefined;
-    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId, isPrivate: !!room.isPrivate, startIn, roomId: room.id, tournament };
+    // Fin de partie : temps forts (affichage seulement), pour l'écran de fin
+    const highlights = room.gameState && engine.isOver(room.gameState) ? highlightsFor(room, room.gameState) : undefined;
+    return { ...base, gameType: room.gameType, players: room.activePlayers, hostId: room.hostId, isPrivate: !!room.isPrivate, startIn, roomId: room.id, tournament, highlights };
 }
 
 function emitState(roomId, event = 'game_state_update') {
@@ -417,7 +420,7 @@ function startGame(roomId, prevState = null) {
     const engine = getEngine(room.gameType);
     room.gameState = engine.init(room.activePlayers.length, prevState);
     room.isBotMatch = room.activePlayers.some((p) => p.isBot);
-    if (!(room.gameType === 'ronda' && prevState && prevState.winnerTeam === null)) room.tally = {};
+    if (!(room.gameType === 'ronda' && prevState && prevState.winnerTeam === null)) { room.tally = {}; resetHighlights(room); }
     room.afkCount = {};
     if (room.debugHand && engine.rigSpecials) {
         const me = room.activePlayers.findIndex((p) => !p.isBot);
@@ -477,7 +480,7 @@ function commitState(roomId, prev, next) {
     room.gameState = next;
     room.version = (room.version || 0) + 1;
     tallyEvents(room, next.events);
-    if (room.tournament) tournaments.onState(room, prev, next);
+    trackHighlights(room, prev, next);
 
     const justOver = engine.isOver(next) && !engine.isOver(prev);
     if (justOver) {
@@ -684,6 +687,7 @@ function createMatchmakingRoom(gameType, targetSize, realPlayers) {
     room.gameState = getEngine(gameType).init(targetSize, null);
     room.startsAt = START_COUNTDOWN_MS > 0 ? Date.now() + START_COUNTDOWN_MS : 0; // pour match_found
     room.tally = {};
+    resetHighlights(room);
     room.afkCount = {};
     room.version = 1;
     realPlayers.forEach((p) => {
@@ -909,6 +913,7 @@ io.on('connection', (socket) => {
         const room = rooms[roomId];
         room.gameState = engine.init(size, null);
         room.tally = {};
+        resetHighlights(room);
         room.afkCount = {};
         // Mode test (parties contre bots uniquement) : main forcée avec des 1, 2 et 7, ou grosse main de 20 cartes
         if (['specials', 'big'].includes(data?.debugHand) && engine.rigSpecials) {
@@ -1093,6 +1098,7 @@ io.on('connection', (socket) => {
             room.gameType = type;
             room.gameState = null;
             room.tally = {};
+            resetHighlights(room);
             room.startsAt = 0;
         }
         broadcastRoomUpdate(room.id);

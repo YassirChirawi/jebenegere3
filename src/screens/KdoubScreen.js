@@ -608,6 +608,7 @@ export default function KdoubScreen({ route, navigation }) {
                     }))}
                     won={state.winner === me}
                     lost={me >= 0 && state.winner !== me && state.ranking[state.ranking.length - 1]?.player === me}
+                    highlights={state.highlights} players={state.players} me={me} gameType="kdoub"
                     xpEarned={xpEarned}
                     canReplay={canReplay}
                     onReplay={() => requestReplay(roomId)}

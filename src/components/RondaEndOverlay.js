@@ -6,6 +6,7 @@ import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
 import { t as tr } from '../i18n';
+import { GameHighlights, EndActions } from './GameEndParts';
 
 /**
  * Fin de manche Ronda : le détail des points catégorie par catégorie
@@ -24,7 +25,7 @@ const DETAIL_ROWS = [
 ];
 const STEP = 180; // délai entre deux lignes du détail
 
-export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
+export default function RondaEndOverlay({ state, myTeam, me, teamNames, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
     const { summary, winnerTeam, target, manche } = state;
     const { height } = useWindowDimensions();
     const compact = height < 520;
@@ -65,6 +66,8 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                     <Text style={[styles.title, compact && { fontSize: 22 }]}>{title}</Text>
                     <Text style={styles.subtitle}>{state.forfeit ? tr('Adversaire parti : victoire par forfait') : summary.stopped ? tr('{n} points atteints : partie arrêtée', { n: target }) : tr('Premier camp à {n} points', { n: target })}</Text>
 
+                    {/* Fin de partie : temps forts de toutes les manches, en pastilles au-dessus du tableau */}
+                    {gameOver && <GameHighlights chips items={state.highlights} players={state.players} me={me} gameType="ronda" delay={350} />}
                     <View style={styles.table}>
                         <View style={styles.headRow}>
                             <Text style={[styles.cell, styles.labelCell]} />
@@ -99,19 +102,7 @@ export default function RondaEndOverlay({ state, myTeam, teamNames, xpEarned, ca
                     <XpCounter xp={xpEarned} delay={800 + rows.length * STEP} compact={compact} />
                 </ScrollView>
 
-                <View style={[styles.actions, compact && { marginTop: 8 }]}>
-                    {canReplay ? (
-                        <GameButton small title={gameOver ? tr('Rejouer') : tr('Continuer')} icon={gameOver ? '🔄' : '▶️'} variant="gold" onPress={onReplay} style={{ flex: 1 }} />
-                    ) : (
-                        <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
-                        </View>
-                    )}
-                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
-                </View>
-                {gameOver && onChangeGame && (
-                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
-                )}
+                <EndActions canReplay={canReplay} replayTitle={gameOver ? tr('Rejouer') : tr('Continuer')} replayIcon={gameOver ? '🔄' : '▶️'} onReplay={onReplay} onQuit={onQuit} onChangeGame={gameOver ? onChangeGame : null} compact={compact} />
             </Animated.View>
         </Animated.View>
     );

@@ -951,6 +951,7 @@ export default function RondaScreen({ route, navigation }) {
                 <RondaEndOverlay
                     state={state}
                     myTeam={myTeam}
+                    me={me}
                     teamNames={teamNames}
                     xpEarned={xpEarned}
                     canReplay={canReplay}

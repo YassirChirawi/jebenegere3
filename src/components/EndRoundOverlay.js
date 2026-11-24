@@ -7,6 +7,7 @@ import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
 import { t as tr } from '../i18n';
+import { GameHighlights, EndActions } from './GameEndParts';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -74,6 +75,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                     })}
                 </View>
 
+                <GameHighlights items={gameState.highlights} players={players} me={localPlayerIndex} gameType="hezz2" delay={650 + order.length * 380} compact={compact} />
                 <XpCounter xp={xpEarned} delay={650 + order.length * 380} compact={compact} />
 
                 {!compact && (
@@ -83,19 +85,7 @@ export default function EndRoundOverlay({ gameState, localPlayerIndex, xpEarned,
                 )}
 
                 </ScrollView>
-                <View style={[styles.actions, compact && { marginTop: 8 }]}>
-                    {canReplay ? (
-                        <GameButton small title={tr("Rejouer")} icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
-                    ) : (
-                        <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
-                        </View>
-                    )}
-                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
-                </View>
-                {onChangeGame && (
-                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
-                )}
+                <EndActions canReplay={canReplay} onReplay={onReplay} onQuit={onQuit} onChangeGame={onChangeGame} compact={compact} />
             </Animated.View>
         </Animated.View>
     );

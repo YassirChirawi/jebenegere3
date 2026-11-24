@@ -480,6 +480,7 @@ export default function SotaScreen({ route, navigation }) {
                     ]}
                     won={me >= 0 && state.loser !== me}
                     lost={state.loser === me}
+                    highlights={state.highlights} players={state.players} me={me} gameType="sota"
                     xpEarned={xpEarned}
                     canReplay={canReplay}
                     onReplay={() => requestReplay(roomId)}

@@ -15,6 +15,7 @@
  */
 const crypto = require('crypto');
 const { BINGA } = require('./progress/defs');
+const { highlightsFor } = require('./progress/highlights');
 
 const SHOWUP_MS = Number(process.env.TOURNAMENT_SHOWUP_MS) || 3 * 60 * 1000;
 const NEXT_MANCHE_MS = process.env.TOURNAMENT_NEXT_MANCHE_MS !== undefined ? Number(process.env.TOURNAMENT_NEXT_MANCHE_MS) : 8000;
@@ -157,26 +158,22 @@ function publicView(t, now = Date.now()) {
     };
 }
 
-/** Coups clés de la partie (fin de match), d'après les événements comptés pendant la partie. */
+/**
+ * Coups clés de la partie (fin de match), d'après les temps forts de toute la partie (server/progress/highlights.js).
+ * En Ronda, ils couvrent toutes les manches (avant : compteurs remis à zéro à chaque manche, résumé vide).
+ */
+const SUMMARY = {
+    boug: '⚡ Boug', hbel: '🔥 Hbel', tringa: '🎴 Tringa', ronda: '🎴 Ronda', rey: '👑 9A3A REY', missa: '🧹 Missa', darba: '💥 Darba',
+    catch: '🤥 Menteur démasqué', pairs: '🃏 Paires', two: '✌️ 2 joués', one: '☝️ 1 joués',
+};
 function buildSummary(room, state) {
     const names = room.activePlayers.map((p) => String(p.name).replace(/ \(parti\)$/, ''));
-    const out = [];
-    if (room.gameType === 'ronda') {
-        const LABELS = { darba: '💥 Darba', hbel: '🔥 Hbel', bachra: "⚡ B'achra", missa: '🧹 Missa' };
-        Object.keys(LABELS).forEach((k) => {
-            Object.entries(room.tally || {}).forEach(([p, c]) => {
-                if (c[k]) out.push(`${LABELS[k]}${c[k] > 1 ? ` ×${c[k]}` : ''} : ${names[p]}`);
-            });
-        });
-    } else {
-        (room.moments || [])
-            .slice()
-            .sort((x, y) => y.n - x.n)
-            .slice(0, 3)
-            .forEach((m) => out.push(`🃏 ${names[m.p]} ramasse ${m.n} cartes`));
-        const first = (state.finishedPlayers || [])[0];
-        if (first !== undefined && !state.forfeit) out.push(`🏁 ${names[first]} pose sa dernière carte`);
-    }
+    const out = highlightsFor(room, state).map((h) => {
+        const who = names[h.player] || '?';
+        if (h.kind === 'pile') return `🃏 ${who} ramasse ${h.n} cartes`;
+        if (h.kind === 'first') return `🏁 ${who} pose sa dernière carte`;
+        return `${SUMMARY[h.kind] || h.kind}${h.n > 1 ? ` ×${h.n}` : ''} : ${who}`;
+    });
     if (state.forfeit) out.push(`🏳️ ${names[state.forfeit.player] || 'Un joueur'} a abandonné`);
     return out.slice(0, 8);
 }
@@ -363,15 +360,6 @@ function createTournaments(deps) {
     }
 
     // ------------------------------------------------------------------ crochets du serveur
-    /** Pendant la partie (Hezz2) : grosses pioches, pour le résumé. */
-    function onState(room, prev, next) {
-        if (!room.tournament || room.gameType !== 'hezz2' || !prev?.hands || !next?.hands) return;
-        next.hands.forEach((h, p) => {
-            const n = h.length - (prev.hands[p]?.length || 0);
-            if (n >= 2) (room.moments = room.moments || []).push({ p, n });
-        });
-    }
-
     /** Fin de partie dans une salle de tournoi : résultat du match. */
     function onGameOver(room, state) {
         const info = room.tournament;
@@ -577,7 +565,7 @@ function createTournaments(deps) {
     }
 
     return {
-        attach, onState, onGameOver, onDisconnect, tick,
+        attach, onGameOver, onDisconnect, tick,
         ready: () => loaded,
         stop: () => clearInterval(timer),
         _all: all,

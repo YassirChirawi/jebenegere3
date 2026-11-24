@@ -7,6 +7,7 @@ import { GameButton, theme } from './ui';
 import audioService from '../network/audioService';
 import XpCounter from './XpCounter';
 import { t as tr } from '../i18n';
+import { GameHighlights, EndActions } from './GameEndParts';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
@@ -15,7 +16,7 @@ const MEDALS = ['🥇', '🥈', '🥉'];
  * rows : [{ player, name, isMe, detail, loser }] dans l'ordre du classement.
  * hero : élément optionnel affiché sous le titre (ex : la Sota en grand).
  */
-export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, lost, hero, xpEarned, canReplay, onReplay, onQuit, onChangeGame }) {
+export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, lost, hero, xpEarned, canReplay, onReplay, onQuit, onChangeGame, highlights, players, me, gameType }) {
     const { height } = useWindowDimensions();
     const compact = height < 520;
 
@@ -50,21 +51,10 @@ export default function RankingEndOverlay({ emoji, title, subtitle, rows, won, l
                             </Animated.View>
                         ))}
                     </View>
+                    <GameHighlights items={highlights} players={players} me={me} gameType={gameType} delay={650 + rows.length * 380} compact={compact} />
                     <XpCounter xp={xpEarned} delay={650 + rows.length * 380} compact={compact} />
                 </ScrollView>
-                <View style={[styles.actions, compact && { marginTop: 8 }]}>
-                    {canReplay ? (
-                        <GameButton small title={tr("Rejouer")} icon="🔄" variant="gold" onPress={onReplay} style={{ flex: 1 }} />
-                    ) : (
-                        <View style={styles.waiting}>
-                            <Text style={styles.waitingText}>{tr("En attente de l'hôte…")}</Text>
-                        </View>
-                    )}
-                    <GameButton small title={tr("Quitter")} icon="🚪" variant="red" onPress={onQuit} style={{ flex: 1 }} />
-                </View>
-                {onChangeGame && (
-                    <GameButton small title={tr("Changer de jeu")} icon="🎲" variant="outline" onPress={onChangeGame} style={{ marginTop: 8, width: '100%' }} />
-                )}
+                <EndActions canReplay={canReplay} onReplay={onReplay} onQuit={onQuit} onChangeGame={onChangeGame} compact={compact} />
             </Animated.View>
         </Animated.View>
     );
