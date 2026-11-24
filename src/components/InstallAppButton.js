@@ -56,7 +56,7 @@ export default function InstallAppButton({ style }) {
     };
 
     return (
-        <PressableScale onPress={onPress} style={[styles.btn, style]}>
+        <PressableScale onPress={onPress} style={[styles.btn, style]} accessibilityLabel={t("Installer L'Carta")}>
             <Text style={styles.text}>{t("📲 Installer l'appli")}</Text>
         </PressableScale>
     );

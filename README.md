@@ -178,6 +178,9 @@ L'Carta se lance dans un salon vocal Discord : les amis du vocal jouent ensemble
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
 - **Android (Chrome)** : bouton **« 📲 Installer l'appli »** sur l'accueil, ou menu ⋮ → « Installer l'application ».
+- **Ordinateur (Chrome, Edge)** : le même bouton, dans la colonne de gauche de l'accueil (sous « Règles » et « Lien d'invitation »). Le jeu s'ouvre ensuite dans sa propre fenêtre, sans barre du navigateur.
+- Le bouton n'apparaît que si le navigateur accepte l'installation, et disparaît une fois le jeu installé.
+- **Fenêtre d'installation avec images** : `manifest.webmanifest` liste 4 captures (`public/screenshots/`, en WebP, 2 en large et 2 au format téléphone). Chrome les montre dans sa fenêtre d'installation. Pour les changer : refaire les captures (`npm run e2e`, dossier `e2e/.shots`), les convertir en WebP et garder la taille exacte annoncée dans `sizes`. Pas de capture avec un vrai pseudo.
 - **iPhone (Safari)** : Partager ⬆️ → « Sur l'écran d'accueil ». Le bouton de l'accueil l'explique.
 - Fichiers dans [public/](public/), copiés tels quels par `expo export` :
   - `index.html` (modèle de la page), `manifest.webmanifest`, `icons/` ;
@@ -658,6 +661,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `discord.e2e.js` : la page servie comme dans Discord (`…discordsays.com`, serveur par `/server`), SDK chargé seulement là.
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
+- `install.e2e.js` : bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.
 

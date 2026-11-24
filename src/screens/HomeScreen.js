@@ -605,6 +605,8 @@ export default function HomeScreen({ navigation, route }) {
                                 <PressableScale onPress={() => { setInviteCode(null); setShowInvite(true); }} style={styles.lxLink}><Text style={styles.lxLinkText}>{t("🔗 Lien d'invitation")}</Text></PressableScale>
                             )}
                         </View>
+                        {/* Ordinateur (Chrome, Edge) : installer le jeu comme une appli */}
+                        <InstallAppButton style={{ alignSelf: 'flex-start', marginTop: 8, paddingVertical: 6, paddingHorizontal: 14 }} />
                     </ScrollView>
 
                     {/* Centre : modes de jeu, tournois */}
