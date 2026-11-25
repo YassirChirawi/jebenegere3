@@ -1,3 +1,0 @@
-// Couleur des habits de chaque portrait (bas du médaillon), pour le corps provisoire des personnages.
-// Généré une fois depuis assets/avatars (36 portraits) ; à retirer quand les corps dessinés seront là.
-export const ROBE_COLORS = ["#AE7E50", "#98552F", "#AC7E52", "#653056", "#8F7644", "#67392D", "#8E5031", "#88251D", "#916345", "#372751", "#A22C16", "#A36B48", "#783014", "#823E21", "#6D2B05", "#674A32", "#5D392D", "#4C2F25", "#503324", "#704820", "#6E4729", "#24364B", "#5F2C10", "#59311E", "#734029", "#582517", "#780F09", "#9B702F", "#722B12", "#8E351F", "#844E2E", "#955537", "#773524", "#723657", "#6D3F34", "#A4614E"];

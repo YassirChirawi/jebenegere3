@@ -405,7 +405,6 @@ export default function KdoubScreen({ route, navigation }) {
                 position={pos === 'left' || pos === 'right' ? pos : 'top'}
                 compact={land && pos.startsWith('top')}
                 isInitialDeal={false}
-                timer={{ timeLeft, maxTime: inWindow ? 5 : 40 }}
             />
         );
     };

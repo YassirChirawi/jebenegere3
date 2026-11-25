@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import ReactionGlyph from './ReactionGlyph';
-import { View, Text, StyleSheet, Image, useWindowDimensions } from 'react-native';
+import { View, Text, StyleSheet, Image } from 'react-native';
 import Animated, {
     ZoomIn,
     FadeOut,
@@ -13,8 +13,6 @@ import Animated, {
     LinearTransition,
 } from 'react-native-reanimated';
 import PlayerAvatar from './PlayerAvatar';
-import Character, { hasCharacterArt } from './room/Character';
-import { useCosmetics, fx3dOn } from '../utils/cosmetics';
 import { CardBack } from './Card';
 import { theme } from './ui';
 import { t as tr } from '../i18n';
@@ -25,15 +23,9 @@ const MAX_VISIBLE = 10;
 /**
  * Siège d'un adversaire : avatar, nom, nombre de cartes, mini-main en éventail.
  * position : 'top' | 'left' | 'right'
- * Animations 3D activées (Réglages) : le joueur est assis à la table (Character, son avatar en buste),
- * avec l'anneau du minuteur autour de la tête quand c'est son tour (timer : { timeLeft, maxTime }).
  */
-export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact, badge, badgeColor, mood, timer }) {
+export default function OpponentSeat({ player, handSize, active, reaction, position = 'top', finished, isInitialDeal, isBot, compact, badge, badgeColor, mood }) {
     const vertical = position !== 'top';
-    const room = fx3dOn(useCosmetics());
-    // Taille du personnage selon l'écran : ~62 sur téléphone, jusqu'à 104 sur ordinateur
-    const { width: sw, height: sh } = useWindowDimensions();
-    const charSize = Math.round(Math.max(56, Math.min(104, Math.min(sw, sh) * 0.16)) * (compact ? 0.85 : 1));
 
     // Petit "bump" du compteur quand le nombre de cartes change
     const bump = useSharedValue(1);
@@ -51,11 +43,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
     return (
         <View style={[styles.seat, vertical && styles.seatVertical, compact && styles.seatCompact]}>
             <View style={styles.avatarWrap}>
-                {room ? (
-                    <Character player={player} size={charSize} active={active} mood={mood} timer={timer} />
-                ) : (
-                    <PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={vertical ? 44 : 46} active={active} mood={mood} />
-                )}
+                <PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={vertical ? 44 : 46} active={active} mood={mood} />
                 {active && <Image source={MINT} style={styles.mint} />}
                 {finished && (
                     <Animated.View entering={ZoomIn.springify()} style={styles.finishedBadge}>
@@ -74,11 +62,7 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
             </View>
 
             <View style={compact ? styles.compactInfo : styles.infoCol}>
-            <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive, room && hasCharacterArt(player) && styles.namePillMedal]}>
-                {/* Personnage dessiné : le portrait du Profil reste en médaillon à côté du pseudo */}
-                {room && hasCharacterArt(player) ? (
-                    <View style={styles.medal}><PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={18} mood={mood} /></View>
-                ) : null}
+            <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive]}>
                 <Text style={[styles.name, vertical && styles.nameVertical, active && styles.nameActive]} numberOfLines={1}>
                     {player?.name || '...'}
                 </Text>
@@ -197,15 +181,6 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(212,175,55,0.3)',
         maxWidth: 110,
     },
-    namePillMedal: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        gap: 4,
-        paddingLeft: 2,
-    },
-    medal: {
-        marginVertical: -2,
-    },
     namePillVertical: {
         maxWidth: 82,
         paddingHorizontal: 6,
@@ -218,7 +193,6 @@ const styles = StyleSheet.create({
         borderColor: theme.goldLight,
     },
     name: {
-        flexShrink: 1,
         color: theme.cream,
         fontSize: 12,
         fontWeight: '800',

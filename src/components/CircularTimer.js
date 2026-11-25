@@ -10,7 +10,8 @@ import Animated, {
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-export default function CircularTimer({ timeLeft, maxTime = 15, size = 60, strokeWidth = 6, showText = true }) {
+export default function CircularTimer({ timeLeft, maxTime = 15, size = 60 }) {
+    const strokeWidth = 6;
     const center = size / 2;
     const radius = center - strokeWidth / 2;
     const circumference = 2 * Math.PI * radius;
@@ -62,11 +63,11 @@ export default function CircularTimer({ timeLeft, maxTime = 15, size = 60, strok
                     />
                 </G>
             </Svg>
-            {showText && <View style={StyleSheet.absoluteFillObject}>
+            <View style={StyleSheet.absoluteFillObject}>
                 <View style={[styles.textContainer, { width: size, height: size }]}>
                     <Text style={[styles.timerText, { color: strokeColor, fontSize: Math.round(size * 0.38) }]}>{Math.max(0, timeLeft)}</Text>
                 </View>
-            </View>}
+            </View>
         </View>
     );
 }
