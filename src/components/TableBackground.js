@@ -3,7 +3,7 @@ import { View, Image, StyleSheet } from 'react-native';
 import Svg, { Defs, RadialGradient, Stop, Rect } from 'react-native-svg';
 import { theme } from './ui';
 import { useCosmetics, feltFor, tableFor, fx3dOn } from '../utils/cosmetics';
-import RoomBackdrop, { TABLE_TILT } from './room/RoomBackdrop';
+import RoomBackdrop, { tableTilt, TableFarEdge } from './room/RoomBackdrop';
 
 // Ambiance par jeu : couleur de la vignette (bords de l'écran)
 const MOOD = { hezz2: '#0B1A0E', ronda: '#1A0406', kdoub: '#1F0D04', sota: '#05030F' };
@@ -55,6 +55,7 @@ export default function TableBackground({ children, onSize, tint, game = 'hezz2'
     const table = skin || TABLES[game] || TABLES.hezz2;
     // Animations 3D : salle commune derrière, table inclinée en perspective (les cartes restent à plat, au-dessus)
     const room = fx3dOn(cos);
+    const tilt = room && size ? tableTilt(size.w, size.h) : null;
 
     let img = null;
     let zone = null;
@@ -95,12 +96,13 @@ export default function TableBackground({ children, onSize, tint, game = 'hezz2'
                 le plateau ne devienne jamais "défilable" sur le web */}
             <View style={[StyleSheet.absoluteFill, { overflow: 'hidden' }]} pointerEvents="none">
                 {room && size ? <RoomBackdrop w={size.w} h={size.h} game={game} /> : null}
-                <View style={[StyleSheet.absoluteFill, room && size && { overflow: 'hidden', transform: TABLE_TILT(size.h) }]} testID={room ? 'table-3d' : undefined}>
+                <View style={[StyleSheet.absoluteFill, tilt && { overflow: 'hidden', transform: tilt.transform }]} testID={room ? 'table-3d' : undefined}>
                     {img && <Image source={img.source} style={{ position: 'absolute', width: img.width, height: img.height, left: img.left, top: img.top }} resizeMode="stretch" />}
                     {tinted && zone && (
                         <View style={{ position: 'absolute', ...zone, backgroundColor: felt.color, opacity: felt.strength, mixBlendMode: 'color' }} />
                     )}
                 </View>
+                {tilt ? <TableFarEdge w={size.w} h={size.h} y={tilt.topEdge} game={game} /> : null}
                 {tint ? <View style={[StyleSheet.absoluteFill, { backgroundColor: tint }]} /> : null}
             </View>
             <Svg style={StyleSheet.absoluteFill} pointerEvents="none" width="100%" height="100%">

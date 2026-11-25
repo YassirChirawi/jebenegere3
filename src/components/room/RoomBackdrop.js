@@ -64,5 +64,43 @@ export default function RoomBackdrop({ w, h, game = 'hezz2' }) {
     );
 }
 
-// Inclinaison de la table (vue légèrement plongeante) : le haut part au loin, le bas vient vers le joueur
-export const TABLE_TILT = (h) => [{ perspective: 1200 }, { translateY: h * 0.05 }, { rotateX: '24deg' }, { scale: 1.06 }];
+// Inclinaison de la table (vue légèrement plongeante) : le haut part au loin, le bas vient vers le joueur.
+// La table est agrandie juste assez pour que son bord du fond reste plus large que l'écran (pas de coins
+// coupés en biais sur les côtés) ; topEdge : hauteur à l'écran de ce bord du fond, fondu dans le mur.
+const PERSPECTIVE = 1200;
+const TILT = 24;
+export function tableTilt(w, h) {
+    const rad = (TILT * Math.PI) / 180;
+    let scale = 1.06;
+    let f = 1;
+    for (let i = 0; i < 4; i += 1) {
+        f = PERSPECTIVE / (PERSPECTIVE + (scale * h / 2) * Math.sin(rad)); // rétrécissement du bord du fond
+        scale = Math.max(1.06, 1.04 / f);
+    }
+    const shiftY = h * 0.05;
+    const topEdge = h / 2 + shiftY - (scale * h / 2) * Math.cos(rad) * f;
+    return {
+        transform: [{ perspective: PERSPECTIVE }, { translateY: shiftY }, { rotateX: `${TILT}deg` }, { scale }],
+        topEdge,
+    };
+}
+
+/** Bord du fond de la table fondu dans le mur (au-dessus de la table, sous les cartes). */
+export function TableFarEdge({ w, h, y, game = 'hezz2' }) {
+    const [, bottom] = WALL[game] || WALL.hezz2;
+    const band = Math.max(40, h * 0.12);
+    return (
+        <View style={[StyleSheet.absoluteFill]} pointerEvents="none">
+            <Svg width={w} height={h}>
+                <Defs>
+                    <LinearGradient id="farEdge" x1="0" y1="0" x2="0" y2="1">
+                        <Stop offset="0" stopColor={bottom} stopOpacity="1" />
+                        <Stop offset="0.35" stopColor={bottom} stopOpacity="0.85" />
+                        <Stop offset="1" stopColor={bottom} stopOpacity="0" />
+                    </LinearGradient>
+                </Defs>
+                <Rect x="0" y={y - band * 0.3} width={w} height={band} fill="url(#farEdge)" />
+            </Svg>
+        </View>
+    );
+}
