@@ -40,6 +40,12 @@ CHARACTERS = {
         # Buste seul (tête comprise) : il bouge en entier, pas de clignement
         'sheet': 'c01-buste.png',
         'body': None,
+        # Mains sur des images à part : (fichier, boîte). rest : main posée à plat sur la table
+        'hands': {
+            'point': ('c01-mains-pointe.png', (100, 432, 572, 892)),
+            'rest': ('c01-mains-pointe.png', (596, 528, 1156, 888)),
+            'hold': ('c01-mains-carte.png', (72, 256, 604, 1068)),
+        },
     },
 }
 
@@ -106,7 +112,11 @@ def main():
             prev.alpha_composite(src.crop(c['head']).resize((hw, hh), Image.LANCZOS), (hx0 + ox, hy0 + oy))
             prev.save(os.path.join(SRC, f'apercu-c{idx:02d}.png'))
         for k, box in (c.get('hands') or {}).items():
-            save(trim(src.crop(box)), os.path.join(out, f'hand-{k}.webp'), 240)
+            img = src
+            if isinstance(box[0], str):  # (fichier, boîte)
+                img = clean(Image.open(os.path.join(SRC, box[0])).convert('RGBA'))
+                box = box[1]
+            save(trim(img.crop(box)), os.path.join(out, f'hand-{k}.webp'), 240)
         meta[idx] = entry
         print(f'c{idx:02d}', entry)
     with open(os.path.join(ROOT, 'src', 'components', 'room', 'characterArt.generated.json'), 'w', encoding='utf-8') as f:

@@ -5,7 +5,7 @@
  *   body       : buste assis dans une boîte largeur x 1,05 (avec la tête si le personnage n'a pas de tête séparée)
  *   head       : tête yeux ouverts, posée sur le buste dans la boîte headBox (fractions [x, y, largeur, hauteur]) ;
  *                elle bouge seule (pivot au cou) et cligne avec headBlink
- *   hands      : { open, hold, point } (lots 2 et 3)
+ *   hands      : { open, rest, hold, point } (lots 2 et 3) ; rest : main posée à plat sur la table
  *
  * Sans entrée : corps provisoire avec le portrait comme tête (Character.js). Le code d'animation est le même.
  */
@@ -29,6 +29,11 @@ export const CHARACTER_ART = {
     // Avatar 2 : femme au foulard bleu (buste seul, tête comprise : pas de clignement)
     1: {
         body: require('../../../assets/characters/c01/body.webp'),
+        hands: {
+            rest: require('../../../assets/characters/c01/hand-rest.webp'),
+            hold: require('../../../assets/characters/c01/hand-hold.webp'),
+            point: require('../../../assets/characters/c01/hand-point.webp'),
+        },
     },
 };
 
