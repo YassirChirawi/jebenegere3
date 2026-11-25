@@ -459,6 +459,7 @@ export default function GameScreen({ route, navigation }) {
                 compact={land && pos === 'top'}
                 finished={gameState.finishedPlayers?.includes(i)}
                 isInitialDeal={isInitialDeal}
+                timer={{ timeLeft, maxTime: gameState.pendingAction ? 5 : (gameState.afk?.[gameState.turn] || 0) >= 2 ? 8 : 15 }}
             />
         );
     };

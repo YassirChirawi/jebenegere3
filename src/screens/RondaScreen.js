@@ -680,6 +680,7 @@ export default function RondaScreen({ route, navigation }) {
                 badge={n === 4 ? (partner ? 'PARTENAIRE' : 'ADVERSAIRE') : i === state.dealer ? 'DONNEUR' : undefined}
                 badgeColor={n === 4 ? (partner ? theme.mint : '#F87171') : undefined}
                 isInitialDeal={false}
+                timer={{ timeLeft, maxTime: 15 }}
             />
             </Pressable>
         );

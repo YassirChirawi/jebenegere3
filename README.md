@@ -252,6 +252,28 @@ Adresse email de contact (`contactEmail`) : **yasschirawi11@gmail.com**, affich�
 - Appli : après la suppression, toutes les données de l'appareil sont effacées, le joueur est déconnecté et revient à l'accueil.
 - Serveur pas à jour : message clair (« la suppression du compte n'est pas disponible pour l'instant ; ton compte n'a pas été supprimé »), jamais d'écran vide.
 
+## Salle commune et personnages (Animations 3D)
+
+La table devient une salle où les joueurs sont assis ensemble. C'est de la 2,5D : des images et des animations Reanimated, sans moteur 3D. Tout est posé par-dessus les écrans des 4 jeux, sans les réécrire. Rien ne change dans les règles, le serveur, le binga ou les comptes.
+
+- **Réglage :** « 🎭 Animations 3D » dans Profil → Personnaliser → Réglages. Il est activé par défaut (`fx3d` dans `cosmetics`). Coupé, on retrouve la table à plat et les portraits ronds.
+- **Salle** ([src/components/room/RoomBackdrop.js](src/components/room/RoomBackdrop.js)) :
+  - mur chaud, trois fenêtres marocaines floutées, lampes et lumière chaude sur la table ;
+  - la table de chaque jeu, avec son tapis habituel, est inclinée en perspective (`TABLE_TILT`) ;
+  - les cartes restent à plat au-dessus, pour garder les touchers exacts.
+- **Personnages** ([src/components/room/Character.js](src/components/room/Character.js)) :
+  - chaque adversaire est assis avec **l'avatar choisi dans son Profil** (ou celui tiré de son pseudo, comme le portrait) ;
+  - il respire et cligne des yeux, et bouge la tête quand c'est son tour ;
+  - le joueur actif est éclairé (halo doré), les autres sont un peu dans l'ombre ;
+  - l'anneau du minuteur entoure sa tête (`CircularTimer`, sans le chiffre) ;
+  - la taille suit l'écran : environ 62 px sur téléphone, jusqu'à 104 px sur ordinateur.
+- **Dessins** ([src/components/room/characterArt.js](src/components/room/characterArt.js)) : un personnage par portrait, découpé en morceaux (corps, tête, tête yeux fermés, bras, mains) et fourni par Yassir. En attendant, un **corps provisoire** est dessiné, dans la couleur des habits du portrait (`robeColors.js`), avec le portrait comme tête. Le clignement ne se voit qu'avec la tête « yeux fermés ». Ajouter un personnage revient à remplir son entrée : le code d'animation ne change pas.
+- **Lots :**
+  1. salle et personnages (fait) ;
+  2. mains du joueur : éventail tenu, distribution en rafale, pose, pioche ;
+  3. mains des adversaires et effets magiques ;
+  4. performance et chargement progressif.
+
 ## Tables de jeu
 
 Une table par jeu, vue du dessus ([src/components/TableBackground.js](src/components/TableBackground.js)), images générées par IA (ChatGPT, offre payante) et préparées par `python scripts/build-tables.py <dossier>` (`assets/tables/`) :
@@ -671,6 +693,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
 - `end.e2e.js` : écran de fin de Hezz2 (téléphone et ordinateur) et de Ronda (temps forts, « Rejouer » en grand, Rejouer remet les temps forts à zéro).
+- `room.e2e.js` : salle et personnages dans les 4 jeux, sur téléphone et sur ordinateur (1920 x 999). Pour chaque partie : 3 adversaires assis, table inclinée, aucune erreur, au moins 30 images/s. Réglage coupé : table à plat.
 - `install.e2e.js` : grande fenêtre « Installe L'Carta » (1re visite, « Plus tard », pas avant 3 jours, de retour après 3 jours, « Installer »), version iPhone avec les 3 gestes, jamais dans Discord ; bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.

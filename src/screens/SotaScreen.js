@@ -345,6 +345,7 @@ export default function SotaScreen({ route, navigation }) {
                 badge={state.target === i && state.phase === 'play' ? (state.turn === me ? tr('TU PIOCHES ICI') : tr('CIBLE')) : (state.pairs[i].length > 1 ? tr('{n} paires', { n: state.pairs[i].length }) : tr('{n} paire', { n: state.pairs[i].length }))}
                 badgeColor={state.target === i && state.phase === 'play' ? '#FCD34D' : undefined}
                 isInitialDeal={false}
+                timer={{ timeLeft, maxTime: 30 }}
             />
         );
     };

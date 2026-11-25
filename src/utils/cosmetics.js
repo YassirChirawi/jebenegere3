@@ -113,7 +113,7 @@ export const isUnlocked = (unlock, xp) => (xp || 0) >= (UNLOCK[unlock]?.xp ?? 0)
 // boutique, coffre). key : 'back:menthe', 'effect:feu' ou 'felt:hezz2:tadelakt'
 export const itemUnlocked = (item, key, s = state) => (s.unlocks || []).includes(key) || isUnlocked(item.unlock, s.xp);
 
-let state = { back: 'classic', felts: {}, effect: 'drapeau', table: null, xp: 0, game: 'hezz2', vibration: true, loaded: false, unlocks: [] };
+let state = { back: 'classic', felts: {}, effect: 'drapeau', table: null, xp: 0, game: 'hezz2', vibration: true, fx3d: true, loaded: false, unlocks: [] };
 const listeners = new Set();
 const emit = () => listeners.forEach((fn) => fn(state));
 // Choix gardés aussi dans le compte (retrouvés après une réinstallation) : voir accountService
@@ -121,7 +121,7 @@ let syncHandler = null;
 export function setSyncHandler(fn) { syncHandler = fn; }
 const equipped = () => ({ back: state.back, effect: state.effect, felts: state.felts, ...(state.table ? { table: state.table } : {}) });
 const save = (sync = true) => {
-    AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, effect: state.effect, table: state.table, vibration: state.vibration })).catch(() => {});
+    AsyncStorage.setItem('cosmetics', JSON.stringify({ back: state.back, felts: state.felts, effect: state.effect, table: state.table, vibration: state.vibration, fx3d: state.fx3d })).catch(() => {});
     if (sync && syncHandler) syncHandler(equipped());
 };
 export const currentEquipped = equipped;
@@ -218,6 +218,14 @@ export function setVibration(on) {
     save(false);
     emit();
 }
+
+// Animations 3D (salle en perspective, personnages) : activées par défaut, désactivables pour les petits téléphones
+export function setFx3d(on) {
+    state = { ...state, fx3d: !!on };
+    save(false);
+    emit();
+}
+export const fx3dOn = (s = state) => s.fx3d !== false;
 
 // Jeu en cours (pour le dos "couleurs du jeu")
 export function setCurrentGame(game) {

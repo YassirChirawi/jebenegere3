@@ -7,7 +7,7 @@ import audioService from '../network/audioService';
 import { GAMES, GAME_ORDER } from '../games';
 import {
     BACKS, FELTS, EFFECTS, TABLE_SKINS, UNLOCK, itemUnlocked, useCosmetics, refreshXp,
-    setBack, setFelt, setEffect, setTable, setVibration, backPalette,
+    setBack, setFelt, setEffect, setTable, setVibration, setFx3d, backPalette,
 } from '../utils/cosmetics';
 import { t } from '../i18n';
 import LanguagePicker from './LanguagePicker';
@@ -148,6 +148,21 @@ export default function CustomizeSheet({ visible, onClose, onOpenLegal }) {
                                     onValueChange={(v) => { setVibration(v); if (v) haptic('double'); }}
                                     trackColor={{ true: theme.goldDark, false: '#444' }}
                                     thumbColor={cos.vibration !== false ? theme.gold : '#999'}
+                                />
+                            </View>
+                        )}
+                        {tab === 'settings' && (
+                            <View style={styles.settingRow}>
+                                <View style={{ flex: 1 }}>
+                                    <Text style={styles.itemLabel}>{t("🎭 Animations 3D")}</Text>
+                                    <Text style={styles.itemSub}>{t("Salle en perspective et joueurs assis autour de la table. À couper sur un petit téléphone : retour à la table à plat.")}</Text>
+                                </View>
+                                <Switch
+                                    value={cos.fx3d !== false}
+                                    onValueChange={(v) => setFx3d(v)}
+                                    accessibilityLabel={t("Animations 3D")}
+                                    trackColor={{ true: theme.goldDark, false: '#444' }}
+                                    thumbColor={cos.fx3d !== false ? theme.gold : '#999'}
                                 />
                             </View>
                         )}
