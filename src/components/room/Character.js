@@ -54,9 +54,13 @@ function PlaceholderBody({ w, h, color }) {
     );
 }
 
+/** Ce joueur a-t-il un personnage dessiné (sinon corps provisoire, avec le portrait comme tête) ? */
+export const hasCharacterArt = (player) => !!CHARACTER_ART[avatarIndex(player?.name, player?.avatar || 0)];
+
 export default function Character({ player, size = 64, active, mood, timer, dimmed = true }) {
     const idx = avatarIndex(player?.name, player?.avatar || 0);
     const art = CHARACTER_ART[idx];
+    const wholeBust = !!art?.body && !art?.head; // buste dessiné avec la tête : elle bouge avec le buste
     const a = { ...DEFAULT_ANCHOR, ...(art?.anchor || {}) };
     const W = size;
     const H = Math.round(size * 1.05);
@@ -100,7 +104,7 @@ export default function Character({ player, size = 64, active, mood, timer, dimm
     }, [active]);
 
     const bodyStyle = useAnimatedStyle(() => ({
-        transform: [{ translateY: -breath.value * 0.9 }, { scaleY: 1 + breath.value * 0.025 }],
+        transform: [{ translateY: -breath.value * 0.9 }, { scaleY: 1 + breath.value * 0.025 }, { rotate: `${wholeBust ? turn.value * 0.5 : 0}deg` }],
     }));
     const headStyle = useAnimatedStyle(() => ({
         transform: [{ translateY: -breath.value * 1.6 }, { rotate: `${turn.value}deg` }],
@@ -109,9 +113,16 @@ export default function Character({ player, size = 64, active, mood, timer, dimm
     const rootStyle = useAnimatedStyle(() => ({ opacity: dimmed ? 0.8 + lit.value * 0.2 : 1 }));
     const glowStyle = useAnimatedStyle(() => ({ opacity: lit.value * (0.55 + breath.value * 0.3) }));
 
-    const headLeft = W * a.headX - head / 2;
-    const headTop = H * a.headY - head / 2;
-    const ring = head + 12;
+    // Boîte de la tête : dessin découpé (headBox), sinon portrait rond du corps provisoire.
+    // Buste dessiné sans tête séparée : la tête fait partie du buste (on vise le haut du buste pour l'anneau).
+    const hb = art?.head && art.headBox
+        ? { left: art.headBox[0] * W, top: art.headBox[1] * H, width: art.headBox[2] * W, height: art.headBox[3] * H }
+        : art?.body
+            ? { left: W * 0.25, top: H * 0.02, width: W * 0.5, height: H * 0.5 }
+            : { left: W * a.headX - head / 2, top: H * a.headY - head / 2, width: head, height: head };
+    const ring = Math.round(Math.max(hb.width, hb.height) * (art ? 1.04 : 1) + (art ? 0 : 12));
+    const ringLeft = hb.left + hb.width / 2 - ring / 2;
+    const ringTop = hb.top + hb.height / 2 - ring / 2;
 
     return (
         <Animated.View style={[{ width: W, height: H }, rootStyle]} pointerEvents="none" accessibilityLabel="personnage">
@@ -137,21 +148,23 @@ export default function Character({ player, size = 64, active, mood, timer, dimm
                 )}
             </Animated.View>
 
-            {/* Tête (respire, bouge à son tour, cligne) */}
-            <Animated.View style={[styles.abs, { left: headLeft, top: headTop, width: head, height: head }, headStyle]}>
-                {art?.head ? (
-                    <>
-                        <Image source={art.head} style={{ width: head, height: head }} resizeMode="contain" />
-                        {art.headBlink ? <Animated.Image source={art.headBlink} style={[StyleSheet.absoluteFill, blinkStyle]} resizeMode="contain" /> : null}
-                    </>
-                ) : (
-                    <PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={head} mood={mood} />
-                )}
-            </Animated.View>
+            {/* Tête (respire, bouge à son tour en pivotant au cou, cligne) */}
+            {wholeBust ? null : (
+                <Animated.View style={[styles.abs, hb, { transformOrigin: 'bottom' }, headStyle]}>
+                    {art?.head ? (
+                        <>
+                            <Image source={art.head} style={{ width: hb.width, height: hb.height }} resizeMode="stretch" />
+                            {art.headBlink ? <Animated.Image source={art.headBlink} style={[StyleSheet.absoluteFill, { width: hb.width, height: hb.height }, blinkStyle]} resizeMode="stretch" /> : null}
+                        </>
+                    ) : (
+                        <PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={head} mood={mood} />
+                    )}
+                </Animated.View>
+            )}
 
             {/* Minuteur : anneau autour de la tête, qui se vide */}
             {active && timer ? (
-                <View style={[styles.abs, { left: W * a.headX - ring / 2, top: H * a.headY - ring / 2 }]}>
+                <View style={[styles.abs, { left: ringLeft, top: ringTop }]}>
                     <CircularTimer timeLeft={timer.timeLeft} maxTime={timer.maxTime} size={ring} strokeWidth={4} showText={false} />
                 </View>
             ) : null}

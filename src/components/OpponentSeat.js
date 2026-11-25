@@ -13,7 +13,7 @@ import Animated, {
     LinearTransition,
 } from 'react-native-reanimated';
 import PlayerAvatar from './PlayerAvatar';
-import Character from './room/Character';
+import Character, { hasCharacterArt } from './room/Character';
 import { useCosmetics, fx3dOn } from '../utils/cosmetics';
 import { CardBack } from './Card';
 import { theme } from './ui';
@@ -74,7 +74,11 @@ export default function OpponentSeat({ player, handSize, active, reaction, posit
             </View>
 
             <View style={compact ? styles.compactInfo : styles.infoCol}>
-            <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive]}>
+            <View style={[styles.namePill, vertical && styles.namePillVertical, active && styles.namePillActive, room && hasCharacterArt(player) && styles.namePillMedal]}>
+                {/* Personnage dessiné : le portrait du Profil reste en médaillon à côté du pseudo */}
+                {room && hasCharacterArt(player) ? (
+                    <View style={styles.medal}><PlayerAvatar name={player?.name} variant={player?.avatar || 0} size={18} mood={mood} /></View>
+                ) : null}
                 <Text style={[styles.name, vertical && styles.nameVertical, active && styles.nameActive]} numberOfLines={1}>
                     {player?.name || '...'}
                 </Text>
@@ -193,6 +197,15 @@ const styles = StyleSheet.create({
         borderColor: 'rgba(212,175,55,0.3)',
         maxWidth: 110,
     },
+    namePillMedal: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingLeft: 2,
+    },
+    medal: {
+        marginVertical: -2,
+    },
     namePillVertical: {
         maxWidth: 82,
         paddingHorizontal: 6,
@@ -205,6 +218,7 @@ const styles = StyleSheet.create({
         borderColor: theme.goldLight,
     },
     name: {
+        flexShrink: 1,
         color: theme.cream,
         fontSize: 12,
         fontWeight: '800',

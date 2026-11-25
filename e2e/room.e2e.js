@@ -44,6 +44,29 @@ const GAMES = [['Hezz2', '4 joueurs', 3], ['Ronda', '2 contre 2', 3], ['Kdoub', 
         }
     }
 
+    // Personnages dessinés : avatar 1 (homme au fez : tête séparée, clignement) et avatar 2 (femme au foulard : buste entier)
+    for (const [w, h, tag] of [[390, 844, 'tel'], [1920, 999, 'pc']]) {
+        const r = await t.app.progress.register({ name: `Dessin${tag}`, password: 'secret12' });
+        const p = await t.page(await t.context({ token: r.token, width: w, height: h }));
+        await startSolo(t, p, 'Hezz2', '4 joueurs');
+        const room = Object.values(t.app.rooms).find((x) => x.activePlayers.some((q) => q.name === `Dessin${tag}`));
+        const me = room.activePlayers.findIndex((q) => q.name === `Dessin${tag}`);
+        const prev = room.gameState;
+        const next = JSON.parse(JSON.stringify(prev));
+        const opp = [1, 2, 3].map((k) => (me + k) % 4);
+        // Les joueurs (pseudo, avatar) sont ajoutés à l'état envoyé par le serveur, depuis la salle
+        room.activePlayers[opp[0]].avatar = 1;
+        room.activePlayers[opp[1]].avatar = 2;
+        room.activePlayers[opp[2]].avatar = 1;
+        next.turn = opp[1];
+        t.app._commitState(room.id, prev, next);
+        await t.sleep(2500);
+        const imgs = await p.evaluate(() => [...document.querySelectorAll('img')].map((i) => i.src).filter((s) => /characters/.test(s) || /c0[01]/.test(s)).length);
+        c.check(`${tag} · personnages dessinés affichés (buste, tête, yeux fermés)`, imgs >= 5);
+        await p.screenshot({ path: path.join(t.OUT, `salle-dessins-${tag}.png`) });
+        await p.context().close();
+    }
+
     // Réglage coupé : table à plat et portraits ronds, comme avant
     const reg = await t.app.progress.register({ name: 'SalleOff', password: 'secret12' });
     const ctx = await t.context({ token: reg.token, width: 390, height: 844 });

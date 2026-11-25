@@ -1,27 +1,36 @@
 /**
- * Dessins des personnages en corps entier (fournis par Yassir, un par portrait du Profil).
- * Clé : numéro du portrait (0 à 35, comme assets/avatars/avatar_XX.webp).
+ * Dessins des personnages assis (fournis par Yassir, un par portrait du Profil), découpés par
+ * scripts/build-characters.py dans assets/characters/cXX/. Clé : numéro du portrait (0 à 35, comme avatar_XX.webp).
  *
- * Chaque entrée, quand les images arrivent (PNG détourés puis convertis en WebP par un script) :
- *   body       : corps assis, sans la tête ni les bras
- *   head       : tête, yeux ouverts
- *   headBlink  : même tête, yeux fermés (clignement)
- *   armL, armR : bras gauche et droit (épaule en haut, pour pivoter)
- *   hand       : { open, hold, point } (lots 2 et 3)
- *   anchor     : position de la tête et des épaules sur le corps (fractions), si différente de la valeur par défaut
+ *   body       : buste assis dans une boîte largeur x 1,05 (avec la tête si le personnage n'a pas de tête séparée)
+ *   head       : tête yeux ouverts, posée sur le buste dans la boîte headBox (fractions [x, y, largeur, hauteur]) ;
+ *                elle bouge seule (pivot au cou) et cligne avec headBlink
+ *   hands      : { open, hold, point } (lots 2 et 3)
  *
- * Tant qu'un portrait n'a pas d'entrée, Character dessine un corps provisoire avec le portrait comme tête :
- * le code d'animation est le même, seules les images changent.
+ * Sans entrée : corps provisoire avec le portrait comme tête (Character.js). Le code d'animation est le même.
  */
+import generated from './characterArt.generated.json';
+
+const box = (i) => generated[String(i)]?.head || null;
+
 export const CHARACTER_ART = {
-    // 0: {
-    //     body: require('../../../assets/characters/c00/body.webp'),
-    //     head: require('../../../assets/characters/c00/head.webp'),
-    //     headBlink: require('../../../assets/characters/c00/head-blink.webp'),
-    //     armL: require('../../../assets/characters/c00/arm-l.webp'),
-    //     armR: require('../../../assets/characters/c00/arm-r.webp'),
-    // },
+    // Avatar 1 : homme au fez (planche complète : buste, tête, yeux fermés, mains)
+    0: {
+        body: require('../../../assets/characters/c00/body.webp'),
+        head: require('../../../assets/characters/c00/head.webp'),
+        headBlink: require('../../../assets/characters/c00/head-blink.webp'),
+        headBox: box(0),
+        hands: {
+            open: require('../../../assets/characters/c00/hand-open.webp'),
+            hold: require('../../../assets/characters/c00/hand-hold.webp'),
+            point: require('../../../assets/characters/c00/hand-point.webp'),
+        },
+    },
+    // Avatar 2 : femme au foulard bleu (buste seul, tête comprise : pas de clignement)
+    1: {
+        body: require('../../../assets/characters/c01/body.webp'),
+    },
 };
 
-// Position par défaut des morceaux sur le corps (fractions de la boîte du personnage)
+// Position de la tête du corps provisoire (fractions de la boîte du personnage)
 export const DEFAULT_ANCHOR = { headX: 0.5, headY: 0.33, headSize: 0.64, shoulderY: 0.62 };
