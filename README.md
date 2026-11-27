@@ -187,6 +187,15 @@ Dans le salon privé, le gros bouton vert **« 💬 Inviter sur WhatsApp »** ou
 - `openWhatsApp` et `inviteMessage` dans [src/utils/invite.js](src/utils/invite.js). Ils utilisent `https://wa.me/?text=…`, qui marche partout : l'appli WhatsApp sur téléphone, WhatsApp Web ou l'appli de bureau sur ordinateur. S'il ne peut pas s'ouvrir, on revient au partage du téléphone.
 - « Copier le lien » et « Partager » restent en dessous. « Inviter un ami » (bleu) sert aux amis du jeu.
 
+## Pages de règles pour Google
+
+Des pages web en HTML simple, lisibles sans JavaScript (Google les lit directement), pour attirer ceux qui cherchent « règles de la Ronda » ou « jouer au Hezz2 en ligne » :
+- `/regles` (les 4 jeux), `/regles/hezz2`, `/regles/ronda`, `/regles/kdoub`, `/regles/sota-ghamla`. Chaque page a son titre et sa description pour Google, un lien canonique, l'aperçu du lien et un gros bouton **« Jouer à la Ronda maintenant »**, etc.
+- Le bouton ouvre le jeu avec ce jeu déjà choisi (`/?jeu=ronda`, lu par l'accueil, puis l'adresse redevient `/`).
+- `sitemap.xml` (accueil, règles, pages légales) et `robots.txt` (tout est permis). À déclarer une fois dans Google Search Console.
+- Tout est fait par `node scripts/build-rules-pages.js`. Le texte reprend les règles de l'appli (`src/components/RulesModal.js`) : **si une règle change, la changer aussi dans le script** et le relancer.
+- Réécritures `/regles` et `/regles/:jeu` dans [vercel.json](vercel.json).
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
@@ -684,7 +693,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
 - `end.e2e.js` : écran de fin de Hezz2 (téléphone et ordinateur) et de Ronda (temps forts, « Rejouer » en grand, Rejouer remet les temps forts à zéro).
-- `share.e2e.js` : aperçu du lien (balises Open Graph, image 1200 x 630 de moins de 300 Ko), bouton « Inviter sur WhatsApp » du salon qui ouvre wa.me avec le message et le lien direct du salon.
+- `share.e2e.js` : aperçu du lien (balises Open Graph, image 1200 x 630 de moins de 300 Ko), bouton « Inviter sur WhatsApp » du salon qui ouvre wa.me avec le message et le lien direct du salon, les 5 pages de règles (titre, description, canonique, bouton Jouer), sitemap et robots.txt, et le bouton « Jouer à la Ronda » qui ouvre le jeu sur la Ronda.
 - `install.e2e.js` : grande fenêtre « Installe L'Carta » (1re visite, « Plus tard », pas avant 3 jours, de retour après 3 jours, « Installer »), version iPhone avec les 3 gestes, jamais dans Discord ; bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.

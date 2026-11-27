@@ -39,6 +39,25 @@ const { setup, createChecker } = require('./helpers');
     const text = decodeURIComponent((opened.split('text=')[1] || ''));
     c.check('WhatsApp s\'ouvre avec le message et le lien direct du salon', /^https:\/\/wa\.me\/\?text=/.test(opened) && /\/salon\/[A-Z0-9]+/.test(text) && /L'Carta/.test(text));
 
+    // ---- Pages de règles pour Google (HTML sans JavaScript) + sitemap
+    const pages = { '/regles': 'Règles des jeux', '/regles/hezz2': 'Hezz2', '/regles/ronda': 'Ronda', '/regles/kdoub': 'Kdoub', '/regles/sota-ghamla': 'Sota Ghamla' };
+    for (const [url, name] of Object.entries(pages)) {
+        const h = await (await fetch(t.url + url)).text();
+        c.check(`${url} : page de règles avec titre, description, lien canonique et bouton Jouer`,
+            new RegExp(`<h1>[^<]*${name}`).test(h) && /<meta name="description"/.test(h) && /rel="canonical"/.test(h) && /class="play"/.test(h) && !/id="root"/.test(h));
+    }
+    const sitemap = await (await fetch(`${t.url}/sitemap.xml`)).text();
+    c.check('sitemap : les 4 pages de règles', ['hezz2', 'ronda', 'kdoub', 'sota-ghamla'].every((s) => sitemap.includes(`/regles/${s}<`)));
+    c.check('robots.txt : tout est permis, sitemap indiqué', /Allow: \//.test(await (await fetch(`${t.url}/robots.txt`)).text()));
+    // « Jouer à la Ronda » : le jeu s'ouvre avec la Ronda déjà choisie
+    const pr = await t.page(await t.context({ width: 390, height: 844 }));
+    await pr.goto(`${t.url}/regles/ronda`);
+    await pr.screenshot({ path: path.join(t.OUT, 'regles-ronda-tel.png'), fullPage: true });
+    await pr.locator('a.play').click();
+    await t.sleep(5000);
+    const chosen = await pr.evaluate(() => ({ game: localStorage.getItem('selectedGame'), path: location.pathname + location.search }));
+    c.check('bouton « Jouer à la Ronda » : la Ronda est choisie, adresse remise sur l\'accueil', chosen.game === 'ronda' && chosen.path === '/');
+
     await t.close();
     process.exit(c.ok ? 0 : 1);
 })().catch((e) => { console.error('ERREUR', e.message.split('\n')[0]); process.exit(1); });

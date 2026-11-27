@@ -62,6 +62,14 @@
       "destination": "/terms/index.html"
     },
     {
+      "source": "/regles",
+      "destination": "/regles/index.html"
+    },
+    {
+      "source": "/regles/:jeu",
+      "destination": "/regles/:jeu/index.html"
+    },
+    {
       "source": "/salon/:code",
       "destination": "/index.html"
     },

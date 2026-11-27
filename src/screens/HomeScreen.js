@@ -163,6 +163,15 @@ export default function HomeScreen({ navigation, route }) {
                 if (savedName) setName(savedName);
                 const savedGame = await AsyncStorage.getItem('selectedGame');
                 if (savedGame && GAMES[savedGame]?.available) setGame(savedGame);
+                // Arrivée depuis une page de règles (/?jeu=ronda) : ce jeu est déjà choisi
+                if (Platform.OS === 'web' && typeof window !== 'undefined') {
+                    const fromRules = (window.location.search.match(/[?&]jeu=([a-z0-9]+)/) || [])[1];
+                    if (fromRules && GAMES[fromRules]?.available) {
+                        setGame(fromRules);
+                        AsyncStorage.setItem('selectedGame', fromRules).catch(() => {});
+                        window.history.replaceState(null, '', '/');
+                    }
+                }
                 // Premier lancement : présentation guidée (elle remplace l'ouverture automatique des règles)
                 // (un joueur qui avait déjà vu les règles n'est pas un nouveau joueur : pas de présentation)
                 const onboarded = (await AsyncStorage.getItem('onboarded')) || (await AsyncStorage.getItem('rulesSeen'));

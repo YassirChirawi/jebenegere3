@@ -23,7 +23,7 @@ const CHROME = process.env.CHROME_PATH || (process.platform === 'win32'
     ? 'C:/Program Files/Google/Chrome/Application/chrome.exe'
     : process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' : '/usr/bin/google-chrome');
 const DISCORD_HOST = '1572975413687226451.discordsays.com';
-const TYPES = { '.js': 'application/javascript', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.json': 'application/json' };
+const TYPES = { '.js': 'application/javascript', '.html': 'text/html', '.png': 'image/png', '.jpg': 'image/jpeg', '.webp': 'image/webp', '.wav': 'audio/wav', '.mp3': 'audio/mpeg', '.json': 'application/json', '.xml': 'application/xml', '.txt': 'text/plain' };
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -50,6 +50,8 @@ async function setup() {
             return;
         }
         let f = path.join(WEB, decodeURIComponent(req.url.split('?')[0]));
+        // Dossier avec sa propre page (/privacy, /regles/ronda…) : comme les réécritures de vercel.json
+        if (fs.existsSync(f) && fs.statSync(f).isDirectory() && fs.existsSync(path.join(f, 'index.html'))) f = path.join(f, 'index.html');
         if (!fs.existsSync(f) || fs.statSync(f).isDirectory()) f = path.join(WEB, 'index.html');
         res.writeHead(200, { 'Content-Type': TYPES[path.extname(f)] || 'application/octet-stream' });
         fs.createReadStream(f).pipe(res);
