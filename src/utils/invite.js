@@ -1,5 +1,6 @@
 import { Platform, Share, Linking } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import { t } from '../i18n';
 
 /**
  * Invitation par lien : https://jebengere3.fun/salon/CODE
@@ -102,5 +103,27 @@ export async function shareInvite(code, gameLabel, opts = {}) {
     } catch (e) {
         // Partage annulé par le joueur : pas une erreur
         return e?.name === 'AbortError' ? 'shared' : 'failed';
+    }
+}
+
+/** Message d'invitation à un salon, avec le lien direct. */
+export const inviteMessage = (code, gameLabel) => t("Viens jouer au {p0} avec moi sur L'Carta 🃏 Clique ici et tu es dans ma partie : {p1}", { p0: gameLabel, p1: inviteUrl(code) });
+
+/**
+ * Ouvre WhatsApp avec le message déjà rempli (le joueur choisit juste à qui l'envoyer).
+ * wa.me marche partout : appli WhatsApp sur téléphone, WhatsApp Web ou l'appli de bureau sur ordinateur.
+ */
+export async function openWhatsApp(message) {
+    const url = `https://wa.me/?text=${encodeURIComponent(message)}`;
+    try {
+        if (web) {
+            const w = window.open(url, '_blank', 'noopener');
+            if (!w) window.location.href = url; // fenêtre bloquée : on y va dans l'onglet
+            return true;
+        }
+        await Linking.openURL(url);
+        return true;
+    } catch (e) {
+        return false;
     }
 }

@@ -10,7 +10,7 @@ import socketService from '../network/socketService';
 import audioService from '../network/audioService';
 import { useAccount } from '../network/accountService';
 import { getMine, remember, forget, GAME_LABEL, formatWhen, formatCountdown } from '../utils/tournaments';
-import { tournamentUrl, copyInvite, shareInvite } from '../utils/invite';
+import { tournamentUrl, copyInvite, shareInvite, openWhatsApp } from '../utils/invite';
 import { tournamentStyles as base } from './TournamentsScreen';
 import { LuxeBackdrop, ScreenHeader, BingaPill } from '../components/Luxe';
 import MenuShell, { Cols, useMenuLayout } from '../components/MenuShell';
@@ -128,10 +128,12 @@ export default function TournamentScreen({ route, navigation }) {
         setCopied(ok);
         if (ok) setTimeout(() => setCopied(false), 2500);
     };
+    const tournamentMessage = () => tr("Inscris-toi au tournoi « {p0} » ({p1}) sur L'Carta : {p2}", { p0: t?.name, p1: GAME_LABEL[t?.gameType], p2: tournamentUrl(id) });
+    const whatsapp = async () => { if (!(await openWhatsApp(tournamentMessage()))) share(); };
     const share = async () => {
         const res = await shareInvite(id, '', {
             url: tournamentUrl(id),
-            message: tr("Inscris-toi au tournoi « {p0} » ({p1}) sur L'Carta : {p2}", { p0: t?.name, p1: GAME_LABEL[t?.gameType], p2: tournamentUrl(id) }),
+            message: tournamentMessage(),
         });
         if (res === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
     };
@@ -243,6 +245,7 @@ export default function TournamentScreen({ route, navigation }) {
                     <View style={base.card}>
                         <Text style={base.label}>{tr("INVITE DES JOUEURS")}</Text>
                         <Text style={styles.link} selectable numberOfLines={1}>{tournamentUrl(id)}</Text>
+                        <GameButton title={tr("Inviter sur WhatsApp")} icon="💬" variant="green" onPress={whatsapp} style={{ alignSelf: 'stretch', marginTop: 10 }} />
                         <View style={{ flexDirection: 'row', gap: 10, marginTop: 10 }}>
                             <GameButton small title={copied ? tr('Lien copié ✓') : tr('Copier le lien')} icon="📋" variant="outline" onPress={copy} style={{ flex: 1 }} />
                             <GameButton small title={tr("Partager")} icon="📤" variant="blue" onPress={share} style={{ flex: 1 }} />

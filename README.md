@@ -181,6 +181,12 @@ Quand on colle `jebengere3.fun` (ou un lien d'invitation `…/salon/CODE`) dans 
 - Image : `public/og-image.jpg` (environ 240 Ko, moins de 300 Ko pour WhatsApp), faite par `python scripts/build-og-image.py` à partir de l'affiche (`assets/brand/affiche.jpg`) et du logo.
 - WhatsApp garde l'aperçu en cache plusieurs jours : après un changement d'image, le nouvel aperçu n'apparaît que pour les liens encore jamais partagés. Pour tester, ajoute `?v=2` au lien. Vérifier aussi avec le débogueur de partage de Facebook (developers.facebook.com/tools/debug).
 
+## Inviter sur WhatsApp en un clic
+
+Dans le salon privé, le gros bouton vert **« 💬 Inviter sur WhatsApp »** ouvre WhatsApp avec un message déjà rempli et le lien direct du salon (`jebengere3.fun/salon/CODE`) : le joueur n'a plus qu'à choisir le contact ou le groupe. Même bouton sur la page d'un tournoi ouvert.
+- `openWhatsApp` et `inviteMessage` dans [src/utils/invite.js](src/utils/invite.js). Ils utilisent `https://wa.me/?text=…`, qui marche partout : l'appli WhatsApp sur téléphone, WhatsApp Web ou l'appli de bureau sur ordinateur. S'il ne peut pas s'ouvrir, on revient au partage du téléphone.
+- « Copier le lien » et « Partager » restent en dessous. « Inviter un ami » (bleu) sert aux amis du jeu.
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
@@ -678,6 +684,7 @@ npm run e2e -- discord     # seulement les tests dont le nom contient « discord
 - `screens.e2e.js` : accueil, partie solo, chaque onglet de la barre du bas, classement, tournois, accueil en paysage. Les captures sont dans `e2e/.shots/`.
 - `wide.e2e.js` : chaque écran de menu sur ordinateur (colonne de navigation, toute la largeur), tablette en paysage et en portrait.
 - `end.e2e.js` : écran de fin de Hezz2 (téléphone et ordinateur) et de Ronda (temps forts, « Rejouer » en grand, Rejouer remet les temps forts à zéro).
+- `share.e2e.js` : aperçu du lien (balises Open Graph, image 1200 x 630 de moins de 300 Ko), bouton « Inviter sur WhatsApp » du salon qui ouvre wa.me avec le message et le lien direct du salon.
 - `install.e2e.js` : grande fenêtre « Installe L'Carta » (1re visite, « Plus tard », pas avant 3 jours, de retour après 3 jours, « Installer »), version iPhone avec les 3 gestes, jamais dans Discord ; bouton « Installer l'appli » sur ordinateur et téléphone (proposition du navigateur simulée), captures du fichier d'installation présentes à la bonne taille.
 - `wide-games.e2e.js` : les 4 jeux en solo sur ordinateur et tablette (table plein écran, agrandie), clic sur la pioche, salon privé en large.
 - Chrome doit être installé (autre chemin : variable `CHROME_PATH`). `playwright-core` ne télécharge aucun navigateur.

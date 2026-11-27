@@ -9,7 +9,7 @@ import { GameButton, IconButton, theme } from '../components/ui';
 import { dialog } from '../components/Dialog';
 import { gameInfo, GAMES, GAME_ORDER } from '../games';
 import { enterFullscreen } from '../utils/fullscreen';
-import { inviteUrl, copyInvite, shareInvite } from '../utils/invite';
+import { inviteUrl, copyInvite, shareInvite, openWhatsApp, inviteMessage } from '../utils/invite';
 import { inDiscord, discordInvite } from '../utils/discord';
 import friendsService, { useFriends } from '../network/friendsService';
 import { useAccount } from '../network/accountService';
@@ -111,6 +111,11 @@ ${inviteUrl(roomId)}`);
         if (r === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2500); }
         else if (r === 'failed') dialog.alert(t('Partage impossible'), `Envoie ce lien à tes amis :
 ${inviteUrl(roomId)}`);
+    };
+
+    const whatsapp = async () => {
+        const ok = await openWhatsApp(inviteMessage(roomId, gameInfo(room?.gameType || initialRoom?.gameType).label));
+        if (!ok) shareLink();
     };
 
     const handleLeave = () => {
@@ -216,7 +221,7 @@ ${inviteUrl(roomId)}`);
                     <Text style={styles.codeLabel}>{t("INVITE TES AMIS")}</Text>
                     {profile && (
                         <View style={styles.inviteBtns}>
-                            <GameButton small title={fr.friends.some((f) => f.online) ? t('Inviter un ami · {n} en ligne', { n: fr.friends.filter((f) => f.online).length }) : t('Inviter un ami')} icon="🤝" variant="green" onPress={() => { friendsService.refresh(); setInviteSheet(true); }} style={{ flex: 1 }} />
+                            <GameButton small title={fr.friends.some((f) => f.online) ? t('Inviter un ami · {n} en ligne', { n: fr.friends.filter((f) => f.online).length }) : t('Inviter un ami')} icon="🤝" variant="blue" onPress={() => { friendsService.refresh(); setInviteSheet(true); }} style={{ flex: 1 }} />
                         </View>
                     )}
                     {inDiscord ? (
@@ -230,10 +235,13 @@ ${inviteUrl(roomId)}`);
                         <>
                             <Text style={styles.link} selectable numberOfLines={1}>{inviteUrl(roomId).replace(/^https?:\/\//, '')}</Text>
                             <View style={styles.inviteBtns}>
+                                <GameButton title={t("Inviter sur WhatsApp")} icon="💬" variant="green" onPress={whatsapp} style={{ flex: 1 }} />
+                            </View>
+                            <View style={styles.inviteBtns}>
                                 <GameButton small title={copied ? t('Lien copié ✓') : t('Copier le lien')} icon="📋" variant="outline" onPress={copyLink} style={{ flex: 1 }} />
                                 <GameButton small title={t("Partager")} icon="📤" variant="gold" onPress={shareLink} style={{ flex: 1 }} />
                             </View>
-                            <Text style={styles.codeHint}>{t("Envoie le lien sur WhatsApp ou par SMS : un clic et ton ami est dans le salon. Les joueurs en plus regardent en spectateurs.")}</Text>
+                            <Text style={styles.codeHint}>{t("Ton ami touche le lien et il est directement dans le salon. Les joueurs en plus regardent en spectateurs.")}</Text>
                         </>
                     )}
                 </Animated.View>
