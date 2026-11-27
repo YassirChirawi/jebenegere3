@@ -174,6 +174,13 @@ L'Carta se lance dans un salon vocal Discord : les amis du vocal jouent ensemble
 - **Pas d'achats dans Discord** : Discord impose son propre système de paiement. Les diamants s'achètent sur le site, avec le même compte (voir « Diamants »).
 - **Tester :** activer le mode développeur dans Discord, puis lancer L'Carta depuis le lanceur d'Activities d'un salon vocal.
 
+## Aperçu du lien (WhatsApp, réseaux sociaux)
+
+Quand on colle `jebengere3.fun` (ou un lien d'invitation `…/salon/CODE`) dans WhatsApp, Facebook, X ou Discord, l'aperçu montre une image, un titre et une description.
+- Balises Open Graph et Twitter dans [public/index.html](public/index.html) : `og:title`, `og:description`, `og:image` (1200 x 630), `twitter:card`. La description courte vient de `app.json` (Expo l'ajoute à la page).
+- Image : `public/og-image.jpg` (environ 240 Ko, moins de 300 Ko pour WhatsApp), faite par `python scripts/build-og-image.py` à partir de l'affiche (`assets/brand/affiche.jpg`) et du logo.
+- WhatsApp garde l'aperçu en cache plusieurs jours : après un changement d'image, le nouvel aperçu n'apparaît que pour les liens encore jamais partagés. Pour tester, ajoute `?v=2` au lien. Vérifier aussi avec le débogueur de partage de Facebook (developers.facebook.com/tools/debug).
+
 ## Appli installable (PWA) et site (Vercel)
 
 Le site est une **appli installable** : icône sur l'écran d'accueil, plein écran, démarrage rapide.
